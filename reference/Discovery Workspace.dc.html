@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Interview Synthesis · Harrington Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="harrington/tools.css">
+<script src="discovery-data.js"></script>
+<style>
+  body { margin: 0; }
+  a { color: var(--color-accent); }
+  a:hover { color: var(--color-accent-hover); }
+  input[type=checkbox] { accent-color: var(--color-accent); width: 14px; height: 14px; }
+  select.input { appearance: none; padding-right: 26px; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
+
+  <sc-if value="{{ needsAuth }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));min-height:100vh">
+    <div style="background:var(--color-navy);color:#FFFFFF;padding:var(--space-8) var(--space-6);display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-8)">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <span class="hdc-brand" style="font-size:21px;color:#FFFFFF">Harrington Data <span style="color:#8FD3BF">Co</span></span>
+        <span style="font-size:12px;font-weight:600;color:var(--color-navy-muted)">tools.harringtondata.com</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);max-width:36ch">
+        <span style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8FD3BF">Interview Synthesis</span>
+        <h1 style="font-size:clamp(32px,3.6vw,44px);font-weight:800;letter-spacing:-0.03em;line-height:1.08;margin:0;color:#FFFFFF">Every finding keeps its source line.</h1>
+        <p style="font-size:15px;line-height:1.65;margin:0;color:var(--color-navy-muted);text-wrap:pretty">Transcripts are ingested once and never altered. Everything built on top of them — codes, notes, themes, the deliverable — is a working document: editable, attributed, reversible.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;line-height:1.5;color:var(--color-navy-muted)">
+        <span style="font-weight:600;color:#FFFFFF">One Harrington account for every tool here.</span>
+        <span>Interview Synthesis is the first. The next tools use the same sign-in, roles and audit trail.</span>
+      </div>
+    </div>
+    <div style="display:grid;place-items:center;padding:var(--space-8) var(--space-6)">
+      <div class="panel" style="width:min(420px,100%);padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-4)">
+        <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+          <span class="tag tag-accent" style="align-self:flex-start">Internal access only</span>
+          <h2 style="font-size:28px;margin:4px 0 0">Sign in to Harrington Tools</h2>
+          <p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--color-muted)">For <strong style="color:var(--color-navy)">@harringtondata.com</strong> accounts. Client access comes later, with multi-user.</p>
+        </div>
+        <button onClick="{{ ssoIn }}" class="btn btn-primary" style="justify-content:center">
+          Continue with Google Workspace
+        </button>
+        <div style="display:flex;align-items:center;gap:var(--space-3)">
+          <span style="flex:1;height:1px;background:var(--color-divider)"></span>
+          <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent)">or email</span>
+          <span style="flex:1;height:1px;background:var(--color-divider)"></span>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:5px">
+          <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 55%, transparent)">Work email</span>
+          <input class="input" value="{{ email }}" onChange="{{ setEmail }}" placeholder="you@harringtondata.com">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px">
+          <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 55%, transparent)">Password</span>
+          <input class="input" type="password" value="••••••••••" readonly="{{ true }}">
+        </label>
+        <sc-if value="{{ hasAuthErr }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:var(--space-2) var(--space-3);border:1px solid var(--color-accent-600);background:var(--color-accent-100);font-size:12px;line-height:1.45;color:var(--color-navy)">{{ authErr }}</div>
+        </sc-if>
+        <button onClick="{{ signIn }}" class="btn btn-primary btn-block" style="justify-content:center">Sign in</button>
+        <div style="display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--color-divider)">
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-navy)">Demo accounts — pick one to see its permissions</span>
+          <sc-for list="{{ seatOpts }}" as="s" hint-placeholder-count="3">
+            <div onClick="{{ s.pick }}" style="display:grid;grid-template-columns:28px 1fr auto;gap:var(--space-3);align-items:center;padding:6px 8px;cursor:pointer;border:1px solid {{ s.border }};background:{{ s.bg }}" style-hover="border-color:var(--color-accent)">
+              <span style="width:28px;height:28px;border-radius:999px;display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.04em;background:{{ s.avBg }};color:{{ s.avFg }}">{{ s.initials }}</span>
+              <div style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:13px">{{ s.name }}</span>
+                <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ s.title }}</span>
+              </div>
+              <span class="tag {{ s.tagClass }}">{{ s.role }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:0;font-size:11px;line-height:1.5;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Your account is for the whole subdomain. Roles are set per tool, so an Owner here can be a Viewer in the next tool. Every record already stores who made it.</p>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ authed }}" hint-placeholder-val="{{ true }}">
+  <header style="border-bottom:1px solid var(--line-3);position:sticky;top:0;z-index:20;background:var(--color-bg)">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-6);padding:var(--space-3) var(--space-6)">
+      <div style="display:flex;align-items:center;gap:var(--space-3);position:relative">
+        <a href="#" class="hdc-brand" style="font-size:18px">Harrington <span>Tools</span></a>
+        <span style="width:1px;height:22px;background:var(--line-6)"></span>
+        <button onClick="{{ toggleTools }}" class="btn" style="font-size:14px;font-weight:700;letter-spacing:-0.01em;padding:6px 8px;gap:7px">
+          Interview Synthesis
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{ toolsOpen }}" hint-placeholder-val="{{ false }}">
+          <div class="panel" style="position:absolute;top:calc(100% + 12px);left:0;width:300px;padding:8px;display:flex;flex-direction:column;gap:2px;z-index:45;box-shadow:var(--shadow-lg)">
+            <div style="display:flex;gap:12px;padding:12px;border-radius:4px;background:var(--color-accent-tint-soft)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.75" style="flex:none;margin-top:1px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:14px;font-weight:700;color:var(--color-navy)">Interview Synthesis</span>
+                <span style="font-size:12.5px;line-height:1.45;color:var(--color-muted)">Transcripts to coded notes to client deliverables</span>
+              </div>
+            </div>
+            <div style="padding:10px 12px 8px;font-size:12px;line-height:1.5;color:var(--color-muted);border-top:1px solid var(--line-2);margin-top:6px">More tools will land at tools.harringtondata.com, under the same account.</div>
+          </div>
+        </sc-if>
+      </div>
+      <nav style="display:flex;gap:2px">
+        <sc-for list="{{ views }}" as="v" hint-placeholder-count="3">
+          <button onClick="{{ v.pick }}" class="btn" style="font-size:14px;font-weight:{{ v.weight }};color:{{ v.fg }};background:{{ v.bg }};padding:7px 12px">{{ v.label }} <span style="font-size:11.5px;font-weight:600;color:var(--color-muted)">{{ v.count }}</span></button>
+        </sc-for>
+      </nav>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;margin-left:auto">
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-muted)">Client</span>
+        <select class="input" style="width:auto;min-width:160px" value="{{ clientId }}" onChange="{{ setClient }}">
+          <sc-for list="{{ clientOpts }}" as="c" hint-placeholder-count="3"><option value="{{ c.id }}">{{ c.name }}</option></sc-for>
+        </select>
+        <span style="opacity:.4">▸</span>
+        <select class="input" style="width:auto;min-width:200px" value="{{ projectId }}" onChange="{{ setProject }}">
+          <sc-for list="{{ projectOpts }}" as="p" hint-placeholder-count="2"><option value="{{ p.id }}">{{ p.name }}</option></sc-for>
+        </select>
+        <span class="tag tag-accent" style="margin-left:var(--space-2)">{{ projectState }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--space-3);padding-left:var(--space-4);border-left:1px solid var(--color-divider);position:relative">
+        <div onClick="{{ openMembers }}" style="display:flex;cursor:pointer;padding-left:7px">
+          <sc-for list="{{ presence }}" as="u" hint-placeholder-count="2">
+            <span title="{{ u.title }}" style="width:26px;height:26px;border-radius:999px;margin-left:-7px;display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:10.5px;letter-spacing:0.04em;border:1px solid var(--color-bg);background:{{ u.bg }};color:{{ u.fg }}">{{ u.initials }}</span>
+          </sc-for>
+        </div>
+        <button onClick="{{ toggleAcct }}" class="btn" style="display:flex;align-items:center;gap:var(--space-2);font-size:12px;border-color:{{ acctBorder }}">
+          <span style="font-family:var(--font-heading);font-weight:700;letter-spacing:0.04em">{{ meName }}</span>
+          <span class="tag {{ meTagClass }}" style="font-size:9.5px">{{ meRole }}</span>
+        </button>
+        <sc-if value="{{ acctOpen }}" hint-placeholder-val="{{ false }}">
+          <div class="panel" style="position:absolute;top:calc(100% + 10px);right:0;width:288px;background:var(--color-bg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);z-index:40;box-shadow:var(--shadow-lg)">
+            <div style="display:grid;grid-template-columns:34px 1fr;gap:var(--space-3);align-items:center">
+              <span style="width:34px;height:34px;border-radius:999px;display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:13px;background:var(--color-navy);color:#FFFFFF">{{ meInitials }}</span>
+              <div style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:13.5px">{{ meName }}</span>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 55%, transparent);overflow:hidden;text-overflow:ellipsis">{{ meEmail }}</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;padding:var(--space-2) var(--space-3);border:1px solid var(--color-divider)">
+              <div style="display:flex;justify-content:space-between;gap:var(--space-3);font-size:11.5px"><span style="color:color-mix(in srgb, var(--color-text) 58%, transparent)">Role</span><span>{{ meRole }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--space-3);font-size:11.5px"><span style="color:color-mix(in srgb, var(--color-text) 58%, transparent)">Account</span><span>Harrington · all tools</span></div>
+              <span style="font-size:11px;line-height:1.45;color:color-mix(in srgb, var(--color-text) 60%, transparent)">{{ meCan }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <button onClick="{{ openMembers }}" class="btn btn-ghost" style="justify-content:flex-start;font-size:12px">Members &amp; activity</button>
+              <button onClick="{{ signOut }}" class="btn btn-ghost" style="justify-content:flex-start;font-size:12px">Switch seat / sign out</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+  <sc-if value="{{ readOnly }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:7px var(--space-6);background:var(--color-accent-200);border-bottom:1px solid var(--color-accent-400)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy)" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      <span style="font-family:var(--font-heading);font-weight:700;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--color-navy)">Read-only session</span>
+      <span style="font-size:12px;color:var(--color-navy)">You hold a Viewer seat: trace any claim to its source, change nothing. Ask an owner for an Editor seat.</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ notReady }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:grid;place-items:center;padding:var(--space-8)">
+      <span style="font-family:var(--font-heading);font-weight:700;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent)">Loading corpus…</span>
+    </div>
+  </sc-if>
+
+  <!-- ═══════════════════ SOURCES ═══════════════════ -->
+  <sc-if value="{{ isSources }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:flex;flex-direction:column;gap:var(--space-8);padding:var(--space-8) var(--space-6);max-width:1700px;width:100%;margin:0 auto">
+
+    <section style="display:flex;flex-direction:column;gap:var(--space-4)">
+      <div style="display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+        <span style="font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:0.12em;color:var(--color-accent-700)">STAGE 00</span>
+        <h2 style="font-size:28px;margin:0">Where transcripts come from</h2>
+        <p style="font-size:13px;margin:0;max-width:52ch;color:color-mix(in srgb, var(--color-text) 65%, transparent);text-wrap:pretty">Connect once; transcripts land in the library unassigned. Nothing enters a project until you put it there — that boundary is what keeps a client's corpus defensible.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:var(--space-4)">
+        <sc-for list="{{ connectors }}" as="k" hint-placeholder-count="6">
+          <div class="card" style="gap:var(--space-2);background:{{ k.bg }}">
+            <div style="display:flex;align-items:center;gap:var(--space-2)">
+              <span style="width:22px;height:22px;border:1px solid var(--color-accent-400);display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:11px;color:var(--color-accent-700)">{{ k.mark }}</span>
+              <span class="card-title" style="font-size:15px">{{ k.name }}</span>
+            </div>
+            <span style="font-size:11.5px;color:color-mix(in srgb, var(--color-text) 58%, transparent)">{{ k.detail }}</span>
+            <div style="display:flex;align-items:baseline;gap:var(--space-2);margin-top:auto;padding-top:var(--space-2)">
+              <span class="tag {{ k.tagClass }}">{{ k.stateLabel }}</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;margin-left:auto;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ k.meta }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:var(--space-3)">
+      <div style="display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+        <h3 style="font-size:19px;margin:0">Transcript library</h3>
+        <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ libSummary }}</span>
+        <div style="display:flex;gap:var(--space-2);margin-left:auto;flex-wrap:wrap">
+          <sc-for list="{{ libFilters }}" as="f" hint-placeholder-count="4">
+            <button onClick="{{ f.pick }}" class="btn" style="font-size:11px;letter-spacing:0.06em;padding:3px 9px;background:{{ f.bg }};color:{{ f.fg }};border-color:{{ f.border }}">{{ f.label }} <span style="opacity:.6;margin-left:5px">{{ f.count }}</span></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-2) 0">
+        <span style="font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Group by</span>
+        <div class="seg">
+          <sc-for list="{{ libFacetTabs }}" as="ft" hint-placeholder-count="2">
+            <label class="seg-opt"><input type="radio" name="libfacet" checked="{{ ft.on }}" onChange="{{ ft.pick }}" style="position:absolute;opacity:0;pointer-events:none"><span>{{ ft.name }}</span></label>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <sc-for list="{{ libLabelFilters }}" as="lf" hint-placeholder-count="4">
+            <button onClick="{{ lf.pick }}" class="btn" style="font-size:11px;letter-spacing:0.04em;padding:3px 9px;background:{{ lf.bg }};color:{{ lf.fg }};border-color:{{ lf.border }}">{{ lf.label }} <span style="opacity:.6;margin-left:5px">{{ lf.count }}</span></button>
+          </sc-for>
+        </div>
+        <span style="margin-left:auto;font-size:11.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ labelNote }}</span>
+      </div>
+
+      <sc-if value="{{ hasPicked }}" hint-placeholder-val="{{ false }}">
+        <div class="panel" style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--color-navy);color:#FFFFFF">
+          <span style="font-family:var(--font-heading);font-weight:700;font-size:14px">{{ pickedCount }} selected</span>
+          <span style="font-size:11.5px;opacity:.7">→ assign to {{ projectLabel }}</span>
+          <div style="display:flex;gap:var(--space-2);margin-left:auto;flex-wrap:wrap">
+            <button class="btn" style="font-size:12px;color:#FFFFFF;border-color:rgba(242,242,243,.35)" style-hover="background:rgba(242,242,243,.12)">Assign to project</button>
+            <button class="btn" style="font-size:12px;color:#FFFFFF;border-color:rgba(242,242,243,.35)" style-hover="background:rgba(242,242,243,.12)">Apply note template ▾</button>
+            <select class="input" value="{{ bulkLabel }}" onChange="{{ applyBulkLabel }}" style="width:auto;background:transparent;color:#FFFFFF;border-color:rgba(242,242,243,.35);font-size:12px">
+              <option value="">Label {{ pickedCount }} as…</option>
+              <sc-for list="{{ bulkLabelOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+            </select>
+            <button class="btn btn-primary" style="font-size:12px">Run coding pass on {{ pickedCount }}</button>
+            <button onClick="{{ clearPicked }}" class="btn" style="font-size:12px;color:#FFFFFF;border-color:rgba(242,242,243,.35)" style-hover="background:rgba(242,242,243,.12)">Clear</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <div class="panel" style="padding:var(--space-4);overflow-x:auto">
+        <table class="table" style="min-width:860px">
+          <thead><tr>
+            <th style="width:34px"></th><th style="width:52px">ID</th><th>Transcript</th><th>Participant</th><th>Source</th><th>Date</th><th>Len</th><th>Labels</th><th>Project</th><th>Coding</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ library }}" as="r" hint-placeholder-count="8">
+              <tr style="background:{{ r.bg }}">
+                <td><input type="checkbox" checked="{{ r.on }}" onChange="{{ r.tog }}"></td>
+                <td style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-accent-700)">{{ r.id }}</td>
+                <td style="font-size:13px"><span style="display:inline-flex;align-items:center;gap:7px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none;opacity:.42"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>{{ r.title }}</span></td>
+                <td style="font-size:12.5px;color:color-mix(in srgb, var(--color-text) 70%, transparent)">{{ r.who }}</td>
+                <td style="font-size:11.5px">{{ r.srcName }}</td>
+                <td style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{{ r.date }}</td>
+                <td style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{{ r.mins }}m</td>
+                <td>
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center">
+                    <sc-for list="{{ r.labels }}" as="lb" hint-placeholder-count="2">
+                      <span style="font-size:9.5px;letter-spacing:0.06em;text-transform:uppercase;padding:1px 6px;border:1px solid var(--color-accent-400);color:var(--color-accent-800);white-space:nowrap">{{ lb }}</span>
+                    </sc-for>
+                    <sc-if value="{{ r.noLabels }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 35%, transparent)">unlabelled</span>
+                    </sc-if>
+                  </div>
+                </td>
+                <td style="font-size:11.5px;color:{{ r.projColor }}">{{ r.project }}</td>
+                <td><span class="tag {{ r.tagClass }}">{{ r.statusLabel }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-3) var(--space-6);align-items:baseline">
+        <p style="font-size:12px;margin:0;max-width:52ch;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Not every meeting is research. The library's job at 30 transcripts is to let you reject most of them quickly — unassigned rows never touch a corpus.</p>
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-accent-800)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-800)" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Transcript bodies are write-protected the moment they land. Title, participant and project assignment are metadata — those stay editable.</span>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <!-- ═══════════════════ TEMPLATES ═══════════════════ -->
+  <sc-if value="{{ isTemplates }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:flex;flex-direction:column;gap:var(--space-6);padding:var(--space-8) var(--space-6);max-width:1700px;width:100%;margin:0 auto">
+    <div style="display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+      <h2 style="font-size:28px;margin:0">Templates &amp; labels</h2>
+      <div class="seg">
+        <label class="seg-opt"><input type="radio" name="tplkind" checked="{{ isArtTpl }}" onChange="{{ pickArtTpl }}" style="position:absolute;opacity:0;pointer-events:none"><span>Note templates · stage 03</span></label>
+        <label class="seg-opt"><input type="radio" name="tplkind" checked="{{ isProdTpl }}" onChange="{{ pickProdTpl }}" style="position:absolute;opacity:0;pointer-events:none"><span>Product templates · stage 04</span></label>
+        <label class="seg-opt"><input type="radio" name="tplkind" checked="{{ isLabelTpl }}" onChange="{{ pickLabelTpl }}" style="position:absolute;opacity:0;pointer-events:none"><span>Interview labels · this project</span></label>
+      </div>
+      <p style="font-size:13px;margin:0;max-width:50ch;color:color-mix(in srgb, var(--color-text) 65%, transparent);text-wrap:pretty">{{ tplBlurb }}</p>
+    </div>
+
+    <sc-if value="{{ isTplList }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--space-6);align-items:start">
+      <section style="display:flex;flex-direction:column;gap:var(--space-3);min-width:0">
+        <sc-for list="{{ templates }}" as="t" hint-placeholder-count="4">
+          <div onClick="{{ t.pick }}" class="card" style="gap:var(--space-2);cursor:pointer;background:{{ t.bg }};border-color:{{ t.border }}" style-hover="border-color:var(--color-accent)">
+            <div style="display:flex;align-items:center;gap:var(--space-2)">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;padding:2px 6px;background:{{ t.chipBg }};color:{{ t.chipFg }}">{{ t.id }}</span>
+              <span class="card-title" style="font-size:15px">{{ t.name }}</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap">
+              <span style="font-size:11.5px;color:color-mix(in srgb, var(--color-text) 58%, transparent)">{{ t.scope }}</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;margin-left:auto;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ t.meta }}</span>
+            </div>
+          </div>
+        </sc-for>
+        <button class="btn btn-secondary" style="font-size:12px;align-self:flex-start;margin-top:var(--space-2)">+ New template</button>
+      </section>
+
+      <section class="panel" style="padding:var(--space-6);min-width:0;background:var(--color-surface)">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-3);padding-bottom:var(--space-3);border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-4)">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--color-accent-700)">{{ tplSelId }}</span>
+          <h3 style="font-size:22px;margin:0">{{ tplSelName }}</h3>
+          <div style="display:flex;gap:var(--space-2);margin-left:auto;flex-wrap:wrap">
+            <button class="btn btn-secondary" style="font-size:11.5px">Duplicate</button>
+            <button class="btn btn-secondary" style="font-size:11.5px">Assign to project ▾</button>
+          </div>
+        </div>
+        <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Section schema — order is the output order</span>
+        <div style="display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-3)">
+          <sc-for list="{{ tplSections }}" as="s" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:24px 1fr;gap:var(--space-3);align-items:start;padding:var(--space-2) var(--space-3);border:1px solid var(--color-divider)">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 40%, transparent);padding-top:6px">{{ s.n }}</span>
+              <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                <input class="input" value="{{ s.name }}" readonly="{{ true }}" style="font-family:var(--font-heading);font-weight:700;font-size:15px;background:transparent;border-color:transparent;padding:2px 4px" style-hover="border-color:var(--color-divider)">
+                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding-left:4px">
+                  <span style="font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent)">Fills from</span>
+                  <sc-for list="{{ s.reqs }}" as="q" hint-placeholder-count="2">
+                    <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;padding:1px 5px;border:1px solid var(--color-accent-400);color:var(--color-accent-800)">{{ q }}</span>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ s.hasNote }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:11.5px;padding-left:4px;color:color-mix(in srgb, var(--color-text) 58%, transparent)">{{ s.note }}</span>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+          <button class="btn btn-ghost" style="font-size:12px;align-self:flex-start">+ Add section</button>
+        </div>
+        <div style="margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-2)">
+          <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Assigned to</span>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+            <sc-for list="{{ tplAssigned }}" as="a" hint-placeholder-count="2">
+              <span class="tag tag-outline">{{ a }}</span>
+            </sc-for>
+          </div>
+          <p style="margin:var(--space-2) 0 0;font-size:11.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">A template change re-renders every artifact in the projects it's assigned to — the codes don't move, only the slots they fall into.</p>
+        </div>
+      </section>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isLabelTpl }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+      <p style="margin:0;max-width:64ch;font-size:13px;line-height:1.6;color:color-mix(in srgb, var(--color-text) 70%, transparent);text-wrap:pretty">Labels belong to the project, not the tool. A logistics study groups people by department and level; a hospital study groups by unit and shift. Add the axes this project actually reasons about — they drive the library filters and the corpus matrix.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:var(--space-4);align-items:start">
+        <sc-for list="{{ facetCards }}" as="fc" hint-placeholder-count="2">
+          <div class="card" style="gap:var(--space-3)">
+            <div style="display:flex;align-items:baseline;gap:var(--space-2)">
+              <span class="card-title" style="font-size:16px">{{ fc.name }}</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 45%, transparent)">{{ fc.key }}</span>
+              <sc-if value="{{ fc.canEdit }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ fc.remove }}" class="btn btn-ghost" style="font-size:10.5px;padding:2px 7px;margin-left:auto">Remove axis</button>
+              </sc-if>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+              <sc-for list="{{ fc.opts }}" as="o" hint-placeholder-count="3">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:2px 7px;border:1px solid var(--color-accent-400);color:var(--color-accent-800)">
+                  {{ o.name }}<span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;opacity:.7">{{ o.count }}</span>
+                  <sc-if value="{{ o.canEdit }}" hint-placeholder-val="{{ false }}">
+                    <span onClick="{{ o.remove }}" style="cursor:pointer;opacity:.6;font-size:12px;line-height:1">×</span>
+                  </sc-if>
+                </span>
+              </sc-for>
+            </div>
+            <sc-if value="{{ fc.canEdit }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:var(--space-2)">
+                <input class="input" style="flex:1;font-size:12px" placeholder="Add a value" value="{{ fc.draft }}" onChange="{{ fc.setDraft }}">
+                <button onClick="{{ fc.add }}" class="btn btn-secondary" style="font-size:11.5px">Add</button>
+              </div>
+            </sc-if>
+            <span style="font-size:11.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ fc.coverage }}</span>
+          </div>
+        </sc-for>
+        <div class="card" style="gap:var(--space-3);border-style:dashed">
+          <span class="card-title" style="font-size:16px">New axis</span>
+          <span style="font-size:11.5px;color:color-mix(in srgb, var(--color-text) 58%, transparent)">Something you'd want to slice findings by later — region, tenure, contract type.</span>
+          <div style="display:flex;gap:var(--space-2)">
+            <input class="input" style="flex:1;font-size:12px" placeholder="e.g. Region" value="{{ newFacet }}" onChange="{{ setNewFacet }}">
+            <button onClick="{{ addFacet }}" class="btn btn-primary" style="font-size:11.5px">Add axis</button>
+          </div>
+          <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Adding an axis leaves every interview unlabelled on it until you assign values in the library.</span>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+  </main>
+  </sc-if>
+
+  <!-- ═══════════════════ STUDY ═══════════════════ -->
+  <sc-if value="{{ isStudy }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--color-divider)">
+    <div class="seg">
+      <label class="seg-opt"><input type="radio" name="sub" checked="{{ isChain }}" onChange="{{ goChain }}" style="position:absolute;opacity:0;pointer-events:none"><span>Chain</span></label>
+      <label class="seg-opt"><input type="radio" name="sub" checked="{{ isStages }}" onChange="{{ goStages }}" style="position:absolute;opacity:0;pointer-events:none"><span>Stages</span></label>
+      <label class="seg-opt"><input type="radio" name="sub" checked="{{ isCorpus }}" onChange="{{ goCorpus }}" style="position:absolute;opacity:0;pointer-events:none"><span>Corpus</span></label>
+    </div>
+    <span style="font-size:12.5px;color:color-mix(in srgb, var(--color-text) 62%, transparent);max-width:64ch;text-wrap:pretty">{{ subBlurb }}</span>
+  </div>
+
+  <!-- ── CHAIN ── -->
+  <sc-if value="{{ isChain }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;flex:1;min-width:0">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6)">
+      <div style="display:flex;align-items:center;gap:var(--space-2)">
+        <span style="font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Scoped to</span>
+        <select class="input" style="width:auto" value="{{ chainIv }}" onChange="{{ setChainIv }}">
+          <sc-for list="{{ ivOpts }}" as="i" hint-placeholder-count="4"><option value="{{ i.id }}">{{ i.label }}</option></sc-for>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--space-3);font-size:11.5px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:22px;height:2px;background:var(--color-accent-700)"></span>selected chain</span>
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:22px;height:1px;background:var(--color-accent-300)"></span>every other derivation</span>
+      </div>
+      <div style="display:flex;gap:var(--space-2);margin-left:auto;align-items:center;flex-wrap:wrap">
+        <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-accent-700)">{{ chainReadout }}</span>
+        <button onClick="{{ clearNode }}" class="btn btn-secondary" style="font-size:11.5px">Clear</button>
+        <button onClick="{{ scrollEnd }}" class="btn btn-secondary" style="font-size:11.5px">Jump to product →</button>
+      </div>
+    </div>
+
+    <div ref="{{ boardRef }}" style="flex:1;overflow:auto;position:relative;border-top:1px solid var(--color-divider);max-height:76vh">
+      <svg style="position:absolute;left:0;top:0;width:{{ boardW }}px;height:{{ boardH }}px;pointer-events:none;z-index:0;overflow:visible">
+        <sc-for list="{{ paths }}" as="p" hint-placeholder-count="0">
+          <path d="{{ p.d }}" style="fill:none;stroke:{{ p.stroke }};stroke-width:{{ p.w }};opacity:{{ p.op }}"></path>
+        </sc-for>
+      </svg>
+
+      <div style="display:flex;align-items:flex-start;gap:0;min-width:2330px;padding:0 var(--space-6) var(--space-8);position:relative;z-index:1">
+
+        <div style="width:380px;flex:none;display:flex;flex-direction:column;gap:6px">
+          <div style="position:sticky;top:0;background:var(--color-bg);padding:var(--space-4) 0 var(--space-3);z-index:3;border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-2)">
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;color:var(--color-accent-700)">01 · RAW</span>
+            <h3 style="font-size:20px;margin:2px 0 0">Transcript</h3>
+            <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ chainIvLabel }} · 30 turns</span><br><span style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:2px 7px;border:1px solid var(--color-divider);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 55%, transparent)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Locked</span>
+          </div>
+          <sc-for list="{{ chainLines }}" as="l" hint-placeholder-count="10">
+            <div id="cv-ln-{{ l.n }}" onClick="{{ l.pick }}" style="display:grid;grid-template-columns:26px 1fr;gap:var(--space-3);padding:5px 8px;cursor:{{ l.cursor }};opacity:{{ l.op }};background:{{ l.bg }};box-shadow:inset 2px 0 0 {{ l.edge }}" style-hover="background:var(--color-accent-100)">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;line-height:1.7;text-align:right;color:color-mix(in srgb, var(--color-text) 38%, transparent)">{{ l.num }}</span>
+              <div style="min-width:0">
+                <span style="font-family:var(--font-heading);font-weight:700;font-size:10.5px;letter-spacing:0.06em;color:{{ l.spkColor }};display:block">{{ l.spk }}</span>
+                <span style="font-size:12px;line-height:1.45;display:block;max-height:3.1em;overflow:hidden">{{ l.text }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="width:90px;flex:none"></div>
+
+        <div style="width:330px;flex:none;display:flex;flex-direction:column;gap:8px">
+          <div style="position:sticky;top:0;background:var(--color-bg);padding:var(--space-4) 0 var(--space-3);z-index:3;border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-2)">
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;color:var(--color-accent-700)">02 · CODED</span>
+            <h3 style="font-size:20px;margin:2px 0 0">Codes</h3>
+            <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ chainCodeCount }} from this interview</span><br><span style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:2px 7px;border:1px solid var(--color-accent-400);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--color-accent-800)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Editable</span>
+          </div>
+          <sc-for list="{{ chainCodes }}" as="c" hint-placeholder-count="8">
+            <div id="cv-cd-{{ c.id }}" onClick="{{ c.pick }}" class="panel" style="padding:7px 9px;display:flex;flex-direction:column;gap:3px;cursor:pointer;opacity:{{ c.op }};background:{{ c.bg }};border-color:{{ c.border }}" style-hover="border-color:var(--color-accent)">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;padding:1px 5px;background:{{ c.chipBg }};color:{{ c.chipFg }}">{{ c.id }}</span>
+                <sc-if value="{{ c.wasEdited }}" hint-placeholder-val="{{ false }}">
+                  <span title="Edited" style="display:inline-flex;align-items:center;gap:3px;font-size:9px;color:var(--color-accent-800)"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>{{ c.editedBy }}</span>
+                </sc-if>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;margin-left:auto;color:var(--color-accent-700)">{{ c.addr }}</span>
+              </div>
+              <span style="font-size:12px;line-height:1.3;font-family:var(--font-heading);font-weight:700;font-size:13.5px">{{ c.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="width:90px;flex:none"></div>
+
+        <div style="width:420px;flex:none;display:flex;flex-direction:column;gap:6px">
+          <div style="position:sticky;top:0;background:var(--color-bg);padding:var(--space-4) 0 var(--space-3);z-index:3;border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-2)">
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;color:var(--color-accent-700)">03 · ARTIFACT</span>
+            <h3 style="font-size:20px;margin:2px 0 0">Interview note</h3>
+            <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Template AT-2 · Ops process interview</span><br><span style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:2px 7px;border:1px solid var(--color-accent-400);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--color-accent-800)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Editable</span>
+          </div>
+          <sc-for list="{{ chainSections }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:var(--space-3)">
+              <div style="display:flex;gap:var(--space-2);align-items:baseline">
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:color-mix(in srgb, var(--color-text) 40%, transparent)">{{ s.num }}</span>
+                <span style="font-family:var(--font-heading);font-weight:700;font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase">{{ s.title }}</span>
+              </div>
+              <sc-for list="{{ s.items }}" as="it" hint-placeholder-count="2">
+                <div id="cv-it-{{ it.key }}" onClick="{{ it.pick }}" style="padding:6px 9px;cursor:pointer;opacity:{{ it.op }};background:{{ it.bg }};box-shadow:inset 2px 0 0 {{ it.edge }}" style-hover="background:var(--color-accent-100)">
+                  <span style="font-size:12.5px;line-height:1.45;display:block">{{ it.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="width:90px;flex:none"></div>
+
+        <div style="width:360px;flex:none;display:flex;flex-direction:column;gap:10px">
+          <div style="position:sticky;top:0;background:var(--color-bg);padding:var(--space-4) 0 var(--space-3);z-index:3;border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-2)">
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;color:var(--color-accent-700)">04a · SYNTHESIS</span>
+            <h3 style="font-size:20px;margin:2px 0 0">Themes</h3>
+            <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ clusteredLabel }}</span><br><span style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:2px 7px;border:1px solid var(--color-accent-400);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--color-accent-800)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Editable</span>
+          </div>
+          <sc-for list="{{ chainThemes }}" as="t" hint-placeholder-count="4">
+            <div id="cv-th-{{ t.id }}" onClick="{{ t.pick }}" class="panel" style="padding:9px 11px;display:flex;flex-direction:column;gap:4px;cursor:pointer;opacity:{{ t.op }};background:{{ t.bg }};border-color:{{ t.border }}" style-hover="border-color:var(--color-accent)">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;padding:1px 5px;background:{{ t.chipBg }};color:{{ t.chipFg }}">{{ t.id }}</span>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;margin-left:auto;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ t.weight }}</span>
+              </div>
+              <span style="font-family:var(--font-heading);font-weight:700;font-size:15px;line-height:1.2">{{ t.title }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="width:90px;flex:none"></div>
+
+        <div style="width:390px;flex:none;display:flex;flex-direction:column;gap:10px">
+          <div style="position:sticky;top:0;background:var(--color-bg);padding:var(--space-4) 0 var(--space-3);z-index:3;border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-2)">
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;color:var(--color-accent-700)">04b · PRODUCT</span>
+            <h3 style="font-size:20px;margin:2px 0 0">Final product</h3>
+            <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Template {{ outTplId }} · every theme lands here</span><br><span style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:2px 7px;border:1px solid var(--color-accent-400);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--color-accent-800)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Editable</span>
+          </div>
+          <div id="cv-out" class="panel" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);background:var(--color-navy);color:#FFFFFF">
+            <span style="font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;opacity:.65">Final product · template {{ outTplId }}</span>
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:21px;line-height:1.15">{{ outTplName }}</span>
+            <div class="seg" style="border-color:rgba(242,242,243,.3)">
+              <sc-for list="{{ outputs }}" as="o" hint-placeholder-count="4">
+                <label class="seg-opt" style="color:{{ o.fg }};background:{{ o.bg }}"><input type="radio" name="cfmt" checked="{{ o.on }}" onChange="{{ o.pick }}" style="position:absolute;opacity:0;pointer-events:none"><span style="font-size:12px">{{ o.label }}</span></label>
+              </sc-for>
+            </div>
+            <span style="font-size:11.5px;line-height:1.5;opacity:.8">{{ outBlurb }}</span>
+            <button onClick="{{ goStages }}" class="btn" style="font-size:12px;color:#FFFFFF;border-color:rgba(242,242,243,.4);align-self:flex-start" style-hover="background:rgba(242,242,243,.14)">Open the rendered product →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── CORPUS ── -->
+  <sc-if value="{{ isCorpus }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:flex;flex-direction:column;gap:var(--space-8);padding:var(--space-8) var(--space-6);max-width:1700px;width:100%;margin:0 auto">
+    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-6);align-items:start">
+      <div class="card" style="gap:var(--space-3)">
+        <span class="card-kicker">Saturation — new distinct codes per interview</span>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:104px;margin-top:var(--space-2)">
+          <sc-for list="{{ satBars }}" as="b" hint-placeholder-count="12">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;color:color-mix(in srgb, var(--color-text) 50%, transparent)">{{ b.nw }}</span>
+              <div style="width:100%;height:{{ b.h }}px;background:{{ b.fill }}"></div>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:8.5px;color:color-mix(in srgb, var(--color-text) 45%, transparent)">{{ b.iv }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:var(--space-2) 0 0;font-size:12.5px;line-height:1.5;color:color-mix(in srgb, var(--color-text) 72%, transparent)">{{ satNote }}</p>
+      </div>
+      <div class="card" style="gap:var(--space-3)">
+        <span class="card-kicker">Corpus state</span>
+        <sc-for list="{{ corpusStats }}" as="s" hint-placeholder-count="5">
+          <div style="display:flex;justify-content:space-between;gap:var(--space-4);padding:4px 0;border-bottom:1px solid color-mix(in srgb, var(--color-text) 7%, transparent);font-size:13px">
+            <span>{{ s.k }}</span><span style="font-family:ui-monospace,Menlo,monospace">{{ s.v }}</span>
+          </div>
+        </sc-for>
+        <p style="margin:var(--space-2) 0 0;font-size:12px;color:color-mix(in srgb, var(--color-text) 58%, transparent)">At this scale nobody reads twelve transcripts again. The matrix below is the artifact that replaces re-reading.</p>
+      </div>
+      <div class="card" style="gap:var(--space-3)">
+        <div style="display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap">
+          <span class="card-kicker" style="margin:0">Coverage by label</span>
+          <div class="seg" style="margin-left:auto">
+            <sc-for list="{{ corpusFacetTabs }}" as="ft" hint-placeholder-count="2">
+              <label class="seg-opt"><input type="radio" name="cfacet" checked="{{ ft.on }}" onChange="{{ ft.pick }}" style="position:absolute;opacity:0;pointer-events:none"><span>{{ ft.name }}</span></label>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ coverage }}" as="cv" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:96px 1fr 84px;gap:var(--space-3);align-items:center">
+              <span style="font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ cv.name }}</span>
+              <div style="height:14px;background:color-mix(in srgb, var(--color-text) 6%, transparent)"><div style="height:100%;width:{{ cv.w }};background:{{ cv.fill }}"></div></div>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;text-align:right;color:color-mix(in srgb, var(--color-text) 60%, transparent)">{{ cv.meta }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:var(--space-2) 0 0;font-size:12.5px;line-height:1.5;color:color-mix(in srgb, var(--color-text) 72%, transparent);text-wrap:pretty">{{ coverageNote }}</p>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:var(--space-3)">
+      <div style="display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+        <h3 style="font-size:19px;margin:0">Code × interview</h3>
+        <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">Cell weight = mentions. Columns are grouped by {{ corpusFacetName }} — a row that fills one group and nothing else is that group's opinion, not a finding.</span>
+      </div>
+      <div class="panel" style="padding:var(--space-4);overflow-x:auto">
+        <div style="min-width:1040px;display:flex;flex-direction:column;gap:3px">
+          <div style="display:grid;grid-template-columns:96px 250px repeat(12,1fr) 62px;gap:3px;align-items:end;margin-bottom:2px">
+            <span></span><span></span>
+            <sc-for list="{{ corpusBands }}" as="b" hint-placeholder-count="3">
+              <span title="{{ b.name }}" style="grid-column:span {{ b.span }};font-size:9px;letter-spacing:0.1em;text-transform:uppercase;text-align:center;padding:2px 0;background:{{ b.bg }};color:{{ b.fg }};overflow:hidden;white-space:nowrap">{{ b.name }}</span>
+            </sc-for>
+            <span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:96px 250px repeat(12,1fr) 62px;gap:3px;align-items:end;padding-bottom:var(--space-2);border-bottom:1px solid var(--color-divider)">
+            <span style="font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Code</span>
+            <span style="font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Label</span>
+            <sc-for list="{{ corpusCols }}" as="c" hint-placeholder-count="12">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;text-align:center;color:color-mix(in srgb, var(--color-text) 50%, transparent)">{{ c }}</span>
+            </sc-for>
+            <span style="font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;text-align:right;color:color-mix(in srgb, var(--color-text) 50%, transparent)">Ivs</span>
+          </div>
+          <sc-for list="{{ corpusRows }}" as="r" hint-placeholder-count="14">
+            <div style="display:grid;grid-template-columns:96px 250px repeat(12,1fr) 62px;gap:3px;align-items:center;padding:2px 0;background:{{ r.rowBg }}">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--color-accent-700)">{{ r.code }}</span>
+              <span style="font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ r.label }}</span>
+              <sc-for list="{{ r.cells }}" as="cell" hint-placeholder-count="12">
+                <span style="height:17px;background:{{ cell.bg }};border:1px solid {{ cell.border }};display:block"></span>
+              </sc-for>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;text-align:right;color:color-mix(in srgb, var(--color-text) 60%, transparent)">{{ r.n }}/12</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:var(--space-4);align-items:baseline;padding-top:var(--space-3);margin-top:var(--space-2);border-top:1px solid var(--color-divider)">
+            <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">+ 42 more codes below the display threshold (≤2 interviews)</span>
+            <button class="btn btn-ghost" style="font-size:12px;margin-left:auto">Show all 56 →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <!-- ── STAGES ── -->
+  <sc-if value="{{ isStages }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--space-3);padding:var(--space-3) var(--space-6);align-items:center">
+    <div class="seg">
+      <sc-for list="{{ stageTabs }}" as="s" hint-placeholder-count="4">
+        <label class="seg-opt"><input type="radio" name="stage" checked="{{ s.on }}" onChange="{{ s.pick }}" style="position:absolute;opacity:0;pointer-events:none"><span>{{ s.label }}</span></label>
+      </sc-for>
+    </div>
+    <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ stageBlurb }}</span>
+  </div>
+
+  <sc-if value="{{ onS1 }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--space-8);padding:var(--space-6);align-items:start;max-width:1600px;width:100%;margin:0 auto">
+    <section style="display:flex;flex-direction:column;gap:var(--space-4)">
+      <h2 style="font-size:28px;margin:0">The raw transcript</h2>
+      <p style="font-size:14px;max-width:46ch;margin:0;color:color-mix(in srgb, var(--color-text) 72%, transparent);text-wrap:pretty">Nothing is inferred yet. Every line gets a stable address — <strong>T1·L14</strong> — and every claim downstream has to point back at one of them.</p>
+      <div class="card" style="gap:var(--space-3)">
+        <span class="card-kicker">Source record</span>
+        <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-4);font-size:13px">
+          <dt style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">File</dt><dd style="margin:0;font-family:ui-monospace,Menlo,monospace;font-size:12px">T1_reyes_2026-09-14.vtt</dd>
+          <dt style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">Pulled from</dt><dd style="margin:0">Google Meet · 14 Sep, 12 min after the call</dd>
+          <dt style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">Participant</dt><dd style="margin:0">Dana Reyes — Dispatch Coordinator, 6 yrs</dd>
+          <dt style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">Duration</dt><dd style="margin:0">41 min · 30 turns</dd>
+          <dt style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">Note template</dt><dd style="margin:0">AT-2 · Ops process interview</dd>
+        </dl>
+      </div>
+      <div class="panel" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);background:color-mix(in srgb, var(--color-accent) 7%, transparent)">
+        <div style="display:flex;align-items:center;gap:var(--space-2)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-800)" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          <span style="font-family:var(--font-heading);font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-navy)">Locked — source of record</span>
+        </div>
+        <p style="margin:0;font-size:12.5px;line-height:1.55;color:color-mix(in srgb, var(--color-text) 75%, transparent);text-wrap:pretty">No role can alter a transcript, owners included. What someone said is the one fixed thing in the chain; corrections belong in the layer above, where they carry a name.</p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:5px var(--space-4);font-size:11.5px">
+          <span style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">Checksum</span><span style="font-family:ui-monospace,Menlo,monospace">{{ srcHash }}</span>
+          <span style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">Ingested</span><span>{{ srcIngested }} · {{ srcBy }}</span>
+        </div>
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+          <button onClick="{{ tryEditRaw }}" class="btn btn-secondary" style="font-size:11.5px">Try editing a line</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onClick="{{ s2 }}" style="align-self:flex-start">
+        Open the coding pass →
+      </button>
+    </section>
+    <section class="panel" style="background:var(--color-surface);padding:0 0 var(--space-4);max-height:70vh;overflow:auto">
+      <div style="position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--color-navy);color:#FFFFFF">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        <span style="font-family:var(--font-heading);font-weight:700;font-size:10px;letter-spacing:0.16em;text-transform:uppercase">Read-only</span>
+        <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;opacity:.7;margin-left:auto">{{ srcHash }}</span>
+      </div>
+      <sc-for list="{{ lines }}" as="ln" hint-placeholder-count="8">
+        <div id="ln-{{ ln.n }}" onClick="{{ tryEditRaw }}" title="Read-only — transcripts cannot be edited" style="display:grid;grid-template-columns:38px 1fr;gap:var(--space-4);padding:5px var(--space-4);box-shadow:inset 3px 0 0 {{ ln.edge }};background:{{ ln.bg }};cursor:not-allowed">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;line-height:1.7;text-align:right;color:color-mix(in srgb, var(--color-text) 38%, transparent)">{{ ln.num }}</span>
+          <p style="margin:0;font-size:13.5px;line-height:1.6"><span style="font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:0.06em;color:{{ ln.spkColor }};margin-right:8px">{{ ln.spk }}</span>{{ ln.text }}</p>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ onS2 }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:var(--space-6);padding:var(--space-6);align-items:start;max-width:1700px;width:100%;margin:0 auto">
+    <section style="display:flex;flex-direction:column;gap:var(--space-3);min-width:0">
+      <div style="display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap">
+        <h3 style="font-size:19px;margin:0">Transcript, marked up</h3>
+        <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-left:auto">{{ markedCount }} of 30 turns carry a code</span>
+      </div>
+      <div class="panel" style="background:var(--color-surface);padding:var(--space-4) 0;max-height:72vh;overflow:auto">
+        <sc-for list="{{ lines }}" as="ln" hint-placeholder-count="8">
+          <div id="lnb-{{ ln.n }}" onClick="{{ ln.pick }}" style="display:grid;grid-template-columns:38px 1fr;gap:var(--space-4);padding:5px var(--space-4);box-shadow:inset 3px 0 0 {{ ln.edge }};background:{{ ln.bg }};cursor:{{ ln.cursor }}" style-hover="background:{{ ln.hoverBg }}">
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;line-height:1.7;text-align:right;color:color-mix(in srgb, var(--color-text) 38%, transparent)">{{ ln.num }}</span>
+            <div style="min-width:0">
+              <p style="margin:0;font-size:13.5px;line-height:1.6"><span style="font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:0.06em;color:{{ ln.spkColor }};margin-right:8px">{{ ln.spk }}</span>{{ ln.text }}</p>
+              <sc-if value="{{ ln.hasCodes }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
+                  <sc-for list="{{ ln.codeRefs }}" as="cr" hint-placeholder-count="1">
+                    <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;padding:2px 6px;border:1px solid {{ cr.border }};color:{{ cr.color }};background:{{ cr.bg }}">{{ cr.id }}</span>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:var(--space-3);min-width:0">
+      <div style="display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap">
+        <h3 style="font-size:19px;margin:0">What was pulled out</h3>
+        <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-left:auto">{{ visibleCount }} codes shown</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="6">
+          <button onClick="{{ f.pick }}" class="btn" style="font-size:11px;letter-spacing:0.06em;padding:3px 9px;background:{{ f.bg }};color:{{ f.fg }};border-color:{{ f.border }}">{{ f.label }} <span style="opacity:.6;margin-left:5px">{{ f.count }}</span></button>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);max-height:64vh;overflow:auto;padding:2px 4px 2px 2px">
+        <sc-for list="{{ visibleCodes }}" as="c" hint-placeholder-count="5">
+          <div id="cd-{{ c.id }}" onClick="{{ c.pick }}" class="card" style="gap:var(--space-2);cursor:pointer;background:{{ c.cardBg }};border-color:{{ c.cardBorder }}" style-hover="border-color:var(--color-accent)">
+            <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;padding:2px 7px;background:{{ c.chipBg }};color:{{ c.chipFg }}">{{ c.id }}</span>
+              <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 58%, transparent)">{{ c.type }}</span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;margin-left:auto;color:var(--color-accent-700)">{{ c.addr }}</span>
+            </div>
+            <sc-if value="{{ c.isEditing }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+                <input class="input" value="{{ draft }}" onChange="{{ setDraft }}" style="font-family:var(--font-heading);font-weight:700;font-size:15px">
+                <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+                  <button onClick="{{ saveEdit }}" class="btn btn-primary" style="font-size:11px;padding:3px 11px">Save</button>
+                  <button onClick="{{ cancelEdit }}" class="btn btn-secondary" style="font-size:11px;padding:3px 11px">Cancel</button>
+                  <span style="font-size:10.5px;margin-left:auto;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Saved as {{ meName }}</span>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ c.notEditing }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;align-items:flex-start;gap:var(--space-2)">
+                <span class="card-title" style="font-size:15px;flex:1;min-width:0">{{ c.label }}</span>
+                <sc-if value="{{ c.canEdit }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ c.edit }}" class="btn btn-ghost" style="font-size:10.5px;padding:2px 7px;display:flex;align-items:center;gap:5px;flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Edit</button>
+                </sc-if>
+                <sc-if value="{{ c.lockedByOther }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:10px;padding:2px 6px;border:1px dashed var(--color-accent-500);color:var(--color-accent-800);flex:none;white-space:nowrap">{{ c.lockLabel }}</span>
+                </sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{ c.wasEdited }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--color-accent-800)">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg><span>{{ c.editMark }}</span>
+                <button onClick="{{ c.revert }}" class="btn btn-ghost" style="font-size:10px;padding:1px 6px">Revert</button>
+              </div>
+            </sc-if>
+            <p style="margin:0;font-size:12.5px;line-height:1.5;padding-left:var(--space-3);border-left:2px solid var(--color-accent-300);color:color-mix(in srgb, var(--color-text) 78%, transparent)">“{{ c.verbatim }}”</p>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 45%, transparent)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Verbatim is quoted from the locked transcript</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ onS3 }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:var(--space-6);padding:var(--space-6);align-items:start;max-width:1700px;width:100%;margin:0 auto">
+    <section class="panel" style="background:var(--color-surface);padding:var(--space-8) var(--space-6);min-width:0;max-height:74vh;overflow:auto">
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);padding-bottom:var(--space-4);border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-6)">
+        <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--color-accent-700)">Interview note · T1 · template AT-2</span>
+        <h2 style="font-size:28px;margin:0">Dana Reyes — exception handling, dispatch</h2>
+        <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">14 Sep 2026 · assembled from {{ usedCount }} of {{ codeTotal }} codes</span>
+      </div>
+      <sc-for list="{{ artifact }}" as="sec" hint-placeholder-count="4">
+        <div style="margin-bottom:var(--space-8)">
+          <div style="display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-3)">
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 40%, transparent)">{{ sec.num }}</span>
+            <h4 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;margin:0">{{ sec.title }}</h4>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+            <sc-for list="{{ sec.items }}" as="it" hint-placeholder-count="3">
+              <div onClick="{{ it.pick }}" style="display:grid;grid-template-columns:1fr auto;gap:var(--space-4);align-items:start;padding:var(--space-2) var(--space-3);cursor:pointer;background:{{ it.bg }};box-shadow:inset 2px 0 0 {{ it.edge }}" style-hover="background:color-mix(in srgb, var(--color-accent) 7%, transparent)">
+                <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <sc-if value="{{ it.isEditing }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+                      <textarea class="input" value="{{ draft }}" onChange="{{ setDraft }}" style="font-size:13.5px;line-height:1.5;min-height:86px;resize:vertical;width:100%"></textarea>
+                      <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+                        <button onClick="{{ saveEdit }}" class="btn btn-primary" style="font-size:11px;padding:3px 11px">Save</button>
+                        <button onClick="{{ cancelEdit }}" class="btn btn-secondary" style="font-size:11px;padding:3px 11px">Cancel</button>
+                        <span style="font-size:10.5px;margin-left:auto;color:color-mix(in srgb, var(--color-text) 52%, transparent)">The code references below stay attached</span>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ it.notEditing }}" hint-placeholder-val="{{ true }}">
+                    <p style="margin:0;font-size:14px;line-height:1.55;text-wrap:pretty">{{ it.text }}</p>
+                  </sc-if>
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)">
+                    <sc-if value="{{ it.canEdit }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ it.edit }}" class="btn btn-ghost" style="font-size:10.5px;padding:2px 7px;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Edit</button>
+                    </sc-if>
+                    <sc-if value="{{ it.lockedByOther }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:10px;padding:2px 6px;border:1px dashed var(--color-accent-500);color:var(--color-accent-800)">{{ it.lockLabel }}</span>
+                    </sc-if>
+                    <sc-if value="{{ it.wasEdited }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--color-accent-800)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>{{ it.editMark }}</span>
+                    </sc-if>
+                    <sc-if value="{{ it.wasEdited }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ it.revert }}" class="btn btn-ghost" style="font-size:10px;padding:1px 6px">Revert</button>
+                    </sc-if>
+                  </div>
+                </div>
+                <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:120px">
+                  <sc-for list="{{ it.refs }}" as="r" hint-placeholder-count="1">
+                    <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;padding:1px 5px;border:1px solid var(--color-accent-400);color:var(--color-accent-800);background:var(--color-accent-100)">{{ r.id }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:var(--space-4);min-width:0">
+      <h3 style="font-size:19px;margin:0">Codes → note</h3>
+      <p style="font-size:13.5px;margin:0;max-width:48ch;color:color-mix(in srgb, var(--color-text) 72%, transparent);text-wrap:pretty">The note is a <em>rearrangement</em>, not a rewrite. The template decides the slots; the codes decide what fills them.</p>
+      <div class="card" style="gap:var(--space-3)">
+        <span class="card-kicker">Evidence for the selected bullet</span>
+        <sc-if value="{{ hasSelItem }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+            <p style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:16px;line-height:1.25">{{ selItemText }}</p>
+            <sc-for list="{{ selItemCodes }}" as="c" hint-placeholder-count="2">
+              <div onClick="{{ c.jump }}" style="display:flex;flex-direction:column;gap:3px;padding:var(--space-2) var(--space-3);border:1px solid var(--color-divider);cursor:pointer" style-hover="border-color:var(--color-accent);background:color-mix(in srgb, var(--color-accent) 6%, transparent)">
+                <div style="display:flex;gap:var(--space-2);align-items:center">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;padding:1px 6px;background:var(--color-accent-200);color:var(--color-navy)">{{ c.id }}</span>
+                  <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ c.type }}</span>
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;margin-left:auto;color:var(--color-accent-700)">{{ c.addr }} ↗</span>
+                </div>
+                <span style="font-size:12.5px;line-height:1.45">“{{ c.verbatim }}”</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noSelItem }}" hint-placeholder-val="{{ true }}">
+          <p class="card-body" style="margin:0">Click a bullet in the note to pull its sources.</p>
+        </sc-if>
+      </div>
+      <div class="card" style="gap:var(--space-3)">
+        <span class="card-kicker">Coverage check</span>
+        <div style="display:flex;justify-content:space-between;gap:var(--space-4);font-size:13px"><span>Codes used in the note</span><span style="font-family:ui-monospace,Menlo,monospace">{{ coverageLabel }}</span></div>
+        <div style="height:6px;background:var(--color-neutral-200)"><div style="height:100%;width:{{ coverageWidth }};background:var(--color-accent)"></div></div>
+        <sc-if value="{{ hasOrphans }}" hint-placeholder-val="{{ true }}">
+          <p style="margin:0;font-size:12px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Orphaned: <span style="font-family:ui-monospace,Menlo,monospace">{{ orphanIds }}</span> — coded but not placed by template AT-2. Orphans are the smell test for a note that dropped something.</p>
+        </sc-if>
+        <sc-if value="{{ noOrphans }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0;font-size:12px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">No orphans — every code landed in a section.</p>
+        </sc-if>
+      </div>
+      <button class="btn btn-primary" onClick="{{ s4 }}" style="align-self:flex-start">
+        Synthesize across 12 interviews →
+      </button>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ onS4 }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--space-6);padding:var(--space-6);align-items:start;max-width:1700px;width:100%;margin:0 auto">
+    <section style="display:flex;flex-direction:column;gap:var(--space-4);min-width:0">
+      <h3 style="font-size:19px;margin:0">Notes → themes → product</h3>
+      <div class="card" style="gap:var(--space-2);max-height:38vh;overflow:auto">
+        <span class="card-kicker">Source ledger · 12 interviews</span>
+        <sc-for list="{{ ledger }}" as="iv" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:34px 1fr auto;gap:var(--space-3);align-items:center;padding:var(--space-2) 0;border-bottom:1px solid color-mix(in srgb, var(--color-text) 8%, transparent)">
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-accent-700)">{{ iv.id }}</span>
+            <div style="display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:13px;line-height:1.3">{{ iv.who }}</span>
+              <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ iv.role }} · {{ iv.src }}</span>
+            </div>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">{{ iv.codes }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <h4 style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Themes · {{ clusteredLabel }}</h4>
+      <sc-for list="{{ themes }}" as="th" hint-placeholder-count="4">
+        <div onClick="{{ th.pick }}" class="card" style="gap:var(--space-2);cursor:pointer;background:{{ th.bg }};border-color:{{ th.border }}" style-hover="border-color:var(--color-accent)">
+          <div style="display:flex;align-items:center;gap:var(--space-2)">
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;padding:2px 6px;background:{{ th.chipBg }};color:{{ th.chipFg }}">{{ th.id }}</span>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;margin-left:auto;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ th.weight }}</span>
+          </div>
+          <sc-if value="{{ th.isEditing }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+              <input class="input" value="{{ draft }}" onChange="{{ setDraft }}" style="font-family:var(--font-heading);font-weight:700;font-size:16px">
+              <div style="display:flex;gap:var(--space-2)">
+                <button onClick="{{ saveEdit }}" class="btn btn-primary" style="font-size:11px;padding:3px 11px">Save</button>
+                <button onClick="{{ cancelEdit }}" class="btn btn-secondary" style="font-size:11px;padding:3px 11px">Cancel</button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ th.notEditing }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:flex-start;gap:var(--space-2)">
+              <span class="card-title" style="font-size:16px;flex:1;min-width:0">{{ th.title }}</span>
+              <sc-if value="{{ th.canEdit }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ th.edit }}" class="btn btn-ghost" style="font-size:10.5px;padding:2px 7px;display:flex;align-items:center;gap:5px;flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Edit</button>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ th.wasEdited }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--color-accent-800)">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg><span>{{ th.editMark }}</span>
+              <button onClick="{{ th.revert }}" class="btn btn-ghost" style="font-size:10px;padding:1px 6px">Revert</button>
+            </div>
+          </sc-if>
+          <div style="display:flex;gap:3px;flex-wrap:wrap">
+            <sc-for list="{{ th.evidence }}" as="e" hint-placeholder-count="3">
+              <span onClick="{{ e.jump }}" style="font-family:ui-monospace,Menlo,monospace;font-size:9px;padding:1px 5px;border:1px solid var(--color-accent-400);color:var(--color-accent-800);cursor:pointer" style-hover="background:var(--color-accent-200)">{{ e.id }}</span>
+            </sc-for>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;padding:1px 5px;border:1px dashed color-mix(in srgb, var(--color-text) 30%, transparent);color:color-mix(in srgb, var(--color-text) 50%, transparent)">{{ th.more }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:var(--space-4);min-width:0">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center">
+        <h3 style="font-size:19px;margin:0">Render as</h3>
+        <div class="seg">
+          <sc-for list="{{ outputs }}" as="o" hint-placeholder-count="4">
+            <label class="seg-opt"><input type="radio" name="fmt" checked="{{ o.on }}" onChange="{{ o.pick }}" style="position:absolute;opacity:0;pointer-events:none"><span>{{ o.label }}</span></label>
+          </sc-for>
+        </div>
+        <span class="tag tag-outline">{{ outTplId }} · {{ outTplName }}</span>
+      </div>
+      <p style="font-size:13px;margin:0;max-width:52ch;color:color-mix(in srgb, var(--color-text) 70%, transparent);text-wrap:pretty">{{ outBlurb }}</p>
+
+      <sc-if value="{{ isDeck }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--space-4)">
+          <sc-for list="{{ slides }}" as="s" hint-placeholder-count="4">
+            <figure class="panel" style="aspect-ratio:16/9;background:{{ s.bg }};padding:var(--space-4);display:flex;flex-direction:column;justify-content:space-between;color:{{ s.fg }}">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;opacity:.65">{{ s.num }}</span>
+              <span style="font-family:var(--font-heading);font-weight:700;font-size:18px;line-height:1.1">{{ s.title }}</span>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="height:2px;width:70%;background:currentColor;opacity:.3"></span>
+                <span style="height:2px;width:52%;background:currentColor;opacity:.3"></span>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;opacity:.65;margin-top:4px">{{ s.cite }}</span>
+              </div>
+            </figure>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isReport }}" hint-placeholder-val="{{ false }}">
+        <div class="panel" style="background:var(--color-surface);padding:var(--space-8) var(--space-6);max-height:66vh;overflow:auto">
+          <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--color-accent-700)">Findings memo · draft</span>
+          <h2 style="font-size:30px;margin:var(--space-2) 0 var(--space-4);max-width:24ch">Order exceptions are a coordination problem, not a routing problem</h2>
+          <p style="font-size:14px;line-height:1.6;max-width:62ch;color:color-mix(in srgb, var(--color-text) 80%, transparent)">Across twelve interviews the routing engine was never named as the cause of a missed delivery window. What people described instead was a queue that can report a failure but cannot ask anyone to fix it — so the fix migrates to spreadsheets, phone calls and texts, where it becomes invisible.</p>
+          <sc-for list="{{ reportSecs }}" as="r" hint-placeholder-count="4">
+            <div style="margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--color-divider)">
+              <div style="display:flex;gap:var(--space-3);align-items:baseline;margin-bottom:var(--space-2)">
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 40%, transparent)">{{ r.num }}</span>
+                <h4 style="font-size:18px;margin:0">{{ r.title }}</h4>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;margin-left:auto;padding:1px 5px;border:1px solid var(--color-accent-400);color:var(--color-accent-800)">{{ r.cite }}</span>
+              </div>
+              <p style="margin:0;font-size:13.5px;line-height:1.6;max-width:62ch;color:color-mix(in srgb, var(--color-text) 80%, transparent)">{{ r.body }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isArch }}" hint-placeholder-val="{{ false }}">
+        <div class="panel" style="background:var(--color-surface);padding:var(--space-8) var(--space-6)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-8);flex-wrap:wrap;gap:var(--space-3)">
+            <h4 style="font-size:16px;margin:0;letter-spacing:0.06em;text-transform:uppercase">System as described · not as documented</h4>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">dashed = path people invented</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-6)">
+            <sc-for list="{{ archNodes }}" as="a" hint-placeholder-count="5">
+              <div class="panel" style="padding:var(--space-4) var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);border-style:{{ a.style }};background:{{ a.bg }};min-height:118px">
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--color-accent-700)">{{ a.kind }}</span>
+                <span style="font-family:var(--font-heading);font-weight:700;font-size:16px;line-height:1.15">{{ a.name }}</span>
+                <span style="font-size:11.5px;line-height:1.4;color:color-mix(in srgb, var(--color-text) 65%, transparent);margin-top:auto">{{ a.note }}</span>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;padding:1px 5px;border:1px solid var(--color-accent-400);color:var(--color-accent-800);align-self:flex-start">{{ a.cite }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:var(--space-8);padding-top:var(--space-4);border-top:1px solid var(--color-divider);display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--space-4)">
+            <sc-for list="{{ archGaps }}" as="g" hint-placeholder-count="3">
+              <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                <span style="font-family:var(--font-heading);font-weight:700;font-size:20px;color:var(--color-accent);line-height:1">{{ g.n }}</span>
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <span style="font-family:var(--font-heading);font-weight:700;font-size:14px">{{ g.title }}</span>
+                  <span style="font-size:11.5px;color:color-mix(in srgb, var(--color-text) 62%, transparent)">{{ g.note }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isFlow }}" hint-placeholder-val="{{ false }}">
+        <div class="panel" style="background:var(--color-surface);padding:var(--space-8) var(--space-6);overflow-x:auto">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-6);flex-wrap:wrap;gap:var(--space-3)">
+            <h4 style="font-size:16px;margin:0;letter-spacing:0.06em;text-transform:uppercase">Exception, end to end · observed</h4>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">filled = wait state</span>
+          </div>
+          <div style="min-width:760px;display:flex;flex-direction:column;gap:var(--space-2)">
+            <sc-for list="{{ lanes }}" as="lane" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:110px repeat(6,1fr);gap:var(--space-2);align-items:stretch">
+                <div style="display:flex;align-items:center;font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:color-mix(in srgb, var(--color-text) 60%, transparent);border-right:1px solid var(--color-divider);padding-right:var(--space-2)">{{ lane.name }}</div>
+                <sc-for list="{{ lane.cells }}" as="cell" hint-placeholder-count="6">
+                  <div style="min-height:66px;padding:var(--space-2);display:flex;flex-direction:column;gap:3px;border:{{ cell.border }};background:{{ cell.bg }};color:{{ cell.fg }}">
+                    <span style="font-size:11.5px;line-height:1.25">{{ cell.label }}</span>
+                    <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;opacity:.7;margin-top:auto">{{ cell.t }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+            <div style="display:grid;grid-template-columns:110px repeat(6,1fr);gap:var(--space-2);margin-top:var(--space-2)">
+              <span></span>
+              <sc-for list="{{ flowAxis }}" as="ax" hint-placeholder-count="6">
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;color:color-mix(in srgb, var(--color-text) 45%, transparent);text-align:center">{{ ax }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+  </main>
+  </sc-if>
+  </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ hasNotice }}" hint-placeholder-val="{{ false }}">
+    <div class="panel" style="position:fixed;right:var(--space-6);bottom:84px;z-index:60;width:min(400px,calc(100vw - 48px));padding:var(--space-4);background:var(--color-navy);color:#FFFFFF;display:flex;flex-direction:column;gap:var(--space-2);box-shadow:var(--shadow-lg)">
+      <div style="display:flex;align-items:center;gap:var(--space-2)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.5" style="flex:none"><rect x="4" y="11" width="16" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        <span style="font-family:var(--font-heading);font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase">{{ noticeTitle }}</span>
+      </div>
+      <span style="font-size:12.5px;line-height:1.5;opacity:.85">{{ noticeText }}</span>
+      <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+        <sc-if value="{{ noticeHasAct }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ noticeAct }}" class="btn" style="font-size:11.5px;color:#FFFFFF;border-color:rgba(242,242,243,.45)" style-hover="background:rgba(242,242,243,.14)">{{ noticeActLabel }}</button>
+        </sc-if>
+        <button onClick="{{ dismissNotice }}" class="btn" style="font-size:11.5px;color:#FFFFFF;border-color:rgba(242,242,243,.25)" style-hover="background:rgba(242,242,243,.14)">Dismiss</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ membersOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:var(--space-6)">
+      <div class="dialog" style="width:min(640px,100%);max-height:86vh;overflow:auto;background:var(--color-bg);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)">
+        <div style="display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+          <h3 style="font-family:var(--font-heading);font-weight:700;margin:0;font-size:23px">Workspace</h3>
+          <div class="seg">
+            <label class="seg-opt"><input type="radio" name="memtab" checked="{{ onMembers }}" onChange="{{ tabMembers }}" style="position:absolute;opacity:0;pointer-events:none"><span>Members</span></label>
+            <label class="seg-opt"><input type="radio" name="memtab" checked="{{ onActivity }}" onChange="{{ tabActivity }}" style="position:absolute;opacity:0;pointer-events:none"><span>Activity</span></label>
+          </div>
+          <button onClick="{{ closeMembers }}" class="btn btn-ghost" style="margin-left:auto;font-size:12px">Close</button>
+        </div>
+
+        <sc-if value="{{ onMembers }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+            <sc-for list="{{ members }}" as="m" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:32px 1fr auto auto;gap:var(--space-3);align-items:center;padding:var(--space-2) var(--space-3);border:1px solid var(--color-divider);opacity:{{ m.op }}">
+                <span style="width:32px;height:32px;border-radius:999px;display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:11.5px;background:{{ m.avBg }};color:{{ m.avFg }}">{{ m.initials }}</span>
+                <div style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:13px">{{ m.name }}</span>
+                  <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ m.title }}</span>
+                </div>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 50%, transparent)">{{ m.last }}</span>
+                <span class="tag {{ m.tagClass }}">{{ m.role }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);flex-wrap:wrap">
+              <input class="input" style="flex:1;min-width:200px" placeholder="name@harringtondata.com" value="{{ inviteEmail }}" onChange="{{ setInvite }}">
+              <button onClick="{{ sendInvite }}" class="btn btn-primary" style="font-size:12px">Send invite</button>
+            </div>
+            <p style="margin:0;font-size:11.5px;line-height:1.55;color:color-mix(in srgb, var(--color-text) 58%, transparent);text-wrap:pretty">One workspace, one client list, today. Roles are already per-seat and every record stores its author, so the move to separate client tenants is a scoping change — not a migration.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onActivity }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ activity }}" as="a" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:28px 1fr auto;gap:var(--space-3);align-items:center;padding:var(--space-3) 0;border-bottom:1px solid color-mix(in srgb, var(--color-text) 8%, transparent)">
+                <span style="width:28px;height:28px;border-radius:999px;display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:10px;background:var(--color-accent-200);color:var(--color-navy)">{{ a.initials }}</span>
+                <div style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:12.5px;line-height:1.35">{{ a.what }}</span>
+                  <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">{{ a.where }}</span>
+                </div>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb, var(--color-text) 50%, transparent)">{{ a.at }}</span>
+              </div>
+            </sc-for>
+            <p style="margin:var(--space-4) 0 0;font-size:11.5px;line-height:1.55;color:color-mix(in srgb, var(--color-text) 58%, transparent)">Transcripts never appear here as edits — only as arrivals. That absence is the invariant the trail exists to prove.</p>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <footer style="position:sticky;bottom:0;background:var(--color-navy);color:#FFFFFF;padding:var(--space-3) var(--space-6);display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);z-index:15">
+    <span style="font-family:var(--font-heading);font-weight:700;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;opacity:.6">Lineage</span>
+    <div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:var(--space-2);flex:1;min-width:0">
+      <sc-for list="{{ spine }}" as="sp" hint-placeholder-count="5">
+        <div onClick="{{ sp.go }}" style="display:flex;align-items:center;gap:var(--space-3);cursor:pointer;opacity:{{ sp.op }}">
+          <div style="display:flex;flex-direction:column;padding:4px var(--space-3);border:1px solid {{ sp.border }};background:{{ sp.bg }};min-width:0">
+            <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;opacity:.65">{{ sp.stage }}</span>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:24ch">{{ sp.value }}</span>
+          </div>
+          <span style="opacity:.45;font-size:13px">{{ sp.arrow }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <button class="btn" onClick="{{ clearAll }}" style="font-size:11px;color:#FFFFFF;border-color:rgba(242,242,243,.3)" style-hover="background:rgba(242,242,243,.12)">Clear</button>
+  </footer>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showLineNumbers&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Transcript&quot;},&quot;defaultOutput&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;deck&quot;,&quot;report&quot;,&quot;arch&quot;,&quot;flow&quot;],&quot;default&quot;:&quot;arch&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Stage 04&quot;}}">
+const SRCNAME = { meet: "Google Meet", zoom: "Zoom", otter: "Otter.ai", upload: "Upload", teams: "Teams", granola: "Granola" };
+const MARK = { meet: "GM", zoom: "Z", otter: "OT", teams: "MT", granola: "GR", upload: "↑" };
+
+class Component extends DCLogic {
+  state = {
+    view: "study", sub: "chain",
+    node: null,
+    stage: 2, sel: null, item: null, filter: "All", out: null, theme: "TH-1",
+    clientId: "nw", projectId: "oe", chainIv: "T1",
+    picked: [], tplKind: "art", tplId: "AT-2",
+    paths: [], boardW: 0, boardH: 0,
+    user: null, email: "", seat: "kw", authErr: "", toolsOpen: false,
+    acctOpen: false, membersOpen: false, memTab: "members", inviteEmail: "",
+    edits: {}, editing: null, draft: "", notice: null,
+    rowLabels: {}, schema: {}, libFacet: "", libLabel: "", corpusFacet: "",
+    optDraft: {}, newFacet: "", bulkLabel: ""
+  };
+
+  constructor(p) {
+    super(p);
+    this.boardRef = React.createRef();
+    this.sig = "";
+    this.onResize = () => this.measure();
+    let u = null;
+    try { const raw = localStorage.getItem("hdc.tools.session"); if (raw) u = JSON.parse(raw); } catch (e) { u = null; }
+    this.state = Object.assign({}, this.state, { user: u, email: u ? u.email : "", seat: u ? u.id : "kw" });
+  }
+
+  componentDidMount() {
+    window.addEventListener("resize", this.onResize);
+    if (!window.DISCOVERY) {
+      this.poll = setInterval(() => {
+        if (window.DISCOVERY) { clearInterval(this.poll); this.forceUpdate(); this.schedule(); }
+      }, 60);
+    }
+    this.schedule();
+  }
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.onResize);
+    if (this.poll) clearInterval(this.poll);
+    if (this.settleT) clearInterval(this.settleT);
+  }
+
+  schedule() {
+    [0, 120, 400, 1000].forEach(t => setTimeout(() => this.measure(), t));
+  }
+
+  /* ── geometry: read rects, then write path d= ───────────────────── */
+  measure() {
+    const board = this.boardRef.current;
+    if (!board || this.state.sub !== "chain" || this.state.view !== "study") return;
+    const edges = this.edges();
+    const br = board.getBoundingClientRect();
+    const ox = br.left - board.scrollLeft, oy = br.top - board.scrollTop;
+    const paths = [];
+    edges.forEach((e, i) => {
+      const A = document.getElementById(e.a), B = document.getElementById(e.b);
+      if (!A || !B) return;
+      const ar = A.getBoundingClientRect(), brr = B.getBoundingClientRect();
+      const x1 = ar.right - ox, y1 = ar.top + ar.height / 2 - oy;
+      const x2 = brr.left - ox, y2 = brr.top + brr.height / 2 - oy;
+      const mx = (x1 + x2) / 2;
+      paths.push({ i, a: e.a, b: e.b, d: "M" + x1.toFixed(1) + "," + y1.toFixed(1) + " C" + mx.toFixed(1) + "," + y1.toFixed(1) + " " + mx.toFixed(1) + "," + y2.toFixed(1) + " " + x2.toFixed(1) + "," + y2.toFixed(1) });
+    });
+    const sig = paths.length + "|" + board.scrollWidth + "|" + board.scrollHeight + "|" + (paths[0] ? paths[0].d : "");
+    if (sig === this.sig) return;
+    this.sig = sig;
+    this.setState({ paths, boardW: board.scrollWidth, boardH: board.scrollHeight });
+  }
+
+  edges() {
+    if (this._edges) return this._edges;
+    const d = window.DISCOVERY;
+    if (!d) return [];
+    const E = [];
+    d.CODES.forEach(c => E.push({ a: "cv-ln-" + c.line, b: "cv-cd-" + c.id }));
+    d.ARTIFACT.forEach((sec, si) => sec.items.forEach((it, ii) => {
+      const key = si + "-" + ii;
+      it.refs.forEach(r => E.push({ a: "cv-cd-" + r, b: "cv-it-" + key }));
+      const seen = {};
+      it.refs.forEach(r => {
+        const t = d.THEMES.find(t => t.ev.indexOf(r) >= 0);
+        if (t && !seen[t.id]) { seen[t.id] = 1; E.push({ a: "cv-it-" + key, b: "cv-th-" + t.id }); }
+      });
+    }));
+    d.THEMES.forEach(t => E.push({ a: "cv-th-" + t.id, b: "cv-out" }));
+    this._edges = E;
+    return E;
+  }
+
+  /* bidirectional reachability from one node */
+  chain(node) {
+    if (!node) return null;
+    const E = this.edges();
+    const fwd = new Set([node]), back = new Set([node]);
+    let go = true;
+    while (go) { go = false; E.forEach(e => { if (fwd.has(e.a) && !fwd.has(e.b)) { fwd.add(e.b); go = true; } }); }
+    go = true;
+    while (go) { go = false; E.forEach(e => { if (back.has(e.b) && !back.has(e.a)) { back.add(e.a); go = true; } }); }
+    const all = new Set();
+    fwd.forEach(v => all.add(v)); back.forEach(v => all.add(v));
+    return all;
+  }
+
+  pickNode(id) { this.setState({ node: this.state.node === id ? null : id }); }
+
+  setView(v) {
+    this.setState({ view: v });
+    if (v === "study") this.schedule();
+  }
+  setSub(s) {
+    this.setState({ sub: s });
+    if (s === "chain") { this.sig = ""; this.schedule(); }
+  }
+
+  /* Returns true once the row sits at `pad` from its scroller's top.
+     The host commits its re-render after rAF, so this is polled. */
+  reveal(id, pad) {
+    const row = document.getElementById(id);
+    if (!row) return false;
+    let box = row.parentElement;
+    while (box) {
+      const ov = getComputedStyle(box).overflowY;
+      if ((ov === "auto" || ov === "scroll") && box.scrollHeight > box.clientHeight + 4) break;
+      box = box.parentElement;
+    }
+    if (!box) return false;
+    const off = () => row.getBoundingClientRect().top - box.getBoundingClientRect().top - pad;
+    const d = off();
+    if (Math.abs(d) < 10) return true;
+    box.scrollTop += d;
+    return Math.abs(off()) < 10;
+  }
+
+  settle(targets) {
+    if (this.settleT) clearInterval(this.settleT);
+    const t0 = Date.now();
+    const tick = () => {
+      const done = targets.every(t => this.reveal(t.id, t.pad));
+      if (done || Date.now() - t0 > 700) { clearInterval(this.settleT); this.settleT = null; }
+    };
+    tick();
+    this.settleT = setInterval(tick, 60);
+  }
+
+  revealPair(id) {
+    const c = (window.DISCOVERY.CODES || []).find(x => x.id === id);
+    if (!c) return;
+    this.settle([{ id: "lnb-" + c.line, pad: 90 }, { id: "cd-" + c.id, pad: 40 }]);
+  }
+
+  pickCode(id) {
+    const next = this.state.sel === id ? null : id;
+    this.setState({ sel: next, item: null });
+    if (next) this.revealPair(next);
+  }
+  jumpToCode(id) {
+    this.setState({ view: "study", sub: "stages", stage: 2, sel: id, item: null, filter: "All" });
+    this.revealPair(id);
+  }
+
+  /* ── grouping ──────────────────────────────────────────────────── */
+  facetsFor(pid) {
+    return this.state.schema[pid] || ((window.DISCOVERY || {}).FACETS || {})[pid] || [];
+  }
+  labelsFor(ivId) {
+    const base = ((window.DISCOVERY || {}).IV_LABELS || {})[ivId] || {};
+    return Object.assign({}, base, this.state.rowLabels[ivId] || {});
+  }
+  setLabel(ivId, facetId, opt) {
+    const cur = Object.assign({}, this.state.rowLabels[ivId] || {});
+    cur[facetId] = opt;
+    this.setState(s => {
+      const rowLabels = Object.assign({}, s.rowLabels);
+      rowLabels[ivId] = cur;
+      return { rowLabels };
+    });
+  }
+  mutateSchema(pid, fn) {
+    if (!this.canEdit()) { this.notify("Viewer seat", "Label axes are part of the project setup — Editors and Owners only."); return; }
+    const next = JSON.parse(JSON.stringify(this.facetsFor(pid)));
+    fn(next);
+    this.setState(s => {
+      const schema = Object.assign({}, s.schema);
+      schema[pid] = next;
+      return { schema };
+    });
+  }
+
+  /* ── identity ──────────────────────────────────────────────────── */
+  seatOf(id) { return ((window.DISCOVERY || {}).SEATS || []).find(s => s.id === id) || null; }
+
+  signInAs(id) {
+    const s = this.seatOf(id);
+    if (!s) return;
+    try { localStorage.setItem("hdc.tools.session", JSON.stringify(s)); } catch (e) {}
+    this.setState({ user: s, seat: s.id, email: s.email, authErr: "", acctOpen: false, editing: null });
+    this.schedule();
+  }
+
+  doSignIn() {
+    const typed = (this.state.email || "").trim().toLowerCase();
+    if (!typed) return this.signInAs(this.state.seat);
+    if (typed.indexOf("@harringtondata.com") < 0) {
+      return this.setState({ authErr: "Harrington Tools is internal for now. Sign in with your @harringtondata.com account." });
+    }
+    const match = ((window.DISCOVERY || {}).SEATS || []).find(s => s.email.toLowerCase() === typed);
+    if (!match) return this.setState({ authErr: "No seat for " + typed + " on this workspace. A workspace owner can invite it from Members." });
+    this.signInAs(match.id);
+  }
+
+  signOut() {
+    try { localStorage.removeItem("hdc.tools.session"); } catch (e) {}
+    this.setState({ user: null, acctOpen: false, membersOpen: false, authErr: "", editing: null, notice: null });
+  }
+
+  canEdit() { const u = this.state.user; return !!u && u.role !== "Viewer"; }
+
+  /* ── edits above the transcript ────────────────────────────────── */
+  edRec(key) {
+    const own = this.state.edits[key];
+    if (own) return own.reverted ? null : own;
+    return ((window.DISCOVERY || {}).SEED_EDITS || {})[key] || null;
+  }
+  edText(key, orig) { const r = this.edRec(key); return r ? r.text : orig; }
+  edMark(key) {
+    const r = this.edRec(key);
+    if (!r) return "";
+    const s = this.seatOf(r.by);
+    const u = this.state.user;
+    const who = u && r.by === u.id ? "You" : (s ? s.name : "Someone");
+    return who + " edited · " + r.at;
+  }
+  lockOn(key) {
+    const l = ((window.DISCOVERY || {}).LOCKS || {})[key];
+    if (!l || this.state.edits[key]) return "";
+    if (this.state.user && l.by === this.state.user.id) return "";
+    const s = this.seatOf(l.by);
+    return s ? s.name.split(" ")[0] + " is editing" : "";
+  }
+
+  startEdit(key, cur, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!this.canEdit()) {
+      return this.notify("Viewer seat", "Viewers can trace and export, but not change the record. A workspace owner can move you to an Editor seat.");
+    }
+    const lock = this.lockOn(key);
+    if (lock) return this.notify("Held by someone else", lock + ". One writer per object keeps the history linear — you'll get it when they're done.");
+    this.setState({ editing: key, draft: cur });
+  }
+  saveEdit() {
+    const st = this.state;
+    if (!st.editing) return;
+    const edits = Object.assign({}, st.edits);
+    edits[st.editing] = { text: st.draft, by: (st.user || {}).id, at: "just now" };
+    this.setState({ edits, editing: null, draft: "" });
+  }
+  cancelEdit() { this.setState({ editing: null, draft: "" }); }
+  revertEdit(key, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!this.canEdit()) return this.notify("Viewer seat", "Only Editors and Owners can change or revert the record.");
+    const edits = Object.assign({}, this.state.edits);
+    edits[key] = { reverted: true };
+    this.setState({ edits, editing: null });
+  }
+
+  edVals(key, orig) {
+    const isEd = this.state.editing === key;
+    const lock = this.lockOn(key);
+    const cur = this.edText(key, orig);
+    return {
+      text: cur,
+      isEditing: isEd, notEditing: !isEd,
+      canEdit: this.canEdit() && !isEd && !lock,
+      lockedByOther: !!lock && !isEd, lockLabel: lock,
+      wasEdited: !!this.edRec(key) && !isEd, editMark: this.edMark(key),
+      editedBy: (this.edRec(key) && (this.seatOf(this.edRec(key).by) || {}).initials) || "··",
+      edit: e => this.startEdit(key, cur, e),
+      revert: e => this.revertEdit(key, e)
+    };
+  }
+
+  notify(title, text, actLabel, act) { this.setState({ notice: { title, text, actLabel, act } }); }
+
+  tryEditRaw() {
+    this.notify(
+      "Transcripts are immutable",
+      "Line edits are refused for every role, owners included. If a line reads wrong, say so in the code layer — the correction is attributed and the original stays verifiable against its checksum.",
+      "Take it to coding →",
+      () => this.setState({ view: "study", sub: "stages", stage: 2, notice: null })
+    );
+  }
+
+  /* values that exist with or without the corpus loaded */
+  authVals() {
+    const D = window.DISCOVERY || {};
+    const seats = D.SEATS || [];
+    const st = this.state;
+    const u = st.user;
+    const roleTag = r => r === "Owner" ? "tag-accent" : r === "Editor" ? "tag-outline" : "tag-neutral";
+    const info = m => Object.assign({}, seats.find(x => x.id === m.id) || {}, m);
+    const nt = st.notice || {};
+    return {
+      needsAuth: !u, authed: !!u, readOnly: !!u && u.role === "Viewer",
+      email: st.email, setEmail: e => this.setState({ email: e.target.value, authErr: "" }),
+      hasAuthErr: !!st.authErr, authErr: st.authErr,
+      signIn: () => this.doSignIn(), ssoIn: () => this.signInAs(st.seat),
+      seatOpts: seats.map(s => ({
+        name: s.name, title: s.title, initials: s.initials, role: s.role, tagClass: roleTag(s.role),
+        border: st.seat === s.id ? "var(--color-accent)" : "var(--color-divider)",
+        bg: st.seat === s.id ? "color-mix(in srgb, var(--color-accent) 9%, transparent)" : "transparent",
+        avBg: st.seat === s.id ? "var(--color-navy)" : "var(--color-accent-200)",
+        avFg: st.seat === s.id ? "#FFFFFF" : "var(--color-navy)",
+        pick: () => this.setState({ seat: s.id, email: s.email, authErr: "" })
+      })),
+      meName: u ? u.name : "", meInitials: u ? u.initials : "", meEmail: u ? u.email : "",
+      meRole: u ? u.role : "", meCan: u ? u.can : "", meTagClass: roleTag(u ? u.role : ""),
+      acctOpen: st.acctOpen,
+      toolsOpen: st.toolsOpen, toggleTools: () => this.setState(s => ({ toolsOpen: !s.toolsOpen, acctOpen: false })), acctBorder: st.acctOpen ? "var(--color-accent)" : "var(--color-divider)",
+      toggleAcct: () => this.setState(s => ({ acctOpen: !s.acctOpen })),
+      signOut: () => this.signOut(),
+      presence: (D.MEMBERS || []).filter(m => m.here).map(m => {
+        const i = info(m);
+        return { initials: i.initials, title: i.name + " · " + i.role + " · in this project now", bg: "var(--color-accent-800)", fg: "#FFFFFF" };
+      }),
+      membersOpen: st.membersOpen,
+      openMembers: () => this.setState({ membersOpen: true, acctOpen: false }),
+      closeMembers: () => this.setState({ membersOpen: false }),
+      onMembers: st.memTab === "members", onActivity: st.memTab === "activity",
+      tabMembers: () => this.setState({ memTab: "members" }),
+      tabActivity: () => this.setState({ memTab: "activity" }),
+      members: (D.MEMBERS || []).map(m => {
+        const i = info(m);
+        return {
+          initials: i.initials, name: i.name + (u && i.id === u.id ? " (you)" : ""), title: i.title, last: i.last,
+          role: i.pending ? "Invited" : i.role, tagClass: i.pending ? "tag-neutral" : roleTag(i.role),
+          op: i.pending ? "0.62" : "1",
+          avBg: i.here ? "var(--color-accent-800)" : "var(--color-accent-200)",
+          avFg: i.here ? "#FFFFFF" : "var(--color-navy)"
+        };
+      }),
+      inviteEmail: st.inviteEmail,
+      setInvite: e => this.setState({ inviteEmail: e.target.value }),
+      sendInvite: () => {
+        const v = (st.inviteEmail || "").trim();
+        if (!u || u.role !== "Owner") return this.notify("Owners invite", "Only a workspace owner can add a seat. Yours is " + (u ? u.role : "—") + ".");
+        if (!v || v.toLowerCase().indexOf("@harringtondata.com") < 0) return this.notify("Internal domain only", "Invites go to @harringtondata.com addresses while Harrington Tools is internal.");
+        this.setState({ inviteEmail: "" });
+        this.notify("Invite queued", v + " gets an Editor seat on this workspace. Under multi-tenant this becomes an invite to one client, not all of them.");
+      },
+      activity: (D.ACTIVITY || []).map(a => {
+        const s = seats.find(x => x.id === a.by);
+        return { initials: s ? s.initials : "SYS", what: a.what, where: a.where, at: a.at };
+      }),
+      hasNotice: !!st.notice, noticeTitle: nt.title || "", noticeText: nt.text || "",
+      noticeHasAct: !!nt.act, noticeActLabel: nt.actLabel || "",
+      noticeAct: () => { if (nt.act) nt.act(); },
+      dismissNotice: () => this.setState({ notice: null }),
+      draft: st.draft,
+      setDraft: e => this.setState({ draft: e.target.value }),
+      saveEdit: () => this.saveEdit(), cancelEdit: () => this.cancelEdit(),
+      tryEditRaw: () => this.tryEditRaw(),
+      srcHash: (D.SOURCE || {}).hash || "", srcIngested: (D.SOURCE || {}).ingested || "", srcBy: (D.SOURCE || {}).by || ""
+    };
+  }
+
+  itemFor(d) {
+    if (!this.state.item) return null;
+    for (const sec of d.ARTIFACT) for (const it of sec.items) if (it.text === this.state.item) return it;
+    return null;
+  }
+
+  renderVals() {
+    const d = window.DISCOVERY;
+    if (!d) return Object.assign({}, this.authVals(), { notReady: true, isSources: false, isTemplates: false, isStudy: false, isChain: false, isStages: false, isCorpus: false, onS1: false, onS2: false, onS3: false, onS4: false, isDeck: false, isReport: false, isArch: false, isFlow: false, hasPicked: false, isArtTpl: true, isProdTpl: false, hasSelItem: false, noSelItem: true, hasOrphans: false, noOrphans: false, spine: [], paths: [], boardW: 0, boardH: 0 });
+
+    const st = this.state;
+    const client = d.CLIENTS.find(c => c.id === st.clientId) || d.CLIENTS[0];
+    const project = client.projects.find(p => p.id === st.projectId) || client.projects[0];
+    const outKey = st.out ?? (this.props.defaultOutput ?? "arch");
+    const outDef = d.OUTPUTS.find(o => o.key === outKey) || d.OUTPUTS[0];
+    const outTpl = d.PROD_TEMPLATES.find(t => t.out === outKey) || d.PROD_TEMPLATES[0];
+
+    /* ── stages sub-view values (same engine as before) ── */
+    const selCode = d.CODES.find(c => c.id === st.sel) || null;
+    const selItem = this.itemFor(d);
+    let selItemKey = "";
+    d.ARTIFACT.forEach((sec, si) => sec.items.forEach((it, ii) => { if (it === selItem) selItemKey = "item:" + si + "-" + ii; }));
+    const selLine = selCode ? selCode.line : (selItem ? d.CODES.find(c => c.id === selItem.refs[0]).line : null);
+    const nums = this.props.showLineNumbers ?? true;
+
+    const lines = d.T.map((t, i) => {
+      const n = i + 1;
+      const refs = d.CODES.filter(c => c.line === n);
+      const active = selLine === n;
+      return {
+        n, num: nums ? String(n).padStart(2, "0") : "", spk: t[0], text: t[1],
+        spkColor: t[0] === "INT" ? "color-mix(in srgb, var(--color-text) 42%, transparent)" : "var(--color-accent-700)",
+        bg: active ? "var(--color-accent-200)" : (refs.length ? "color-mix(in srgb, var(--color-accent) 5%, transparent)" : "transparent"),
+        hoverBg: active ? "var(--color-accent-200)" : "color-mix(in srgb, var(--color-accent) 10%, transparent)",
+        edge: active ? "var(--color-accent-700)" : (refs.length ? "var(--color-accent-300)" : "transparent"),
+        cursor: refs.length ? "pointer" : "default",
+        hasCodes: refs.length > 0,
+        codeRefs: refs.map(c => ({
+          id: c.id,
+          border: c.id === st.sel ? "var(--color-accent-700)" : "var(--color-accent-400)",
+          color: c.id === st.sel ? "var(--color-bg)" : "var(--color-accent-800)",
+          bg: c.id === st.sel ? "var(--color-accent-700)" : "transparent"
+        })),
+        pick: refs.length ? () => this.pickCode(refs[0].id) : () => {}
+      };
+    });
+
+    const types = ["All", "Pain", "Step", "Tool", "Goal", "Constraint", "Question"];
+    const visibleCodes = d.CODES.filter(c => st.filter === "All" || c.type === st.filter).map(c => Object.assign({}, this.edVals("code:" + c.id, c.label), {
+      id: c.id, type: c.type, label: this.edText("code:" + c.id, c.label), verbatim: c.verbatim,
+      addr: "T1 · L" + String(c.line).padStart(2, "0"),
+      cardBg: c.id === st.sel ? "color-mix(in srgb, var(--color-accent) 10%, transparent)" : "transparent",
+      cardBorder: c.id === st.sel ? "var(--color-accent)" : "var(--color-divider)",
+      chipBg: c.id === st.sel ? "var(--color-accent-700)" : "var(--color-accent-200)",
+      chipFg: c.id === st.sel ? "var(--color-bg)" : "var(--color-navy)",
+      pick: () => this.pickCode(c.id)
+    }));
+
+    const used = new Set();
+    d.ARTIFACT.forEach(s => s.items.forEach(it => it.refs.forEach(r => used.add(r))));
+    const orphans = d.CODES.filter(c => !used.has(c.id));
+    const clustered = d.THEMES.reduce((a, t) => a + t.codes, 0);
+    const corpusTotal = d.LEDGER.reduce((a, b) => a + b.codes, 0);
+
+    /* ── chain view ── */
+    const set = this.chain(st.node);
+    const on = id => !set || set.has(id);
+    const dimOp = id => (!set || set.has(id)) ? "1" : "0.3";
+
+    const chainLines = d.T.map((t, i) => {
+      const n = i + 1;
+      const refs = d.CODES.filter(c => c.line === n);
+      const nid = "cv-ln-" + n;
+      const isSel = st.node === nid;
+      return {
+        n, num: String(n).padStart(2, "0"), spk: t[0], text: t[1],
+        spkColor: t[0] === "INT" ? "color-mix(in srgb, var(--color-text) 42%, transparent)" : "var(--color-accent-700)",
+        op: refs.length ? dimOp(nid) : (set ? "0.22" : "0.55"),
+        bg: isSel ? "var(--color-accent-200)" : (refs.length ? "color-mix(in srgb, var(--color-accent) 5%, transparent)" : "transparent"),
+        edge: isSel ? "var(--color-accent-700)" : (refs.length ? "var(--color-accent-300)" : "transparent"),
+        cursor: refs.length ? "pointer" : "default",
+        pick: refs.length ? () => this.pickNode(nid) : () => {}
+      };
+    });
+
+    const chainCodes = d.CODES.map(c => {
+      const nid = "cv-cd-" + c.id;
+      const isSel = st.node === nid;
+      const ed = this.edRec("code:" + c.id);
+      return {
+        id: c.id, label: this.edText("code:" + c.id, c.label), addr: "L" + String(c.line).padStart(2, "0"),
+        wasEdited: !!ed, editedBy: ed ? ((this.seatOf(ed.by) || {}).initials || "··") : "",
+        op: dimOp(nid),
+        bg: on(nid) && set ? "color-mix(in srgb, var(--color-accent) 9%, transparent)" : "transparent",
+        border: isSel ? "var(--color-accent-700)" : (set && on(nid) ? "var(--color-accent-400)" : "var(--color-divider)"),
+        chipBg: isSel ? "var(--color-accent-700)" : "var(--color-accent-200)",
+        chipFg: isSel ? "var(--color-bg)" : "var(--color-navy)",
+        pick: () => this.pickNode(nid)
+      };
+    });
+
+    const chainSections = d.ARTIFACT.map((sec, si) => ({
+      num: sec.num, title: sec.title,
+      items: sec.items.map((it, ii) => {
+        const key = si + "-" + ii, nid = "cv-it-" + key;
+        const isSel = st.node === nid;
+        return {
+          key, text: this.edText("item:" + key, it.text), op: dimOp(nid),
+          bg: isSel ? "var(--color-accent-200)" : (set && on(nid) ? "color-mix(in srgb, var(--color-accent) 7%, transparent)" : "transparent"),
+          edge: isSel ? "var(--color-accent-700)" : (set && on(nid) ? "var(--color-accent-400)" : "transparent"),
+          pick: () => this.pickNode(nid)
+        };
+      })
+    }));
+
+    const chainThemes = d.THEMES.map(t => {
+      const nid = "cv-th-" + t.id;
+      const isSel = st.node === nid;
+      return {
+        id: t.id, title: this.edText("theme:" + t.id, t.title), weight: t.codes + " codes · " + t.ivs + " ivs",
+        op: dimOp(nid),
+        bg: set && on(nid) ? "color-mix(in srgb, var(--color-accent) 9%, transparent)" : "transparent",
+        border: isSel ? "var(--color-accent-700)" : (set && on(nid) ? "var(--color-accent-400)" : "var(--color-divider)"),
+        chipBg: isSel ? "var(--color-accent-700)" : "var(--color-accent-200)",
+        chipFg: isSel ? "var(--color-bg)" : "var(--color-navy)",
+        pick: () => this.pickNode(nid)
+      };
+    });
+
+    const paths = st.paths.map(p => {
+      const lit = set ? (set.has(p.a) && set.has(p.b)) : false;
+      return {
+        d: p.d,
+        stroke: lit ? "var(--color-accent-700)" : "var(--color-accent-400)",
+        w: lit ? "1.7" : "0.7",
+        op: set ? (lit ? "1" : "0.1") : "0.35"
+      };
+    });
+
+    let readout = "no selection — showing every derivation";
+    if (set) {
+      const c = st.node.indexOf("cv-cd-") === 0 ? st.node.slice(6) : null;
+      readout = (set.size - 1) + " connected nodes" + (c ? " · " + c : "");
+    }
+
+    /* ── library ── */
+    const libF = st.libFilter || "All";
+    const statusLabel = { coded: "Coded", queued: "Queued", new: "Unassigned" };
+    const statusTag = { coded: "tag-accent", queued: "tag-outline", new: "tag-neutral" };
+    const facets = this.facetsFor(st.projectId);
+    const libFacet = facets.find(x => x.id === st.libFacet) || facets[0] || null;
+    const libLabel = st.libLabel;
+    const labelsOf = id => this.labelsFor(id);
+    const lib = d.LIBRARY
+      .filter(r => libF === "All" || r.status === libF)
+      .filter(r => !libLabel || !libFacet || labelsOf(r.id)[libFacet.id] === libLabel);
+    const labelled = d.LIBRARY.filter(r => libFacet && labelsOf(r.id)[libFacet.id]).length;
+
+    /* ── corpus ── */
+    const maxNw = Math.max.apply(null, d.SATURATION.map(s => s.nw));
+    const cellFill = ch => {
+      if (ch === "." || ch === undefined) return { bg: "transparent", border: "color-mix(in srgb, var(--color-text) 9%, transparent)" };
+      const v = parseInt(ch, 10);
+      const step = v >= 3 ? "var(--color-accent-800)" : v === 2 ? "var(--color-accent-600)" : "var(--color-accent-300)";
+      return { bg: step, border: step };
+    };
+
+    const cFacet = facets.find(x => x.id === st.corpusFacet) || facets[0] || null;
+    const allIdx = d.LEDGER.map((l, i) => i);
+    let order = allIdx, bands = [];
+    if (cFacet) {
+      order = [];
+      cFacet.opts.forEach(o => {
+        const g = allIdx.filter(i => labelsOf(d.LEDGER[i].id)[cFacet.id] === o);
+        if (g.length) { bands.push({ name: o, span: g.length, ivs: g.length, idx: g }); order = order.concat(g); }
+      });
+      const rest = allIdx.filter(i => order.indexOf(i) < 0);
+      if (rest.length) { bands.push({ name: "Unlabelled", span: rest.length, ivs: rest.length, idx: rest }); order = order.concat(rest); }
+    }
+    const coverage = bands.map((b, i) => {
+      const codes = b.idx.reduce((a, j) => a + d.LEDGER[j].codes, 0);
+      const thin = b.ivs <= 2 && b.name !== "Unlabelled";
+      return {
+        name: b.name, ivs: b.ivs,
+        w: Math.round(b.ivs / d.LEDGER.length * 100) + "%",
+        fill: thin ? "var(--color-accent-300)" : "var(--color-accent)",
+        meta: b.ivs + " ivs · " + codes + " codes"
+      };
+    });
+    const thinB = coverage.filter(c => c.ivs <= 2 && c.name !== "Unlabelled").map(c => c.name);
+    const coverageNote = thinB.length
+      ? thinB.join(" and ") + (thinB.length > 1 ? " carry" : " carries") + " two interviews or fewer. A theme resting mostly inside " + (thinB.length > 1 ? "those bands" : "that band") + " is a lead, not a finding — the matrix shows it as a cluster in one group."
+      : "Every group carries three or more interviews, so a row that fills across bands can be called a finding rather than one group's view.";
+
+    const tpls = st.tplKind === "prod" ? d.PROD_TEMPLATES : d.ART_TEMPLATES;
+    const tplSel = tpls.find(t => t.id === st.tplId) || tpls[0];
+
+    const spineNodes = [
+      { stage: "00 Source", value: selCode || selItem ? "Google Meet · T1" : "— 18 in library", on: !!(selCode || selItem), go: () => this.setView("sources") },
+      { stage: "01 Transcript", value: selLine ? "T1 · L" + String(selLine).padStart(2, "0") : "— pick a line", on: !!selLine, go: () => this.setState({ view: "study", sub: "stages", stage: 1 }) },
+      { stage: "02 Code", value: selCode ? selCode.id : (selItem ? selItem.refs.join(" · ") : "— none"), on: !!(selCode || selItem), go: () => this.setState({ view: "study", sub: "stages", stage: 2 }) },
+      { stage: "03 Artifact", value: selItem ? "§" + (d.ARTIFACT.find(s => s.items.indexOf(selItem) >= 0) || {}).title : (selCode ? this.sectionOf(d, selCode.id) : "— not placed"), on: !!(selItem || selCode), go: () => this.setState({ view: "study", sub: "stages", stage: 3 }) },
+      { stage: "04 Product", value: selCode ? this.themeOf(d, selCode.id) : "— no theme", on: !!selCode, go: () => this.setState({ view: "study", sub: "stages", stage: 4 }) }
+    ];
+
+    return Object.assign({}, this.authVals(), {
+      notReady: false,
+      views: [
+        { label: "Sources", count: d.LIBRARY.length, key: "sources" },
+        { label: "Templates", count: d.ART_TEMPLATES.length + d.PROD_TEMPLATES.length, key: "templates" },
+        { label: "Study", count: project.ivs, key: "study" }
+      ].map(v => ({
+        label: v.label, count: v.count,
+        bg: st.view === v.key ? "var(--color-accent-tint)" : "transparent",
+        fg: st.view === v.key ? "var(--color-accent-800)" : "var(--color-text)",
+        weight: st.view === v.key ? "700" : "500",
+        pick: () => this.setView(v.key)
+      })),
+      isSources: st.view === "sources", isTemplates: st.view === "templates", isStudy: st.view === "study",
+      clientId: st.clientId, projectId: st.projectId,
+      clientOpts: d.CLIENTS.map(c => ({ id: c.id, name: c.name })),
+      projectOpts: client.projects.map(p => ({ id: p.id, name: p.name })),
+      projectState: project.state, projectLabel: project.name,
+      setClient: e => { const c = d.CLIENTS.find(x => x.id === e.target.value); this.setState({ clientId: e.target.value, projectId: c.projects[0].id }); },
+      setProject: e => this.setState({ projectId: e.target.value }),
+
+      connectors: d.CONNECTORS.map(k => ({
+        name: k.name, detail: k.detail, mark: MARK[k.id] || "·",
+        stateLabel: k.state === "connected" ? "Connected" : k.state === "always" ? "Always on" : "Connect",
+        tagClass: k.state === "connected" ? "tag-accent" : k.state === "always" ? "tag-neutral" : "tag-outline",
+        meta: k.pulled ? k.pulled + " pulled · " + k.last : "not connected",
+        bg: k.state === "available" ? "transparent" : "color-mix(in srgb, var(--color-accent) 5%, transparent)"
+      })),
+      libSummary: d.LIBRARY.filter(r => r.status === "coded").length + " coded · " + d.LIBRARY.filter(r => r.status === "queued").length + " queued · " + d.LIBRARY.filter(r => r.status === "new").length + " unassigned",
+      libFilters: ["All", "coded", "queued", "new"].map(f => ({
+        label: f === "All" ? "ALL" : statusLabel[f].toUpperCase(),
+        count: f === "All" ? d.LIBRARY.length : d.LIBRARY.filter(r => r.status === f).length,
+        bg: libF === f ? "var(--color-accent)" : "transparent",
+        fg: libF === f ? "var(--color-bg)" : "var(--color-text)",
+        border: libF === f ? "var(--color-accent)" : "var(--color-divider)",
+        pick: () => this.setState({ libFilter: f })
+      })),
+      library: lib.map(r => ({
+        id: r.id, title: r.title, who: r.who, date: r.date, mins: r.mins,
+        srcName: SRCNAME[r.src] || r.src,
+        project: r.project, projColor: r.project === "—" ? "color-mix(in srgb, var(--color-text) 40%, transparent)" : "var(--color-text)",
+        labels: facets.map(fc => labelsOf(r.id)[fc.id]).filter(Boolean),
+        noLabels: facets.every(fc => !labelsOf(r.id)[fc.id]),
+        statusLabel: statusLabel[r.status], tagClass: statusTag[r.status],
+        on: st.picked.indexOf(r.id) >= 0,
+        bg: st.picked.indexOf(r.id) >= 0 ? "color-mix(in srgb, var(--color-accent) 9%, transparent)" : "transparent",
+        tog: () => this.setState(s => ({ picked: s.picked.indexOf(r.id) >= 0 ? s.picked.filter(x => x !== r.id) : s.picked.concat([r.id]) }))
+      })),
+      libFacetTabs: facets.map(fc => ({
+        name: fc.name, on: !!libFacet && libFacet.id === fc.id,
+        pick: () => this.setState({ libFacet: fc.id, libLabel: "" })
+      })),
+      libLabelFilters: (libFacet ? [{ v: "", name: "ALL" }].concat(libFacet.opts.map(o => ({ v: o, name: o.toUpperCase() }))) : []).map(o => ({
+        label: o.name,
+        count: o.v ? d.LIBRARY.filter(r => labelsOf(r.id)[libFacet.id] === o.v).length : d.LIBRARY.length,
+        bg: libLabel === o.v ? "var(--color-accent-800)" : "transparent",
+        fg: libLabel === o.v ? "var(--color-bg)" : "var(--color-text)",
+        border: libLabel === o.v ? "var(--color-accent-800)" : "var(--color-divider)",
+        pick: () => this.setState({ libLabel: o.v })
+      })),
+      labelNote: libFacet
+        ? (d.LIBRARY.length - labelled) + " of " + d.LIBRARY.length + " carry no " + libFacet.name.toLowerCase() + " yet — select rows to label them in one pass"
+        : "This project has no label axes yet — add one under Templates & labels",
+      bulkLabel: st.bulkLabel,
+      bulkLabelOpts: facets.reduce((a, fc) => a.concat(fc.opts.map(o => ({ v: fc.id + "::" + o, label: fc.name + " · " + o }))), []),
+      applyBulkLabel: e => {
+        const v = e.target.value;
+        if (!v) return;
+        if (!this.canEdit()) return this.notify("Viewer seat", "Labels are metadata, but still a write. Ask an owner for an Editor seat.");
+        const parts = v.split("::");
+        st.picked.forEach(id => this.setLabel(id, parts[0], parts[1]));
+        this.notify("Labelled", st.picked.length + " transcript" + (st.picked.length === 1 ? "" : "s") + " set to " + parts[1] + ". Labels are metadata — the transcript body is untouched.");
+      },
+      hasPicked: st.picked.length > 0, pickedCount: st.picked.length,
+      clearPicked: () => this.setState({ picked: [] }),
+
+      isArtTpl: st.tplKind === "art", isProdTpl: st.tplKind === "prod",
+      isLabelTpl: st.tplKind === "labels", isTplList: st.tplKind !== "labels",
+      pickLabelTpl: () => this.setState({ tplKind: "labels" }),
+      facetCards: facets.map(fc => ({
+        name: fc.name, key: fc.id, canEdit: this.canEdit(),
+        opts: fc.opts.map(o => ({
+          name: o,
+          count: d.LIBRARY.filter(r => labelsOf(r.id)[fc.id] === o).length,
+          canEdit: this.canEdit(),
+          remove: () => this.mutateSchema(st.projectId, arr => {
+            const t = arr.find(x => x.id === fc.id);
+            if (t) t.opts = t.opts.filter(x => x !== o);
+          })
+        })),
+        draft: st.optDraft[fc.id] || "",
+        setDraft: e => {
+          const v = e.target.value;
+          this.setState(s => { const od = Object.assign({}, s.optDraft); od[fc.id] = v; return { optDraft: od }; });
+        },
+        add: () => {
+          const v = (st.optDraft[fc.id] || "").trim();
+          if (!v) return;
+          this.mutateSchema(st.projectId, arr => {
+            const t = arr.find(x => x.id === fc.id);
+            if (t && t.opts.indexOf(v) < 0) t.opts.push(v);
+          });
+          this.setState(s => { const od = Object.assign({}, s.optDraft); od[fc.id] = ""; return { optDraft: od }; });
+        },
+        remove: () => this.mutateSchema(st.projectId, arr => {
+          const i = arr.findIndex(x => x.id === fc.id);
+          if (i >= 0) arr.splice(i, 1);
+        }),
+        coverage: d.LIBRARY.filter(r => labelsOf(r.id)[fc.id]).length + " of " + d.LIBRARY.length + " transcripts labelled on this axis"
+      })),
+      newFacet: st.newFacet,
+      setNewFacet: e => this.setState({ newFacet: e.target.value }),
+      addFacet: () => {
+        const v = (st.newFacet || "").trim();
+        if (!v) return;
+        this.mutateSchema(st.projectId, arr => arr.push({ id: v.toLowerCase().replace(/[^a-z0-9]+/g, "-"), name: v, opts: [] }));
+        this.setState({ newFacet: "" });
+      },
+      pickArtTpl: () => this.setState({ tplKind: "art", tplId: "AT-1" }),
+      pickProdTpl: () => this.setState({ tplKind: "prod", tplId: "PT-1" }),
+      tplBlurb: st.tplKind === "art"
+        ? "One note template per interview type. The template owns the slots; coding owns the content — so changing a template re-renders notes without re-reading a transcript."
+        : st.tplKind === "prod"
+        ? "The final product is a template too. Same corpus, four shapes — pick per project, or render several from one synthesis."
+        : "Grouping axes for this project's interviews. They travel with the project, not the workspace — change them without touching any other study.",
+      templates: tpls.map(t => ({
+        id: t.id, name: t.name, scope: t.scope,
+        meta: t.sections.length + " sections · " + (t.projects.length ? t.projects.length + (t.projects.length === 1 ? " project" : " projects") : "unassigned"),
+        bg: t.id === tplSel.id ? "color-mix(in srgb, var(--color-accent) 9%, transparent)" : "transparent",
+        border: t.id === tplSel.id ? "var(--color-accent)" : "var(--color-divider)",
+        chipBg: t.id === tplSel.id ? "var(--color-accent-700)" : "var(--color-accent-200)",
+        chipFg: t.id === tplSel.id ? "var(--color-bg)" : "var(--color-navy)",
+        pick: () => this.setState({ tplId: t.id })
+      })),
+      tplSelId: tplSel.id, tplSelName: tplSel.name,
+      tplSections: tplSel.sections.map((s, i) => ({
+        n: String(i + 1).padStart(2, "0"), name: s.n,
+        reqs: s.req.split(", "), note: s.note, hasNote: !!s.note
+      })),
+      tplAssigned: tplSel.projects.length ? tplSel.projects : ["Not assigned to any project"],
+
+      isChain: st.sub === "chain", isStages: st.sub === "stages", isCorpus: st.sub === "corpus",
+      goChain: () => this.setSub("chain"), goStages: () => this.setSub("stages"), goCorpus: () => this.setSub("corpus"),
+      subBlurb: st.sub === "chain"
+        ? "Every derivation in one board — scroll right to walk transcript → code → note → product. Click any node to light only its chain."
+        : st.sub === "stages"
+        ? "One stage at a time, with the working detail: verbatims, filters, evidence panels and the rendered product."
+        : "The twelve-interview view. Saturation says when to stop interviewing; the matrix says which codes are findings and which are one person's opinion.",
+
+      boardRef: this.boardRef, paths, boardW: st.boardW, boardH: st.boardH,
+      chainLines, chainCodes, chainSections, chainThemes,
+      chainIv: st.chainIv, chainIvLabel: st.chainIv + " · Dana Reyes",
+      ivOpts: d.LEDGER.map(l => {
+        const lb = facets.map(fc => labelsOf(l.id)[fc.id]).filter(Boolean).join(" · ");
+        return { id: l.id, label: l.id + " · " + l.who + (lb ? "  —  " + lb : "") };
+      }),
+      setChainIv: e => this.setState({ chainIv: e.target.value }),
+      chainCodeCount: d.CODES.length,
+      chainReadout: readout,
+      clearNode: () => this.setState({ node: null }),
+      scrollEnd: () => { const b = this.boardRef.current; if (b) b.scrollLeft = b.scrollWidth; },
+      clusteredLabel: clustered + " of " + corpusTotal + " codes clustered",
+
+      satBars: d.SATURATION.map((s, i) => ({
+        iv: s.iv, nw: s.nw, h: Math.max(2, Math.round((s.nw / maxNw) * 72)),
+        fill: i >= 9 ? "var(--color-accent-300)" : "var(--color-accent)"
+      })),
+      satNote: "New codes drop to one or none from T10 on. The corpus is saturated: a thirteenth interview of the same role is unlikely to move a theme — a thirteenth interview of a new role still might.",
+      corpusStats: [
+        { k: "Interviews coded", v: "12" },
+        { k: "Coded segments", v: String(corpusTotal) },
+        { k: "Distinct codes", v: "56" },
+        { k: "Clustered into themes", v: clustered + " (" + Math.round(clustered / corpusTotal * 100) + "%)" },
+        { k: "Queued for coding", v: "2" },
+        { k: "In library, unassigned", v: String(d.LIBRARY.filter(r => r.status === "new").length) }
+      ],
+      corpusFacetName: cFacet ? cFacet.name.toLowerCase() : "interview",
+      corpusFacetTabs: facets.map(fc => ({ name: fc.name, on: !!cFacet && cFacet.id === fc.id, pick: () => this.setState({ corpusFacet: fc.id }) })),
+      coverage, coverageNote,
+      corpusBands: bands.map((b, i) => ({
+        name: b.name, span: b.span,
+        bg: b.name === "Unlabelled" ? "transparent" : (i % 2 ? "var(--color-accent-200)" : "var(--color-accent-100)"),
+        fg: b.name === "Unlabelled" ? "color-mix(in srgb, var(--color-text) 45%, transparent)" : "var(--color-navy)"
+      })),
+      corpusCols: order.map(i => d.LEDGER[i].id),
+      corpusRows: d.CORPUS.map(r => ({
+        code: r.code, label: r.label,
+        n: r.hits.split("").filter(ch => ch !== ".").length,
+        rowBg: r.theme === "TH-2" || r.theme === "TH-4" ? "color-mix(in srgb, var(--color-text) 3%, transparent)" : "transparent",
+        cells: order.map(i => cellFill(r.hits[i]))
+      })),
+
+      stageTabs: [1, 2, 3, 4].map(n => ({
+        label: "0" + n + " " + ["Transcript", "Coding", "Artifact", "Product"][n - 1],
+        on: st.stage === n, pick: () => this.setState({ stage: n })
+      })),
+      stageBlurb: ["Addressed, not yet interpreted.", "Bidirectional: click a line or a code.", "Slots from template AT-2, filled by codes.", "Themes across twelve interviews."][st.stage - 1],
+      onS1: st.stage === 1, onS2: st.stage === 2, onS3: st.stage === 3, onS4: st.stage === 4,
+      s2: () => this.setState({ stage: 2 }), s4: () => this.setState({ stage: 4 }),
+      lines, markedCount: new Set(d.CODES.map(c => c.line)).size,
+      visibleCodes, visibleCount: visibleCodes.length,
+      filters: types.map(t => ({
+        label: t.toUpperCase(),
+        count: t === "All" ? d.CODES.length : d.CODES.filter(c => c.type === t).length,
+        bg: st.filter === t ? "var(--color-accent)" : "transparent",
+        fg: st.filter === t ? "var(--color-bg)" : "var(--color-text)",
+        border: st.filter === t ? "var(--color-accent)" : "var(--color-divider)",
+        pick: () => this.setState({ filter: t })
+      })),
+      artifact: d.ARTIFACT.map((sec, si) => ({
+        num: sec.num, title: sec.title,
+        items: sec.items.map((it, ii) => Object.assign({}, this.edVals("item:" + si + "-" + ii, it.text), {
+          refs: it.refs.map(id => ({ id })),
+          bg: st.item === it.text ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "transparent",
+          edge: st.item === it.text ? "var(--color-accent-700)" : "transparent",
+          pick: () => this.setState(s => ({ item: s.item === it.text ? null : it.text, sel: null }))
+        }))
+      })),
+      hasSelItem: !!selItem, noSelItem: !selItem,
+      selItemText: selItem ? this.edText(selItemKey, selItem.text) : "",
+      selItemCodes: selItem ? selItem.refs.map(id => {
+        const c = d.CODES.find(x => x.id === id);
+        return { id: c.id, type: c.type, verbatim: c.verbatim, addr: "T1 · L" + String(c.line).padStart(2, "0"), jump: () => this.jumpToCode(c.id) };
+      }) : [],
+      usedCount: used.size, codeTotal: d.CODES.length,
+      coverageLabel: used.size + " / " + d.CODES.length,
+      coverageWidth: Math.round(used.size / d.CODES.length * 100) + "%",
+      hasOrphans: orphans.length > 0, noOrphans: orphans.length === 0,
+      orphanIds: orphans.map(c => c.id).join(", "),
+
+      ledger: d.LEDGER,
+      themes: d.THEMES.map(t => Object.assign({}, this.edVals("theme:" + t.id, t.title), {
+        id: t.id, title: this.edText("theme:" + t.id, t.title), weight: t.codes + " codes · " + t.ivs + " interviews",
+        more: "+" + (t.codes - t.ev.length) + " from T2–T12",
+        evidence: t.ev.map(id => ({ id, jump: () => this.jumpToCode(id) })),
+        bg: st.theme === t.id ? "color-mix(in srgb, var(--color-accent) 9%, transparent)" : "transparent",
+        border: st.theme === t.id ? "var(--color-accent)" : "var(--color-divider)",
+        chipBg: st.theme === t.id ? "var(--color-accent-700)" : "var(--color-accent-200)",
+        chipFg: st.theme === t.id ? "var(--color-bg)" : "var(--color-navy)",
+        pick: () => this.setState({ theme: t.id })
+      })),
+      outputs: d.OUTPUTS.map(o => ({
+        label: o.label, on: outKey === o.key,
+        bg: outKey === o.key ? "rgba(242,242,243,.9)" : "transparent",
+        fg: outKey === o.key ? "var(--color-navy)" : "#FFFFFF",
+        pick: () => this.setState({ out: o.key })
+      })),
+      outBlurb: outDef.blurb, outTplId: outTpl.id, outTplName: outTpl.name,
+      isDeck: outKey === "deck", isReport: outKey === "report", isArch: outKey === "arch", isFlow: outKey === "flow",
+      slides: d.SLIDES.map(s => ({
+        num: s.num, title: s.title, cite: s.cite,
+        bg: s.dark ? "var(--color-navy)" : "var(--color-surface)",
+        fg: s.dark ? "#FFFFFF" : "var(--color-text)"
+      })),
+      reportSecs: d.REPORT_SECS,
+      archNodes: d.ARCH.map(a => ({
+        kind: a.kind, name: a.name, note: a.note, cite: a.cite,
+        style: a.solid ? "solid" : "dashed",
+        bg: a.solid ? "transparent" : "color-mix(in srgb, var(--color-accent) 6%, transparent)"
+      })),
+      archGaps: d.ARCH_GAPS,
+      lanes: d.LANES.map(l => ({
+        name: l.name,
+        cells: l.cells.map(c => ({
+          label: c.label, t: c.t,
+          border: c.label ? "1px solid var(--color-divider)" : "1px dashed color-mix(in srgb, var(--color-text) 10%, transparent)",
+          bg: c.wait ? "var(--color-accent-800)" : "transparent",
+          fg: c.wait ? "#FFFFFF" : "var(--color-text)"
+        }))
+      })),
+      flowAxis: ["06:00", "06:24", "06:25", "wait", "09:45", "09:52"],
+
+      spine: spineNodes.map((s, i) => ({
+        stage: s.stage, value: s.value, go: s.go,
+        op: s.on ? "1" : "0.42",
+        border: s.on ? "rgba(242,242,243,.55)" : "rgba(242,242,243,.2)",
+        bg: s.on ? "rgba(242,242,243,.14)" : "transparent",
+        arrow: i < 4 ? "→" : ""
+      })),
+      clearAll: () => this.setState({ sel: null, item: null, node: null })
+    });
+  }
+
+  sectionOf(d, id) {
+    for (const sec of d.ARTIFACT) for (const it of sec.items) if (it.refs.indexOf(id) >= 0) return "§" + sec.title;
+    return "— orphaned code";
+  }
+  themeOf(d, id) {
+    const t = d.THEMES.find(t => t.ev.indexOf(id) >= 0);
+    return t ? t.id + " · " + t.title.slice(0, 26) + "…" : "— not clustered";
+  }
+}
+</script>
+</body>
+</html>

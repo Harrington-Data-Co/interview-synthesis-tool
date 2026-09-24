@@ -1,49 +1,191 @@
+/* Harrington Data Co — tools.harringtondata.com
+   Shared by every tool on the subdomain. Tokens are the marketing site's
+   (harringtondata.com styles.css) verbatim; the component layer below is the
+   same language tuned to app density: smaller type, tighter padding, same
+   cream ground, navy ink, green accent, 6px corners and soft navy shadows.
+
+   Ported unchanged from the Claude Design prototype's harrington/tools.css.
+   Treat this file as the brand: add to it, don't restyle it. */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* — site tokens, verbatim — */
+  --color-bg: #F7F4EF;
+  --color-bg-soft: #FBFAF7;
+  --color-surface: #FFFFFF;
+  --color-navy: #1B2A41;
+  --color-navy-muted: #C9D2DE;
+  --color-text: #2B2B2B;
+  --color-muted: #5A5E60;
+  --color-accent: #1F6F5C;
+  --color-accent-hover: #1A5C4C;
+  --color-accent-hover-on-dark: #248069;
+  --color-accent-tint: rgba(31, 111, 92, 0.1);
+  --color-accent-tint-soft: rgba(31, 111, 92, 0.06);
+  --color-accent-tint-border: rgba(31, 111, 92, 0.16);
+  --line-1: rgba(27, 42, 65, 0.07);
+  --line-2: rgba(27, 42, 65, 0.08);
+  --line-3: rgba(27, 42, 65, 0.1);
+  --line-4: rgba(27, 42, 65, 0.12);
+  --line-6: rgba(27, 42, 65, 0.16);
+  --shadow-xs: 0 1px 2px rgba(27, 42, 65, 0.04);
+  --shadow-btn: 0 1px 2px rgba(27, 42, 65, 0.12);
+  --shadow-btn-glow: 0 1px 2px rgba(27, 42, 65, 0.12), 0 6px 18px rgba(31, 111, 92, 0.18);
+  --radius: 6px;
+  --radius-pill: 999px;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* — app layer: roles the tools address by step — */
+  --font-heading: var(--font-sans);
+  --font-body: var(--font-sans);
+  --color-divider: var(--line-6);
+
+  /* green ramp built around the site accent (700 = #1F6F5C) */
+  --color-accent-100: #EDF4F1;
+  --color-accent-200: #DCEAE4;
+  --color-accent-300: #BDD7CD;
+  --color-accent-400: #93BCAD;
+  --color-accent-500: #4F9481;
+  --color-accent-600: #2E7F6A;
+  --color-accent-700: #1F6F5C;
+  --color-accent-800: #17594A;
+  --color-accent-900: #103F35;
+  --color-neutral-100: #F1EEE8;
+  --color-neutral-200: #E6E2DA;
+  --color-neutral-800: #3C4A5C;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --shadow-sm: 0 1px 2px rgba(27, 42, 65, 0.04), 0 10px 28px rgba(27, 42, 65, 0.06);
+  --shadow-md: 0 1px 2px rgba(27, 42, 65, 0.04), 0 14px 36px rgba(27, 42, 65, 0.07);
+  --shadow-lg: 0 2px 4px rgba(27, 42, 65, 0.06), 0 18px 44px rgba(27, 42, 65, 0.14);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
-}
-
-html,
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: light; }
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  margin: 0; background: var(--color-bg); color: var(--color-text);
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased; text-wrap: pretty;
+}
+h1, h2, h3, h4 {
+  font-family: var(--font-sans); font-weight: 800; color: var(--color-navy);
+  letter-spacing: -0.024em; line-height: 1.15; margin: 0;
+}
+h4 { font-weight: 700; letter-spacing: -0.012em; }
+p { margin: 0; }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+a:hover { color: var(--color-accent-hover); }
+::selection { background: rgba(31, 111, 92, 0.18); }
+button, input, select, textarea { font-family: inherit; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 13px; font-weight: 600; line-height: 1.2; color: var(--color-navy);
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius);
+  padding: 7px 13px; cursor: pointer; text-decoration: none;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { color: #FFFFFF; background: var(--color-accent); box-shadow: var(--shadow-btn-glow); }
+.btn-primary:hover { background: var(--color-accent-hover); color: #FFFFFF; }
+.btn-primary:active { background: var(--color-accent-900); }
+.btn-secondary { background: var(--color-surface); border-color: var(--line-4); box-shadow: var(--shadow-xs); }
+.btn-secondary:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.btn-secondary:active { background: var(--color-accent-tint-soft); }
+.btn-ghost { color: var(--color-accent); padding-inline: 8px; }
+.btn-ghost:hover { background: var(--color-accent-tint-soft); }
+.btn-ghost:active { background: var(--color-accent-tint); }
+.btn-block { width: 100%; }
+
+/* — forms — */
+.input {
+  width: 100%; min-height: 36px; padding: 7px 11px; font-size: 13.5px;
+  color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-bg-soft); border: 1px solid var(--line-6); border-radius: var(--radius);
+}
+.input:hover { border-color: rgba(27, 42, 65, 0.28); }
+.input:focus, .input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; border-color: var(--color-accent); }
+textarea.input { resize: vertical; }
+.seg {
+  display: inline-flex; gap: 2px; padding: 3px;
+  background: var(--color-neutral-100); border: 1px solid var(--line-2); border-radius: var(--radius);
+}
+.seg-opt {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; font-size: 12.5px; font-weight: 600; color: var(--color-muted);
+  border-radius: 4px; cursor: pointer; transition: background-color 140ms ease, color 140ms ease;
+}
+.seg-opt input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.seg-opt:has(input:checked) { background: var(--color-surface); color: var(--color-navy); box-shadow: var(--shadow-btn); }
+.seg-opt:not(:has(input:checked)):hover { color: var(--color-accent); }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+/* — surfaces — */
+.panel, .card {
+  position: relative; background: var(--color-surface);
+  border: 1px solid var(--line-2); border-radius: var(--radius);
+  box-shadow: var(--shadow-xs), 0 10px 28px rgba(27, 42, 65, 0.05);
+}
+.card { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); }
+.card-kicker {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--color-accent);
+}
+.card-title { font-size: 15px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.3; color: var(--color-navy); }
+.card-body { margin: 0; font-size: 13px; color: var(--color-muted); flex: 1; }
+
+/* — tags: the site's pill badge at app size — */
+.tag {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: var(--radius-pill);
+}
+.tag-accent { background: var(--color-accent-tint); color: var(--color-accent-800); }
+.tag-neutral { background: var(--color-neutral-100); color: var(--color-muted); }
+.tag-outline { border: 1px solid var(--color-accent-tint-border); color: var(--color-accent); background: var(--color-surface); }
+
+/* — table — */
+.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.table th {
+  text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--color-navy); padding: 10px 12px; border-bottom: 1px solid var(--line-4);
+  background: var(--color-bg-soft);
+}
+.table td { padding: 10px 12px; border-bottom: 1px solid var(--line-1); }
+.table tbody tr:hover { background: var(--color-accent-tint-soft); }
+
+/* — dialog — */
+.dialog-backdrop { background: rgba(27, 42, 65, 0.42); }
+.dialog {
+  position: relative; background: var(--color-surface);
+  border: 1px solid var(--line-3); border-radius: var(--radius); box-shadow: var(--shadow-lg);
 }
 
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* — the Harrington wordmark — */
+.hdc-brand { font-weight: 800; letter-spacing: -0.02em; color: var(--color-navy); white-space: nowrap; text-decoration: none; }
+.hdc-brand span { color: var(--color-accent); }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+/* — app-level rules carried from the prototype's inline <style> block — */
+input[type=checkbox] { accent-color: var(--color-accent); width: 14px; height: 14px; }
+select.input { appearance: none; padding-right: 26px; }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* — utilities the ported views rely on — */
+.mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.kicker {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--color-accent);
 }
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
+.meta { font-size: 12px; color: var(--color-muted); }
+.scroll-y { overflow-y: auto; }
+.scroll-y::-webkit-scrollbar { width: 9px; }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--line-4); border-radius: var(--radius-pill); }
+.scroll-y::-webkit-scrollbar-track { background: transparent; }

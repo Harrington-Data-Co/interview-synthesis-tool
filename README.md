@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Interview Synthesis
 
-## Getting Started
+Transcripts to coded notes to client deliverables, for Harrington Data Co.
 
-First, run the development server:
+Every finding keeps its source line: a transcript is ingested once and never
+altered, and everything built on top of it — codes, interview notes, themes, the
+client deliverable — traces back to the line someone actually said it on.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The design comes from the Claude Design prototype *Transcript to discovery
+system*, kept at `reference/Discovery Workspace.dc.html`. That file is the
+specification; when a view here needs building, read the corresponding section
+of the prototype first.
+
+## Running it
+
+Node 22 and npm are required. If `node` is not on your PATH, this repo was set
+up against a user-local install at `~/.local/node/current/bin`, which
+`~/.zshrc` adds for you — open a new terminal.
+
+```sh
+npm install
+cp .env.local.example .env.local   # then fill it in, see below
+npm run dev                        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without `.env.local` the app still runs and tells you what is missing, so you
+can see the sign-in screen before there is a database.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## First-time setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Create a Supabase project** at supabase.com. Any region; the free tier is
+   fine for now.
+2. **Copy the keys.** In the project's Settings → API, take the project URL and
+   the `anon` public key into `NEXT_PUBLIC_SUPABASE_URL` and
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Take the `service_role` key into
+   `SUPABASE_SERVICE_ROLE_KEY` — it is server-only and must never reach the
+   browser.
+3. **Apply the schema.** Paste `supabase/schema.sql` into the Supabase SQL
+   editor and run it. It creates every table, the append-only trigger on
+   `transcript_line`, and the row-level security policies.
+4. **Give yourself a seat.** Sign in once at `/sign-in` with your
+   `@harringtondata.com` address to create the auth user, then insert the
+   matching seat:
 
-## Learn More
+   ```sql
+   insert into seat (user_id, name, initials, email, role, title)
+   select id, 'Your Name', 'YN', email, 'owner', 'Lead researcher'
+   from auth.users where email = 'you@harringtondata.com';
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+   Authentication and membership are deliberately separate: a valid sign-in with
+   no seat row gets told it has no seat, not let in.
+5. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/app/sign-in/        the door
+src/app/auth/callback/  magic-link landing
+src/app/(app)/          everything behind the seat check
+  sources/              stage 00 — the transcript library
+  templates/            note templates, product templates, label axes
+  study/                stages 01–04
+src/lib/supabase/       browser, server and session-refresh clients
+src/lib/seat.ts         who is signed in, and what they may change
+supabase/schema.sql     the data model
+reference/              the Claude Design prototype, as specification
+```
 
-## Deploy on Vercel
+`src/app/globals.css` is the Harrington brand stylesheet, ported unchanged from
+the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Build phases
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Phase | Scope | State |
+|---|---|---|
+| 0 | Scaffold, brand, auth, seats, app shell | **done** |
+| 1 | Upload and parse transcripts; the transcript view | next |
+| 2 | Coding — Claude first pass, then the human layer | |
+| 3 | Interview notes from templates | |
+| 4 | Themes and the findings memo | |
+| 5 | The chain board and corpus views | |
+| 6 | Connectors, remaining product shapes, multi-tenancy | |
+
+The full plan is at `~/.claude/plans/snuggly-giggling-penguin.md`.
