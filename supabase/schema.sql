@@ -154,13 +154,19 @@ create table transcript_label (
 create table code (
   id             uuid primary key default gen_random_uuid(),
   transcript_id  uuid not null references transcript (id) on delete cascade,
-  line_id        bigint not null references transcript_line (id) on delete cascade,
+  -- An inclusive range of line numbers. A single-line code has start = end.
+  -- Both ends key on (transcript_id, n), so a range cannot straddle two
+  -- transcripts or point at a line that does not exist.
+  line_start     integer not null,
+  line_end       integer not null,
   ref            text not null,            -- human-facing id, e.g. 'PAIN-03'
   type           code_type not null,
   label          text not null,
-  -- Must be a literal substring of the referenced line. Enforced at write time
-  -- by the application (see lib/claude/coding.ts) because the check needs the
-  -- line text; this column existing at all is what makes the claim checkable.
+  -- Must be a literal substring of the range's lines joined with single
+  -- spaces, and must touch both the first and last line so the range stays
+  -- as tight as the quote. Enforced at write time by the application (see
+  -- lib/claude/coding.ts) because the check needs the line text; this column
+  -- existing at all is what makes the claim checkable.
   verbatim       text not null,
   note           text,
   -- Set when this code is folded into another; the row stays so that anything
@@ -168,10 +174,14 @@ create table code (
   merged_into_id uuid references code (id) on delete set null,
   created_by     uuid not null references seat (user_id),
   created_at     timestamptz not null default now(),
-  unique (transcript_id, ref)
+  unique (transcript_id, ref),
+  check (line_start <= line_end),
+  foreign key (transcript_id, line_start)
+    references transcript_line (transcript_id, n) on delete cascade,
+  foreign key (transcript_id, line_end)
+    references transcript_line (transcript_id, n) on delete cascade
 );
-create index on code (transcript_id);
-create index on code (line_id);
+create index on code (transcript_id, line_start, line_end);
 create index on code (type);
 
 -- ─── stage 03: note templates and interview notes ────────────────────────
