@@ -322,17 +322,35 @@ create index on activity (project_id, at desc);
 
 -- ─── row level security ──────────────────────────────────────────────────
 -- Single workspace: everyone with a seat reads everything; only editors and
--- owners write. When this goes multi-tenant, the read policies grow a project
--- membership check and nothing else has to move.
+-- owners write; only owners hand out seats. When this goes multi-tenant, the
+-- read policies grow a project membership check and nothing else has to move.
+--
+-- A Supabase account is not a seat. The @harringtondata.com check lives in the
+-- sign-in form, but anyone holding the public anon key can create an account
+-- straight against the Auth API, so every policy keys on the seat row, never
+-- on merely being signed in.
+--
+-- security definer: these read seat, and seat's own policies call them. Run
+-- as the caller they would re-enter those policies and recurse.
 
 create or replace function current_seat_role()
-returns seat_role language sql stable as $$
+returns seat_role language sql stable security definer set search_path = public as $$
   select role from seat where user_id = auth.uid();
 $$;
 
+create or replace function has_seat()
+returns boolean language sql stable security definer set search_path = public as $$
+  select current_seat_role() is not null;
+$$;
+
 create or replace function can_edit()
-returns boolean language sql stable as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select coalesce(current_seat_role() in ('owner', 'editor'), false);
+$$;
+
+create or replace function is_owner()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(current_seat_role() = 'owner', false);
 $$;
 
 do $$
@@ -348,10 +366,21 @@ begin
   loop
     execute format('alter table %I enable row level security', t);
     execute format(
-      'create policy %I on %I for select to authenticated using (auth.uid() is not null)',
+      'create policy %I on %I for select to authenticated using (has_seat())',
       t || '_read', t);
 
-    if t <> 'transcript_line' then
+    if t = 'seat' then
+      -- An editor who could write seats could make themselves an owner.
+      execute format(
+        'create policy %I on %I for insert to authenticated with check (is_owner())',
+        t || '_insert', t);
+      execute format(
+        'create policy %I on %I for update to authenticated using (is_owner())',
+        t || '_update', t);
+      execute format(
+        'create policy %I on %I for delete to authenticated using (is_owner())',
+        t || '_delete', t);
+    elsif t <> 'transcript_line' then
       execute format(
         'create policy %I on %I for insert to authenticated with check (can_edit())',
         t || '_insert', t);

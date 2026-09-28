@@ -35,10 +35,16 @@ can see the sign-in screen before there is a database.
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Take the `service_role` key into
    `SUPABASE_SERVICE_ROLE_KEY` — it is server-only and must never reach the
    browser.
-3. **Apply the schema.** Paste `supabase/schema.sql` into the Supabase SQL
+3. **Allow the magic-link redirect.** In Authentication → URL Configuration,
+   set the Site URL to `http://localhost:3000` and add
+   `http://localhost:3000/auth/callback` to the Redirect URLs.
+4. **Apply the schema.** Paste `supabase/schema.sql` into the Supabase SQL
    editor and run it. It creates every table, the append-only trigger on
-   `transcript_line`, and the row-level security policies.
-4. **Give yourself a seat.** Sign in once at `/sign-in` with your
+   `transcript_line`, and the row-level security policies. Every policy keys
+   on a seat row, not on being signed in: the domain check lives only in the
+   sign-in form, and anyone can create a Supabase account against the Auth API
+   directly.
+5. **Give yourself a seat.** Sign in once at `/sign-in` with your
    `@harringtondata.com` address to create the auth user, then insert the
    matching seat:
 
@@ -49,8 +55,24 @@ can see the sign-in screen before there is a database.
    ```
 
    Authentication and membership are deliberately separate: a valid sign-in with
-   no seat row gets told it has no seat, not let in.
-5. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
+   no seat row gets told it has no seat, not let in. This first seat has to be
+   inserted from the SQL editor; after that, only owners can add seats.
+6. **Check the access rules.** In the SQL editor, run as a single statement
+   (the editor only shows the last result, so keep the checks in one row):
+
+   ```sql
+   begin;
+   set local role authenticated;
+   set local request.jwt.claims = '{"sub":"<user id>","role":"authenticated"}';
+   select auth.uid() as uid, has_seat(),
+          (select count(*) from seat) as seats;
+   rollback;
+   ```
+
+   With your own id from `auth.users`, `has_seat` is true and `seats` counts
+   every seat. With a made-up id such as
+   `00000000-0000-0000-0000-000000000000`, `has_seat` is false and `seats` is 0.
+7. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
 
 ## Layout
 
@@ -82,4 +104,4 @@ the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 | 5 | The chain board and corpus views | |
 | 6 | Connectors, remaining product shapes, multi-tenancy | |
 
-The full plan is at `~/.claude/plans/snuggly-giggling-penguin.md`.
+The full plan is at `docs/PLAN.md`.
