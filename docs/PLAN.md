@@ -82,11 +82,18 @@ activity          project_id, actor, verb, object, at             -- ACTIVITY
 ### Phase 1 — Ingest + Transcript (stages 00–01)
 - Upload `.vtt` / `.srt` / `.txt` / `.docx` to Storage; compute and store `sha256`.
 - Parsers normalize to `(n, speaker, text)`. VTT/SRT are cue-block parses; `.docx` via `mammoth`.
+- **Source priority**, from how interviews are actually recorded: Google Meet (meetings Ryan owns; transcript Doc exported as `.docx`) and Wispr Flow (meetings he doesn't own) first. Zoom and Teams arrive only occasionally, as files a client sends, and never as a direct connection. Add `wispr` to the `transcript_src` enum.
+- **One line per speaker turn.** Consecutive cues from the same speaker merge into one line, keeping the first cue's start and the last cue's end. The stored file keeps the original cue boundaries, and its `sha256` proves it is unaltered.
+- Real client exports live in `fixtures/private/` (gitignored) for checking parsers against real formats. Committed tests use synthetic fixtures only.
+- **Layouts actually seen:** Teams `.vtt` (`<v Name>` voice tags, utterances split across numbered cues); Google Meet "Notes by Gemini" `.docx` (Gemini's AI notes, then a `📖 Transcript` section with bold speaker names and a time marker about every minute); Google Meet "Transcript" `.docx` (Attendees list, then plain `Name: text`); Wispr Flow (plain `Name: text` lines, no times). **Only transcript sections are ingested** — Gemini and Wispr summaries are a machine's account of what was said, not a record of it.
+- **Wispr Flow has no file export.** Upload offers a "paste transcript" box; pasted text is stored as a `.txt` file with its own `sha256`, exactly like an upload. A direct Wispr connection waits for Phase 6 and a Wispr API the app itself can call.
+- **`transcript_speaker`** (transcript, name as written, role: interviewer / participant / other), set at upload with one dropdown per speaker. The same person appears under different names across exports ("Jennifer Koester", "Jen :)"), and Phase 2 must know which turns are the participant's. The lines themselves are never rewritten.
+- **Filename guesses** pre-fill the upload form: Meet names give participant and date, Teams names give the participant only. All editable.
 - Row lands in the library as `new`; assigning it to a project moves it to `queued`.
 - Transcript view: numbered read-only lines, source record panel (file, hash, ingested, by), and the immutability refusal on an edit attempt.
 - Label axes and bulk labelling (prototype: `mutateSchema`, `applyBulkLabel`).
 
-**Exit criterion:** a real `.vtt` from a real call becomes a real, immutable, addressable transcript.
+**Exit criterion:** a real Google Meet transcript from a real call becomes a real, immutable, addressable transcript.
 
 ### Phase 2 — Coding (stage 02) — *highest risk, budget accordingly*
 - **First pass:** one Claude call per transcript. Input is the numbered lines plus the project's code-type vocabulary (`Pain | Step | Tool | Goal | Constraint | Question`). Structured output returns `{line_start, line_end, type, label, verbatim, note}[]`. A single-line code has `line_start = line_end`.

@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# real client transcripts for local parser checks — never committed
+/fixtures/private/*
+!/fixtures/private/README.md
