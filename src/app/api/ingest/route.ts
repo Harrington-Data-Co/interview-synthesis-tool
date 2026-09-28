@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         ts_start: l.tsStart,
         ts_end: l.tsEnd,
       })),
-      p_speakers: Object.entries(fields.roles).map(([name, role]) => ({ name, role })),
+      p_speakers: fields.speakers,
       p_participant: fields.participant,
       p_participant_role: fields.participantRole,
       p_duration_mins:

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { IngestPreview, SourceKind, SpeakerRole } from "@/lib/ingest/preview";
+import type { IngestPreview, SourceKind } from "@/lib/ingest/preview";
+import { withPaths, type Directory, type OrgOption } from "@/lib/directory";
+import { ClientProjectPicker, SpeakersEditor, type SpeakerValue } from "@/components/pickers";
 import { Dialog, Field, Notice } from "@/components/ui";
-
-export type ProjectOption = { id: string; label: string };
 
 const SOURCE_LABEL: Record<SourceKind, string> = {
   meet: "Google Meet",
@@ -25,16 +25,18 @@ const LAYOUT_LABEL: Record<IngestPreview["layout"], string> = {
   plain: "Speaker-labelled text",
 };
 
+const toRow = (o: OrgOption) => ({ id: o.id, name: o.name, parent_id: o.parentId });
+
 type Stage =
   | { kind: "pick" }
   | { kind: "review"; preview: IngestPreview }
   | { kind: "busy"; label: string; preview?: IngestPreview };
 
 export function UploadDialog({
-  projects,
+  directory,
   onClose,
 }: {
-  projects: ProjectOption[];
+  directory: Directory;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -52,7 +54,8 @@ export function UploadDialog({
   const [recordedOn, setRecordedOn] = useState("");
   const [source, setSource] = useState<SourceKind>("upload");
   const [projectId, setProjectId] = useState("");
-  const [roles, setRoles] = useState<Record<string, SpeakerRole>>({});
+  const [speakers, setSpeakers] = useState<Record<string, SpeakerValue>>({});
+  const [organizations, setOrganizations] = useState<OrgOption[]>(directory.organizations);
 
   function sourceForm(): FormData {
     const form = new FormData();
@@ -80,7 +83,14 @@ export function UploadDialog({
       setParticipant(preview.participant ?? "");
       setRecordedOn(preview.recordedOn ?? "");
       setSource(preview.source);
-      setRoles(Object.fromEntries(preview.speakers.map((s) => [s.name, s.role])));
+      setSpeakers(
+        Object.fromEntries(
+          preview.speakers.map((s) => [
+            s.name,
+            { displayName: s.displayName ?? "", role: s.role, organizationId: s.organizationId ?? "" },
+          ]),
+        ),
+      );
       setStage({ kind: "review", preview });
     } catch (e) {
       setError((e as Error).message);
@@ -100,7 +110,10 @@ export function UploadDialog({
       form.append("recordedOn", recordedOn);
       form.append("source", source);
       form.append("projectId", projectId);
-      form.append("roles", JSON.stringify(roles));
+      form.append(
+        "speakers",
+        JSON.stringify(Object.entries(speakers).map(([name, v]) => ({ name, ...v }))),
+      );
       const { id } = await post("/api/ingest", form);
       router.push(`/transcripts/${id}`);
       router.refresh();
@@ -113,10 +126,10 @@ export function UploadDialog({
   const busy = stage.kind === "busy";
   const preview = stage.kind === "pick" ? undefined : stage.preview;
   const canRead = mode === "file" ? !!file : !!pasted.trim();
-  const noParticipant = preview && !Object.values(roles).includes("participant");
+  const noParticipant = preview && !Object.values(speakers).some((v) => v.role === "participant");
 
   return (
-    <Dialog title="Add a transcript" onClose={busy ? undefined : onClose} width={720}>
+    <Dialog title="Add a transcript" onClose={busy ? undefined : onClose} width={880}>
       {!preview ? (
         <>
           <div className="seg" style={{ alignSelf: "flex-start" }}>
@@ -216,55 +229,31 @@ export function UploadDialog({
                 ))}
               </select>
             </Field>
-            <Field label="Project">
-              <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                <option value="">Library only, for now</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <ClientProjectPicker
+              directory={directory}
+              projectId={projectId}
+              onChange={setProjectId}
+              noneLabel="Library only, for now"
+            />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             <span className="kicker">Who&apos;s speaking</span>
-            <div className="panel" style={{ overflow: "auto" }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Speaker</th>
-                    <th>Turns</th>
-                    <th>First words</th>
-                    <th>Role</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.speakers.map((s) => (
-                    <tr key={s.name}>
-                      <td style={{ whiteSpace: "nowrap" }}>{s.name}</td>
-                      <td className="mono">{s.turns}</td>
-                      <td className="meta" style={{ maxWidth: 280 }}>
-                        “{s.firstWords}
-                        {s.firstWords.length >= 90 ? "…" : ""}”
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={roles[s.name]}
-                          onChange={(e) => setRoles({ ...roles, [s.name]: e.target.value as SpeakerRole })}
-                        >
-                          <option value="interviewer">Interviewer</option>
-                          <option value="participant">Participant</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <SpeakersEditor
+              rows={preview.speakers.map((sp) => ({
+                name: sp.name,
+                detail: (
+                  <>
+                    {sp.turns} turns · “{sp.firstWords}
+                    {sp.firstWords.length >= 90 ? "…" : ""}”
+                  </>
+                ),
+              }))}
+              values={speakers}
+              onChange={(name, v) => setSpeakers((all) => ({ ...all, [name]: v }))}
+              organizations={organizations}
+              onOrgCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+            />
             {noParticipant && (
               <p className="meta" style={{ margin: 0 }}>
                 No one is marked as the participant. Coding looks for findings in the participant&apos;s turns.
@@ -287,8 +276,8 @@ export function UploadDialog({
             </button>
           </div>
           <p className="meta" style={{ margin: 0 }}>
-            Saving stores the original file and its checksum. The lines can&apos;t be edited afterwards; the details
-            above and speaker roles can.
+            Saving stores the original file and its checksum. The lines can&apos;t be edited afterwards; everything
+            above can, from the transcript page.
           </p>
         </>
       )}

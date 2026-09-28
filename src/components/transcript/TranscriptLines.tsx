@@ -77,10 +77,13 @@ export function TryEditButton() {
 export function TranscriptLines({
   lines,
   roles,
+  names,
   checksum,
 }: {
   lines: LineView[];
   roles: Record<string, SpeakerRole>;
+  /** Display names by the name as written; lines keep the written name. */
+  names: Record<string, string>;
   checksum: string;
 }) {
   const { show, notice } = useImmutableNotice();
@@ -116,7 +119,9 @@ export function TranscriptLines({
           key={ln.n}
           id={`L${ln.n}`}
           onClick={show}
-          title={`L${ln.n}${ln.at ? ` · ${ln.at}` : ""} — read-only; transcripts cannot be edited`}
+          title={`L${ln.n}${ln.at ? ` · ${ln.at}` : ""}${
+            names[ln.speaker] ? ` · written as “${ln.speaker}”` : ""
+          } — read-only; transcripts cannot be edited`}
           style={{
             display: "grid",
             gridTemplateColumns: "38px 1fr",
@@ -147,7 +152,7 @@ export function TranscriptLines({
                 marginRight: 8,
               }}
             >
-              {ln.speaker}
+              {names[ln.speaker] ?? ln.speaker}
             </span>
             {ln.text}
           </p>

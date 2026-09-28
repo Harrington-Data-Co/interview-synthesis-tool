@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AssignProject } from "@/components/sources/AssignProject";
 import { SourcesActions } from "@/components/sources/SourcesActions";
+import { loadDirectory } from "@/lib/directory";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,27 +15,23 @@ const SOURCE_LABEL: Record<string, string> = {
   upload: "Upload",
 };
 
-type ProjectRow = { id: string; name: string; client: { id: string; name: string } | null };
-
 export default async function SourcesPage() {
   const seat = await currentSeat();
   const editor = canEdit(seat);
   const supabase = await createClient();
 
-  const [{ data: transcripts, error }, { data: projectRows }, { data: clients }] = await Promise.all([
+  const [{ data: transcripts, error }, directory] = await Promise.all([
     supabase
       .from("transcript")
       .select("id,title,participant,source,duration_mins,recorded_on,status,project_id")
       .order("ingested_at", { ascending: false }),
-    supabase.from("project").select("id,name,client:client_id(id,name)").order("created_at"),
-    supabase.from("client").select("id,name").order("name"),
+    loadDirectory(supabase),
   ]);
 
-  const projects = ((projectRows ?? []) as unknown as ProjectRow[]).map((p) => ({
-    id: p.id,
-    label: p.client ? `${p.client.name} · ${p.name}` : p.name,
-  }));
-  const projectLabel = new Map(projects.map((p) => [p.id, p.label]));
+  const clientName = new Map(directory.clients.map((c) => [c.id, c.name]));
+  const projectLabel = new Map(
+    directory.projects.map((p) => [p.id, `${clientName.get(p.clientId) ?? "?"} · ${p.name}`]),
+  );
 
   return (
     <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -48,7 +45,7 @@ export default async function SourcesPage() {
         </div>
         {editor && (
           <div style={{ marginLeft: "auto" }}>
-            <SourcesActions projects={projects} clients={clients ?? []} />
+            <SourcesActions directory={directory} />
           </div>
         )}
       </div>
@@ -92,7 +89,7 @@ export default async function SourcesPage() {
                   <td className="mono">{t.duration_mins ? `${t.duration_mins} min` : "—"}</td>
                   <td>
                     {editor ? (
-                      <AssignProject transcriptId={t.id} projectId={t.project_id} projects={projects} />
+                      <AssignProject transcriptId={t.id} projectId={t.project_id} directory={directory} />
                     ) : (
                       (t.project_id && projectLabel.get(t.project_id)) ?? "—"
                     )}

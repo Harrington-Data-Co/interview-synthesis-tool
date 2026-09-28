@@ -9,7 +9,14 @@ export type CommitFields = {
   recordedOn: string | null;
   source: SourceKind;
   projectId: string | null;
-  roles: Record<string, SpeakerRole>;
+  speakers: SpeakerChoice[];
+};
+
+export type SpeakerChoice = {
+  name: string;
+  role: SpeakerRole;
+  display_name: string | null;
+  organization_id: string | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,24 +49,25 @@ export function readCommitFields(form: FormData): CommitFields {
   const projectId = text(form, "projectId", 36);
   if (projectId && !UUID.test(projectId)) throw new ApiError("Unknown project.");
 
-  let roles: Record<string, SpeakerRole> = {};
-  const rawRoles = text(form, "roles", 20_000);
-  if (rawRoles) {
+  const speakers: SpeakerChoice[] = [];
+  const rawSpeakers = text(form, "speakers", 50_000);
+  if (rawSpeakers) {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(rawRoles);
+      parsed = JSON.parse(rawSpeakers);
     } catch {
-      throw new ApiError("Speaker roles are malformed.");
+      throw new ApiError("Speaker details are malformed.");
     }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new ApiError("Speaker roles are malformed.");
+    if (!Array.isArray(parsed)) throw new ApiError("Speaker details are malformed.");
+    for (const s of parsed as Record<string, unknown>[]) {
+      if (!s || typeof s.name !== "string") continue;
+      const role = typeof s.role === "string" && (SPEAKER_ROLES as readonly string[]).includes(s.role)
+        ? (s.role as SpeakerRole)
+        : "other";
+      const displayName = typeof s.displayName === "string" ? s.displayName.trim().slice(0, 200) : "";
+      const org = typeof s.organizationId === "string" && UUID.test(s.organizationId) ? s.organizationId : null;
+      speakers.push({ name: s.name, role, display_name: displayName || null, organization_id: org });
     }
-    roles = Object.fromEntries(
-      Object.entries(parsed as Record<string, unknown>).filter(
-        (e): e is [string, SpeakerRole] =>
-          typeof e[1] === "string" && (SPEAKER_ROLES as readonly string[]).includes(e[1]),
-      ),
-    );
   }
 
   return {
@@ -70,6 +78,6 @@ export function readCommitFields(form: FormData): CommitFields {
     recordedOn,
     source: source as SourceKind,
     projectId,
-    roles,
+    speakers,
   };
 }

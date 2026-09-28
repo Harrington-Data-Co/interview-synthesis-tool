@@ -60,6 +60,46 @@ create table project (
 );
 create index on project (client_id);
 
+-- Who a speaker represents, nested (Delaware DOE › Office of Early Learning).
+-- Not the client: the client is who a project is for; an organization is who
+-- a person in a transcript is with, and one call can mix several.
+create table organization (
+  id         uuid primary key default gen_random_uuid(),
+  parent_id  uuid references organization (id) on delete restrict,
+  name       text not null check (btrim(name) <> ''),
+  created_by uuid not null references seat (user_id),
+  created_at timestamptz not null default now(),
+  check (parent_id is distinct from id)
+);
+-- Sibling names are unique, case-insensitively; the same name may recur under
+-- different parents ("Finance" in two departments).
+create unique index organization_sibling_name
+  on organization (coalesce(parent_id, '00000000-0000-0000-0000-000000000000'), lower(name));
+create index on organization (parent_id);
+
+create or replace function refuse_organization_cycle()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.parent_id is not null and exists (
+    with recursive up (id, parent_id, depth) as (
+      select id, parent_id, 1 from organization where id = new.parent_id
+      union all
+      select o.id, o.parent_id, up.depth + 1
+      from organization o join up on o.id = up.parent_id
+      where up.depth < 50
+    )
+    select 1 from up where id = new.id
+  ) then
+    raise exception 'An organization can''t sit under itself or one of its own sub-organizations.';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger organization_no_cycle
+  before insert or update of parent_id on organization
+  for each row execute function refuse_organization_cycle();
+
 -- ─── stage 00: sources ───────────────────────────────────────────────────
 
 create table transcript (
@@ -133,10 +173,16 @@ create table transcript_speaker (
   transcript_id uuid not null references transcript (id) on delete cascade,
   name          text not null,
   role          speaker_role not null default 'other',
+  -- What the app shows. Null means the name as written; the lines themselves
+  -- always keep the export's own name.
+  display_name    text check (display_name is null or btrim(display_name) <> ''),
+  organization_id uuid references organization (id) on delete set null,
   set_by        uuid not null references seat (user_id),
   set_at        timestamptz not null default now(),
   primary key (transcript_id, name)
 );
+create index on transcript_speaker (organization_id);
+create index on transcript_speaker (lower(coalesce(display_name, name)));
 
 -- ─── grouping: label axes ────────────────────────────────────────────────
 -- Labels are defined per project: a logistics study groups by department and
@@ -310,7 +356,7 @@ create index on product (project_id);
 
 create table edit (
   id          uuid primary key default gen_random_uuid(),
-  object_type text not null,              -- 'code' | 'note_item' | 'theme'
+  object_type text not null,              -- 'transcript' | 'transcript_speaker' | 'code' | 'note_item' | 'theme'
   object_id   uuid not null,
   text        text,                       -- null when reverted
   reverted    boolean not null default false,
@@ -376,7 +422,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'seat', 'client', 'project', 'transcript', 'transcript_line', 'transcript_speaker',
+    'seat', 'client', 'project', 'organization', 'transcript', 'transcript_line', 'transcript_speaker',
     'label_axis', 'label_option', 'transcript_label', 'code',
     'note_template', 'note_section', 'note', 'note_item', 'note_item_code',
     'theme', 'theme_code', 'product_template', 'product_section', 'product',
@@ -496,9 +542,16 @@ begin
          then make_interval(secs => (l ->> 'ts_end')::float8) end
   from jsonb_array_elements(p_lines) as l;
 
-  -- Roles the uploader chose, then 'other' for any speaker they didn't.
-  insert into transcript_speaker (transcript_id, name, role, set_by)
-  select v_id, s ->> 'name', coalesce((s ->> 'role')::speaker_role, 'other'), v_uid
+  -- What the uploader chose for each speaker, then defaults for any they
+  -- didn't. A display name equal to the name as written is stored as null.
+  insert into transcript_speaker (transcript_id, name, role, display_name, organization_id, set_by)
+  select
+    v_id,
+    s ->> 'name',
+    coalesce((s ->> 'role')::speaker_role, 'other'),
+    nullif(nullif(btrim(s ->> 'display_name'), ''), s ->> 'name'),
+    nullif(s ->> 'organization_id', '')::uuid,
+    v_uid
   from jsonb_array_elements(p_speakers) as s
   where s ->> 'name' in (select speaker from transcript_line where transcript_id = v_id)
   on conflict do nothing;
@@ -516,6 +569,163 @@ $$;
 
 revoke execute on function ingest_transcript from public, anon;
 grant execute on function ingest_transcript to authenticated;
+
+-- ─── editing a source record ─────────────────────────────────────────────
+-- Everything about a transcript except its lines can change: title,
+-- participant, participant role, recorded date, project, and each speaker's
+-- display name, role and organization. One call, all or nothing, and every
+-- change becomes an edit row carrying who made it and what it was before.
+--
+-- p_record: any of {title, participant, participant_role, recorded_on,
+--   project_id}; a key that is present is applied (null clears it), a key that
+--   is absent is left alone.
+-- p_speakers: [{name, display_name?, role?, organization_id?}], same rule.
+
+create or replace function update_source_record(
+  p_transcript_id uuid,
+  p_record        jsonb default '{}',
+  p_speakers      jsonb default '[]'
+) returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_old     transcript%rowtype;
+  v_changes integer := 0;
+  v_key     text;
+  v_new     text;
+  v_prev    text;
+  v_project uuid;
+  s         jsonb;
+  sp        transcript_speaker%rowtype;
+  v_dn      text;
+  v_role    speaker_role;
+  v_org     uuid;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can edit a source record.' using errcode = '42501';
+  end if;
+
+  select * into v_old from transcript where id = p_transcript_id for update;
+  if not found then
+    raise exception 'Unknown transcript.' using errcode = 'P0002';
+  end if;
+
+  -- Plain text fields.
+  foreach v_key in array array['title', 'participant', 'participant_role'] loop
+    continue when not p_record ? v_key;
+    v_new := nullif(btrim(p_record ->> v_key), '');
+    if v_key = 'title' and v_new is null then
+      raise exception 'A transcript needs a title.';
+    end if;
+    v_prev := to_jsonb(v_old) ->> v_key;
+    if v_new is distinct from v_prev then
+      execute format('update transcript set %I = $1 where id = $2', v_key) using v_new, p_transcript_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('transcript', p_transcript_id,
+              format('%s: %s → %s', v_key, coalesce(quote_literal(v_prev), 'empty'), coalesce(quote_literal(v_new), 'empty')),
+              v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end loop;
+
+  if p_record ? 'recorded_on' then
+    v_new := nullif(btrim(p_record ->> 'recorded_on'), '');
+    if v_new::date is distinct from v_old.recorded_on then
+      update transcript set recorded_on = v_new::date where id = p_transcript_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('transcript', p_transcript_id,
+              format('recorded_on: %s → %s', coalesce(v_old.recorded_on::text, 'empty'), coalesce(v_new, 'empty')),
+              v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end if;
+
+  -- Project, which also sets status: assigned means queued, unassigned means
+  -- new, and a coded transcript stays coded.
+  if p_record ? 'project_id' then
+    v_project := nullif(p_record ->> 'project_id', '')::uuid;
+    if v_project is distinct from v_old.project_id then
+      update transcript
+      set project_id = v_project,
+          status = case
+            when v_old.status = 'coded' then 'coded'
+            when v_project is null then 'new'
+            else 'queued'
+          end::transcript_state
+      where id = p_transcript_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('transcript', p_transcript_id,
+              format('project: %s → %s',
+                     coalesce((select quote_literal(name) from project where id = v_old.project_id), 'unassigned'),
+                     coalesce((select quote_literal(name) from project where id = v_project), 'unassigned')),
+              v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end if;
+
+  -- Speakers. The name as written is the key and never changes.
+  for s in select * from jsonb_array_elements(p_speakers) loop
+    select * into sp from transcript_speaker
+    where transcript_id = p_transcript_id and name = s ->> 'name'
+    for update;
+    if not found then
+      raise exception 'Unknown speaker: %', s ->> 'name';
+    end if;
+
+    if s ? 'display_name' then
+      v_dn := nullif(nullif(btrim(s ->> 'display_name'), ''), sp.name);
+      if v_dn is distinct from sp.display_name then
+        update transcript_speaker set display_name = v_dn, set_by = v_uid, set_at = now()
+        where transcript_id = p_transcript_id and name = sp.name;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('transcript_speaker', p_transcript_id,
+                format('%s display name: %s → %s', quote_literal(sp.name),
+                       coalesce(quote_literal(sp.display_name), 'as written'), coalesce(quote_literal(v_dn), 'as written')),
+                v_uid);
+        v_changes := v_changes + 1;
+      end if;
+    end if;
+
+    if s ? 'role' then
+      v_role := coalesce(nullif(s ->> 'role', ''), 'other')::speaker_role;
+      if v_role is distinct from sp.role then
+        update transcript_speaker set role = v_role, set_by = v_uid, set_at = now()
+        where transcript_id = p_transcript_id and name = sp.name;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('transcript_speaker', p_transcript_id,
+                format('%s role: %s → %s', quote_literal(sp.name), sp.role, v_role), v_uid);
+        v_changes := v_changes + 1;
+      end if;
+    end if;
+
+    if s ? 'organization_id' then
+      v_org := nullif(s ->> 'organization_id', '')::uuid;
+      if v_org is distinct from sp.organization_id then
+        update transcript_speaker set organization_id = v_org, set_by = v_uid, set_at = now()
+        where transcript_id = p_transcript_id and name = sp.name;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('transcript_speaker', p_transcript_id,
+                format('%s organization: %s → %s', quote_literal(sp.name),
+                       coalesce((select quote_literal(name) from organization where id = sp.organization_id), 'none'),
+                       coalesce((select quote_literal(name) from organization where id = v_org), 'none')),
+                v_uid);
+        v_changes := v_changes + 1;
+      end if;
+    end if;
+  end loop;
+
+  if v_changes > 0 then
+    insert into activity (project_id, actor, verb, object)
+    values (coalesce(v_project, v_old.project_id), v_uid, 'edited source record',
+            (select title from transcript where id = p_transcript_id));
+  end if;
+
+  return v_changes;
+end;
+$$;
+
+revoke execute on function update_source_record from public, anon;
+grant execute on function update_source_record to authenticated;
 
 -- ─── storage: the original files ─────────────────────────────────────────
 -- Private. Objects are keyed by sha256, so the same file always lands at the

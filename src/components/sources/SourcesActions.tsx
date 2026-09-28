@@ -3,18 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, Field, Notice } from "@/components/ui";
-import { UploadDialog, type ProjectOption } from "./UploadDialog";
-
-export type ClientOption = { id: string; name: string };
+import type { ClientOption, Directory } from "@/lib/directory";
+import { UploadDialog } from "./UploadDialog";
 
 /** The Sources page's editor actions: add a transcript, start a project. */
-export function SourcesActions({
-  projects,
-  clients,
-}: {
-  projects: ProjectOption[];
-  clients: ClientOption[];
-}) {
+export function SourcesActions({ directory }: { directory: Directory }) {
   const [open, setOpen] = useState<"upload" | "project" | null>(null);
 
   return (
@@ -25,8 +18,8 @@ export function SourcesActions({
       <button className="btn btn-primary" onClick={() => setOpen("upload")}>
         Add transcript
       </button>
-      {open === "upload" && <UploadDialog projects={projects} onClose={() => setOpen(null)} />}
-      {open === "project" && <NewProjectDialog clients={clients} onClose={() => setOpen(null)} />}
+      {open === "upload" && <UploadDialog directory={directory} onClose={() => setOpen(null)} />}
+      {open === "project" && <NewProjectDialog clients={directory.clients} onClose={() => setOpen(null)} />}
     </div>
   );
 }

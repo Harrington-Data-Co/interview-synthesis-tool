@@ -80,6 +80,23 @@ describe("buildPreview", () => {
     ]);
   });
 
+  it("pre-fills people seen in earlier transcripts", () => {
+    const p = buildPreview({
+      parsed,
+      fileName: "call.docx",
+      sha256: "0".repeat(64),
+      pasted: false,
+      uploaderName: "Someone Else",
+      duplicateOf: null,
+      known: { "Pat :)": { displayName: "Patricia Koh", organizationId: "org-1", role: "interviewer" } },
+    });
+    expect(p.speakers.find((s) => s.name === "Pat :)")).toMatchObject({
+      role: "interviewer",
+      displayName: "Patricia Koh",
+      organizationId: "org-1",
+    });
+  });
+
   it("guesses Wispr Flow for pasted text", () => {
     const p = buildPreview({
       parsed: { ...parsed, layout: "plain" },
@@ -96,18 +113,25 @@ describe("buildPreview", () => {
 describe("readCommitFields", () => {
   const base = { sha256: "a".repeat(64), title: "Interview" };
 
-  it("accepts a complete form and keeps only valid roles", () => {
+  it("accepts a complete form and cleans speaker details", () => {
     const f = readCommitFields(
       form({
         ...base,
         participant: " Cy Park ",
         recordedOn: "2026-09-10",
         source: "meet",
-        roles: JSON.stringify({ "Cy Park": "participant", Ana: "boss" }),
+        speakers: JSON.stringify([
+          { name: "Cy Park", role: "participant", displayName: " Cyrus Park ", organizationId: "1b4e28ba-2fa1-11d2-883f-0016d3cca427" },
+          { name: "Ana", role: "boss", displayName: "", organizationId: "not-a-uuid" },
+          { role: "interviewer" },
+        ]),
       }),
     );
     expect(f).toMatchObject({ participant: "Cy Park", recordedOn: "2026-09-10", source: "meet", projectId: null });
-    expect(f.roles).toEqual({ "Cy Park": "participant" });
+    expect(f.speakers).toEqual([
+      { name: "Cy Park", role: "participant", display_name: "Cyrus Park", organization_id: "1b4e28ba-2fa1-11d2-883f-0016d3cca427" },
+      { name: "Ana", role: "other", display_name: null, organization_id: null },
+    ]);
   });
 
   it("refuses a missing title, bad date, unknown source, bad project id, or missing checksum", () => {

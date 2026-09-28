@@ -1,4 +1,4 @@
-import { buildPreview } from "@/lib/ingest/preview";
+import { buildPreview, type KnownSpeaker } from "@/lib/ingest/preview";
 import { errorResponse, requireEditor } from "@/lib/api";
 import { checkContentLength, readSource, sha256Hex } from "@/lib/ingest/source";
 import { parseTranscript } from "@/lib/parsers";
@@ -20,6 +20,18 @@ export async function POST(request: Request) {
       .eq("sha256", sha256)
       .maybeSingle();
 
+    // The most recent record of each name, to pre-fill people seen before.
+    const { data: history } = await supabase
+      .from("transcript_speaker")
+      .select("name,display_name,organization_id,role,set_at")
+      .in("name", parsed.speakers)
+      .order("set_at", { ascending: false })
+      .limit(500);
+    const known: Record<string, KnownSpeaker> = {};
+    for (const h of history ?? []) {
+      known[h.name] ??= { displayName: h.display_name, organizationId: h.organization_id, role: h.role };
+    }
+
     return Response.json(
       buildPreview({
         parsed,
@@ -28,6 +40,7 @@ export async function POST(request: Request) {
         pasted: source.pasted,
         uploaderName: seat.name,
         duplicateOf,
+        known,
       }),
     );
   } catch (e) {

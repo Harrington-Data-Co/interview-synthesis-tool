@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EditRecordButton } from "@/components/transcript/EditRecord";
 import {
   TranscriptLines,
   TryEditButton,
   type LineView,
   type SpeakerRole,
 } from "@/components/transcript/TranscriptLines";
+import { loadDirectory } from "@/lib/directory";
+import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -31,7 +34,7 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
   const { data: t } = await supabase
     .from("transcript")
     .select(
-      "id,title,participant,participant_role,source,original_name,sha256,duration_mins,recorded_on,status,ingested_at,ingested_by,project:project_id(name,client:client_id(name))",
+      "id,title,participant,participant_role,source,original_name,sha256,duration_mins,recorded_on,status,ingested_at,ingested_by,project_id",
     )
     .eq("id", id)
     .maybeSingle();
@@ -50,26 +53,44 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
     if (!data || data.length < PAGE) break;
   }
 
-  const [{ data: speakers }, { data: ingester }] = await Promise.all([
-    supabase.from("transcript_speaker").select("name,role").eq("transcript_id", id),
+  const [{ data: speakers }, { data: ingester }, directory, seat] = await Promise.all([
+    supabase.from("transcript_speaker").select("name,role,display_name,organization_id").eq("transcript_id", id),
     supabase.from("seat").select("name").eq("user_id", t.ingested_by).maybeSingle(),
+    loadDirectory(supabase),
+    currentSeat(),
   ]);
   const roles: Record<string, SpeakerRole> = Object.fromEntries(
     (speakers ?? []).map((s) => [s.name, s.role as SpeakerRole]),
   );
+  const names: Record<string, string> = Object.fromEntries(
+    (speakers ?? []).filter((s) => s.display_name).map((s) => [s.name, s.display_name as string]),
+  );
+  const orgPath = new Map(directory.organizations.map((o) => [o.id, o.path]));
+  const speakerOrg = new Map((speakers ?? []).map((s) => [s.name, s.organization_id as string | null]));
   const turns = new Map<string, number>();
   lines.forEach((l) => turns.set(l.speaker, (turns.get(l.speaker) ?? 0) + 1));
 
-  const project = t.project as unknown as { name: string; client: { name: string } | null } | null;
+  const project = directory.projects.find((p) => p.id === t.project_id);
+  const client = project && directory.clients.find((c) => c.id === project.clientId);
+  const participantOrgs = [
+    ...new Set(
+      (speakers ?? [])
+        .filter((s) => s.role === "participant" && s.organization_id)
+        .map((s) => orgPath.get(s.organization_id as string))
+        .filter(Boolean),
+    ),
+  ].join(", ");
   const ingested = new Date(t.ingested_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 
   const record: [string, React.ReactNode][] = [
     ["File", <span key="f" className="mono" style={{ fontSize: 12 }}>{t.original_name ?? "—"}</span>],
     ["Source", SOURCE_LABEL[t.source] ?? t.source],
     ["Participant", [t.participant, t.participant_role].filter(Boolean).join(" — ") || "—"],
+    ["Organization", participantOrgs || "—"],
     ["Recorded", t.recorded_on ?? "—"],
     ["Length", `${t.duration_mins ? `${t.duration_mins} min · ` : ""}${lines.length} turns`],
-    ["Project", project ? `${project.client?.name ? `${project.client.name} · ` : ""}${project.name}` : "Unassigned"],
+    ["Client", client?.name ?? "—"],
+    ["Project", project?.name ?? "Unassigned"],
   ];
 
   return (
@@ -107,6 +128,26 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
               </div>
             ))}
           </dl>
+          {canEdit(seat) && (
+            <EditRecordButton
+              record={{
+                id: t.id,
+                title: t.title,
+                participant: t.participant,
+                participantRole: t.participant_role,
+                recordedOn: t.recorded_on,
+                projectId: t.project_id,
+              }}
+              speakers={[...turns].map(([name, n]) => ({
+                name,
+                displayName: names[name] ?? null,
+                role: roles[name] ?? "other",
+                organizationId: speakerOrg.get(name) ?? null,
+                turns: n,
+              }))}
+              directory={directory}
+            />
+          )}
         </div>
 
         <div className="card" style={{ gap: "var(--space-3)" }}>
@@ -114,7 +155,19 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
           <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "1fr auto auto", gap: "var(--space-2) var(--space-4)", fontSize: 13 }}>
             {[...turns].map(([name, n]) => (
               <div key={name} style={{ display: "contents" }}>
-                <dt>{name}</dt>
+                <dt>
+                  {names[name] ?? name}
+                  {(names[name] || speakerOrg.get(name)) && (
+                    <span style={{ display: "block", fontSize: 11.5, ...muted }}>
+                      {[
+                        speakerOrg.get(name) && orgPath.get(speakerOrg.get(name) as string),
+                        names[name] && `written as “${name}”`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  )}
+                </dt>
                 <dd className="mono" style={{ margin: 0, ...muted, fontSize: 12 }}>{n} turns</dd>
                 <dd style={{ margin: 0 }}>
                   <span className={`tag ${roles[name] === "participant" ? "tag-accent" : "tag-neutral"}`}>
@@ -160,7 +213,7 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
         </div>
       </section>
 
-      <TranscriptLines lines={lines} roles={roles} checksum={t.sha256} />
+      <TranscriptLines lines={lines} roles={roles} names={names} checksum={t.sha256} />
     </main>
   );
 }

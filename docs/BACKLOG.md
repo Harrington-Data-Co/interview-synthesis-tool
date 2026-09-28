@@ -13,54 +13,75 @@ Add several files at once instead of one per dialog.
   pre-filled title / participant / date, and any duplicate flagged and skipped.
 - Speaker roles still need a human, so each row expands to its speakers table.
   Defaults (first-name guesses) apply to rows nobody opens.
-- Organization and project chosen once for the batch, overridable per row.
+- Client and project chosen once for the batch, overridable per row.
 - Save commits each file independently through the existing ingest route; one
   failure doesn't block the rest, and the result lists what landed.
 
 ### 2. "Save and add another"
 After saving, offer to add the next transcript without leaving the dialog.
 
-- A second button beside *Save transcript*. Keeps the organization and project
-  just used; clears the file and per-file details.
+- A second button beside *Save transcript*. Keeps the client and project just
+  used; clears the file and per-file details.
 - Mostly subsumed by bulk upload, but still useful for one-at-a-time pasting
   from Wispr Flow, where there are no files to multi-select.
 
-### 3. Separate Organization and Project dropdowns
-In the add-transcript dialog, choose the organization first; the project list
-shows only that organization's projects.
+### 3. Separate Client and Project dropdowns
+*Built 2026-09-28 — migration `20260928b`; awaiting review.*
+In the add-transcript dialog, choose the client first; the project list shows
+only that client's projects.
 
-- The database calls the organization `client`. Decide whether the UI says
-  "Organization" everywhere (library, project view, New project dialog) —
-  one term throughout, whichever it is.
+- **Client and Organization are different things** (decided 2026-09-28):
+  - **Client** — the paying customer the project is for. Client → Project is
+    the existing `client` / `project` hierarchy.
+  - **Organization** — the group a *speaker* represents. It belongs to a
+    person in a transcript, not to the project. Example: client *DE Dept. of
+    Education*, project *PDG B-5 Data Workstream*, participant *Thomas Smith*,
+    organization *Profisee*.
 - Same pair of dropdowns wherever a transcript is assigned (library, source
   record editing in item 4, bulk upload in item 1).
 
-### 4. Edit the source record after upload
-The transcript lines stay immutable; the metadata around them doesn't.
-Editable: participant name, date recorded, organization, project, speaker
-names, and speaker roles.
+### 3a. Organizations
+*Built 2026-09-28 — migration `20260928b`; awaiting review.*
+A reusable `organization` list (workspace-wide, not per client, since the same
+organization can appear across clients' projects), and an organization on each
+speaker: `transcript_speaker.organization_id`.
 
-- **Speaker names need care.** `transcript_line.speaker` is part of the
-  immutable record and keeps the name exactly as the export wrote it ("Jen :)").
+- Per speaker, not per transcript: one call routinely mixes organizations
+  (the Profisee call has Profisee's people, Jen, and Harrington Data).
+- The participant's organization is the organization of the speaker(s) marked
+  participant; the source record shows it.
+- **Nested** (decided 2026-09-28): an organization can sit under a parent
+  (Delaware DOE › Office of Early Learning), shown as its path. No cycles.
+- Picked (or created) in the upload review's speakers table and in item 4's
+  editing. Later: coverage and saturation by organization.
+
+### 4. Edit the source record after upload
+*Built 2026-09-28 — migration `20260928b`; awaiting review.*
+The transcript lines stay immutable; the metadata around them doesn't.
+Editable: participant name, date recorded, client, project, speaker names,
+speaker roles, and speaker organizations (3a).
+
+- **Speaker names use a display name** (decided 2026-09-28).
+  `transcript_line.speaker` is part of the immutable record and keeps the name exactly as the export wrote it ("Jen :)").
   Editing a name therefore means a display name on `transcript_speaker`, not a
   change to the lines: add `display_name`, show it everywhere, keep the
   original visible on the transcript page. This also lets two export names map
   to one person ("Jen :)" and "Jennifer Koester" → Jennifer Koester).
 - Every change writes an `edit` + `activity` row, so the record shows who
   changed what — the same attribution the coding layer will use.
-- Changing organization/project reuses the assignment rules (`new` ↔ `queued`).
+- Changing client/project reuses the assignment rules (`new` ↔ `queued`).
 
 ### 5. Project view, and a library organized by it
 Click into a project to see its transcripts; the library becomes a queue of
-unassigned transcripts, with everything else living under its organization
-and project.
+unassigned transcripts, with everything else living under its client and
+project.
 
-- Library: an *Unassigned* queue (status `new`) first, then organizations →
+- Library: an *Unassigned* queue (status `new`) first, then clients →
   projects, each with a transcript count.
-- Project page (`/projects/[id]`): its transcripts, participants, status mix,
-  and later the Study stages (codes, notes, themes) for that project. This is
+- Project page (`/projects/[id]`): its transcripts, participants and their
+  organizations, status mix, and later the Study stages (codes, notes, themes) for that project. This is
   the natural home for the plan's `study/[projectId]` view.
-- Depends on item 3's naming decision.
+- Builds on item 3's client → project picker.
 
 ## Carried over
 
@@ -78,9 +99,10 @@ and project.
 
 ## Suggested order
 
-1. **Item 3, then 4.** Naming and the organization → project picker first,
-   since editing (4) reuses it; then source-record editing, which needs one
-   small migration (`transcript_speaker.display_name`).
-2. **Item 5.** The project view, built on 3's naming. Labels slot in here.
+1. **Items 3, 3a, then 4.** The client → project picker and organizations
+   first, since editing (4) reuses both; then source-record editing. One
+   migration covers it: `organization`, and `display_name` +
+   `organization_id` on `transcript_speaker`.
+2. **Item 5.** The project view. Labels slot in here.
 3. **Item 2**, a small change to the existing dialog.
 4. **Item 1**, the largest; it reuses 2 and 3.

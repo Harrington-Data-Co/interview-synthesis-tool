@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ProjectOption } from "./UploadDialog";
+import type { Directory } from "@/lib/directory";
 
-/** Per-row project picker in the library. Assigning queues the transcript. */
+/** Per-row project picker in the library, grouped by client. Assigning queues
+ *  the transcript. Goes away when the library is organized by project. */
 export function AssignProject({
   transcriptId,
   projectId,
-  projects,
+  directory,
 }: {
   transcriptId: string;
   projectId: string | null;
-  projects: ProjectOption[];
+  directory: Pick<Directory, "clients" | "projects">;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(projectId ?? "");
@@ -27,7 +28,7 @@ export function AssignProject({
     const res = await fetch(`/api/transcripts/${transcriptId}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ projectId: next || null }),
+      body: JSON.stringify({ record: { project_id: next || null } }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -50,10 +51,16 @@ export function AssignProject({
         aria-label="Project"
       >
         <option value="">Unassigned</option>
-        {projects.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label}
-          </option>
+        {directory.clients.map((c) => (
+          <optgroup key={c.id} label={c.name}>
+            {directory.projects
+              .filter((p) => p.clientId === c.id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </optgroup>
         ))}
       </select>
       {error && <span style={{ fontSize: 11, color: "var(--color-accent-800)" }}>{error}</span>}

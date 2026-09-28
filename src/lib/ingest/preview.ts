@@ -13,6 +13,17 @@ export type SpeakerPreview = {
   /** The start of their first turn, so the uploader can tell who "Jen :)" is. */
   firstWords: string;
   role: SpeakerRole;
+  /** From the last transcript this speaker appeared in, if any. */
+  displayName: string | null;
+  organizationId: string | null;
+};
+
+/** What was last recorded for a speaker name, so people seen before (Ryan,
+ *  "Jen :)" → Jennifer Koester) come pre-filled. */
+export type KnownSpeaker = {
+  displayName: string | null;
+  organizationId: string | null;
+  role: SpeakerRole;
 };
 
 export type IngestPreview = {
@@ -55,15 +66,18 @@ export function buildPreview(args: {
   pasted: boolean;
   uploaderName: string;
   duplicateOf: { id: string; title: string } | null;
+  known?: Record<string, KnownSpeaker>;
 }): IngestPreview {
-  const { parsed, fileName, sha256, pasted, uploaderName, duplicateOf } = args;
+  const { parsed, fileName, sha256, pasted, uploaderName, duplicateOf, known = {} } = args;
   const guess = guessFromFilename(fileName);
 
   const speakers = parsed.speakers.map((name): SpeakerPreview => {
     const theirs = parsed.lines.filter((l) => l.speaker === name);
+    const seen = known[name];
+    // Participants change from interview to interview; interviewers don't.
     const role: SpeakerRole = sameFirstName(name, guess.participant)
       ? "participant"
-      : sameFirstName(name, uploaderName)
+      : sameFirstName(name, uploaderName) || seen?.role === "interviewer"
         ? "interviewer"
         : "other";
     return {
@@ -72,6 +86,8 @@ export function buildPreview(args: {
       words: theirs.reduce((sum, l) => sum + l.text.split(/\s+/).length, 0),
       firstWords: theirs[0]?.text.slice(0, 90) ?? "",
       role,
+      displayName: seen?.displayName ?? null,
+      organizationId: seen?.organizationId ?? null,
     };
   });
 
