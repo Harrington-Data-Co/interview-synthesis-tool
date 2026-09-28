@@ -74,6 +74,13 @@ can see the sign-in screen before there is a database.
    `00000000-0000-0000-0000-000000000000`, `has_seat` is false and `seats` is 0.
 7. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
 
+## Updating an existing database
+
+`supabase/schema.sql` always describes the whole current database, so a new
+project only ever runs that. A database built from an earlier version runs the
+files in `supabase/migrations/` that came after it, oldest first, in the SQL
+editor. Each file says which version it starts from.
+
 ## Layout
 
 ```

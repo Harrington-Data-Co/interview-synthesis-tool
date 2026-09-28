@@ -20,7 +20,8 @@ begin;
 -- ─── enums ───────────────────────────────────────────────────────────────
 
 create type seat_role       as enum ('owner', 'editor', 'viewer');
-create type transcript_src   as enum ('meet', 'zoom', 'otter', 'teams', 'granola', 'upload');
+create type transcript_src   as enum ('meet', 'zoom', 'otter', 'teams', 'granola', 'upload', 'wispr');
+create type speaker_role     as enum ('interviewer', 'participant', 'other');
 create type transcript_state as enum ('new', 'queued', 'coded');
 create type code_type        as enum ('Pain', 'Step', 'Tool', 'Goal', 'Constraint', 'Question', 'Quote', 'Stakeholder');
 create type product_kind     as enum ('deck', 'report', 'arch', 'flow', 'backlog');
@@ -98,9 +99,18 @@ create table transcript_line (
 );
 create index on transcript_line (transcript_id);
 
+-- Deleting a whole transcript is a legitimate act and cascades here; editing
+-- or deleting one line of a kept transcript is not. Row triggers fire on
+-- cascaded deletes too, so the two are told apart by the parent: during a
+-- cascade the transcript row is already gone. security definer so that check
+-- never depends on what the caller's row-level security lets them see.
 create or replace function refuse_transcript_line_mutation()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
+  if tg_op = 'DELETE'
+     and not exists (select 1 from transcript where id = old.transcript_id) then
+    return old;
+  end if;
   raise exception
     'transcript_line is append-only: a transcript is the record of what someone '
     'said and cannot be rewritten. Correct it in the code layer instead, where '
@@ -115,9 +125,18 @@ create trigger transcript_line_no_update
 create trigger transcript_line_no_delete
   before delete on transcript_line
   for each row execute function refuse_transcript_line_mutation();
--- Note: deleting a transcript still cascades, because the cascade fires as the
--- table owner and dropping a whole source is a legitimate act. Editing one line
--- of a kept transcript is not.
+
+-- Who each speaker in a transcript is. The lines keep the name exactly as the
+-- export wrote it ("Jen :)", "Jennifer Koester"); this is where it gets a role,
+-- so later stages know which turns are the participant's.
+create table transcript_speaker (
+  transcript_id uuid not null references transcript (id) on delete cascade,
+  name          text not null,
+  role          speaker_role not null default 'other',
+  set_by        uuid not null references seat (user_id),
+  set_at        timestamptz not null default now(),
+  primary key (transcript_id, name)
+);
 
 -- ─── grouping: label axes ────────────────────────────────────────────────
 -- Labels are defined per project: a logistics study groups by department and
@@ -357,7 +376,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'seat', 'client', 'project', 'transcript', 'transcript_line',
+    'seat', 'client', 'project', 'transcript', 'transcript_line', 'transcript_speaker',
     'label_axis', 'label_option', 'transcript_label', 'code',
     'note_template', 'note_section', 'note', 'note_item', 'note_item_code',
     'theme', 'theme_code', 'product_template', 'product_section', 'product',
@@ -380,7 +399,19 @@ begin
       execute format(
         'create policy %I on %I for delete to authenticated using (is_owner())',
         t || '_delete', t);
-    elsif t <> 'transcript_line' then
+    elsif t = 'transcript' then
+      -- Created only by ingest_transcript(), below; editable and deletable
+      -- (assigning a project, fixing a title, dropping a bad upload) after.
+      execute format(
+        'create policy %I on %I for update to authenticated using (can_edit())',
+        t || '_update', t);
+      execute format(
+        'create policy %I on %I for delete to authenticated using (can_edit())',
+        t || '_delete', t);
+    elsif t = 'transcript_line' then
+      -- Written once, by ingest_transcript(), and never again.
+      null;
+    else
       execute format(
         'create policy %I on %I for insert to authenticated with check (can_edit())',
         t || '_insert', t);
@@ -390,14 +421,116 @@ begin
       execute format(
         'create policy %I on %I for delete to authenticated using (can_edit())',
         t || '_delete', t);
-    else
-      -- Lines are written once, by the ingest path, and never again.
-      execute format(
-        'create policy %I on %I for insert to authenticated with check (can_edit())',
-        t || '_insert', t);
     end if;
   end loop;
 end;
 $$;
+
+-- ─── ingest: the only way a transcript gets in ───────────────────────────
+-- One call writes the transcript, every line, and its speakers, or nothing.
+-- A half-written transcript could only be undone by deleting it whole, since
+-- lines can't be removed one at a time. Running as definer, it checks the
+-- caller's role itself and records them as the ingester.
+
+create or replace function ingest_transcript(
+  p_title            text,
+  p_sha256           text,
+  p_storage_path     text,
+  p_original_name    text,
+  p_source           transcript_src,
+  p_lines            jsonb,
+  p_speakers         jsonb default '[]',
+  p_participant      text default null,
+  p_participant_role text default null,
+  p_duration_mins    integer default null,
+  p_recorded_on      date default null,
+  p_project_id       uuid default null
+) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid   uuid := auth.uid();
+  v_id    uuid;
+  v_count integer;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can ingest transcripts.' using errcode = '42501';
+  end if;
+  if p_sha256 !~ '^[0-9a-f]{64}$' then
+    raise exception 'sha256 must be 64 lowercase hex characters.';
+  end if;
+  if jsonb_typeof(p_lines) <> 'array' or jsonb_array_length(p_lines) = 0 then
+    raise exception 'A transcript needs at least one line.';
+  end if;
+
+  -- Lines are permanent, so their numbering must be exactly 1..N before any
+  -- of them is written. A gap now would be a gap forever.
+  select count(*) into v_count
+  from jsonb_array_elements(p_lines) with ordinality as l(line, i)
+  where (l.line ->> 'n')::integer <> l.i
+     or coalesce(btrim(l.line ->> 'speaker'), '') = ''
+     or coalesce(btrim(l.line ->> 'text'), '') = '';
+  if v_count > 0 then
+    raise exception 'Lines must be numbered 1..N in order, each with a speaker and text.';
+  end if;
+
+  insert into transcript (
+    project_id, title, participant, participant_role, source, storage_path,
+    original_name, sha256, duration_mins, recorded_on, status, ingested_by
+  ) values (
+    p_project_id, p_title, p_participant, p_participant_role, p_source, p_storage_path,
+    p_original_name, p_sha256, p_duration_mins, p_recorded_on,
+    case when p_project_id is null then 'new' else 'queued' end::transcript_state,
+    v_uid
+  )
+  returning id into v_id;
+
+  insert into transcript_line (transcript_id, n, speaker, text, ts_start, ts_end)
+  select
+    v_id,
+    (l ->> 'n')::integer,
+    l ->> 'speaker',
+    l ->> 'text',
+    case when jsonb_typeof(l -> 'ts_start') = 'number'
+         then make_interval(secs => (l ->> 'ts_start')::float8) end,
+    case when jsonb_typeof(l -> 'ts_end') = 'number'
+         then make_interval(secs => (l ->> 'ts_end')::float8) end
+  from jsonb_array_elements(p_lines) as l;
+
+  -- Roles the uploader chose, then 'other' for any speaker they didn't.
+  insert into transcript_speaker (transcript_id, name, role, set_by)
+  select v_id, s ->> 'name', coalesce((s ->> 'role')::speaker_role, 'other'), v_uid
+  from jsonb_array_elements(p_speakers) as s
+  where s ->> 'name' in (select speaker from transcript_line where transcript_id = v_id)
+  on conflict do nothing;
+
+  insert into transcript_speaker (transcript_id, name, set_by)
+  select distinct v_id, speaker, v_uid from transcript_line where transcript_id = v_id
+  on conflict do nothing;
+
+  insert into activity (project_id, actor, verb, object)
+  values (p_project_id, v_uid, 'ingested', p_title);
+
+  return v_id;
+end;
+$$;
+
+revoke execute on function ingest_transcript from public, anon;
+grant execute on function ingest_transcript to authenticated;
+
+-- ─── storage: the original files ─────────────────────────────────────────
+-- Private. Objects are keyed by sha256, so the same file always lands at the
+-- same path. No update or delete policy: an uploaded original is as
+-- immutable as the lines parsed from it.
+
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('transcripts', 'transcripts', false, 10485760)
+on conflict (id) do nothing;
+
+create policy transcripts_read on storage.objects
+  for select to authenticated
+  using (bucket_id = 'transcripts' and public.has_seat());
+create policy transcripts_insert on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'transcripts' and public.can_edit());
 
 commit;
