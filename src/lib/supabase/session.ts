@@ -31,6 +31,11 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublic = path.startsWith("/sign-in") || path.startsWith("/auth");
 
+  if (!user && path.startsWith("/api/")) {
+    // A fetch would follow a redirect and get the sign-in page back as HTML.
+    return NextResponse.json({ error: "Signed out. Sign in again." }, { status: 401 });
+  }
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
