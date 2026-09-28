@@ -26,7 +26,7 @@ After saving, offer to add the next transcript without leaving the dialog.
   from Wispr Flow, where there are no files to multi-select.
 
 ### 3. Separate Client and Project dropdowns
-*Built 2026-09-28 — migration `20260928b`; awaiting review.*
+*Done 2026-09-28 — migration `20260928b`, tested.*
 In the add-transcript dialog, choose the client first; the project list shows
 only that client's projects.
 
@@ -41,7 +41,7 @@ only that client's projects.
   record editing in item 4, bulk upload in item 1).
 
 ### 3a. Organizations
-*Built 2026-09-28 — migration `20260928b`; awaiting review.*
+*Done 2026-09-28 — migration `20260928b`, tested.*
 A reusable `organization` list (workspace-wide, not per client, since the same
 organization can appear across clients' projects), and an organization on each
 speaker: `transcript_speaker.organization_id`.
@@ -56,7 +56,7 @@ speaker: `transcript_speaker.organization_id`.
   editing. Later: coverage and saturation by organization.
 
 ### 4. Edit the source record after upload
-*Built 2026-09-28 — migration `20260928b`; awaiting review.*
+*Done 2026-09-28 — migration `20260928b`, tested.*
 The transcript lines stay immutable; the metadata around them doesn't.
 Editable: participant name, date recorded, client, project, speaker names,
 speaker roles, and speaker organizations (3a).
