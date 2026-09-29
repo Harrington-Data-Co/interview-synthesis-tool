@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CodeAllButton } from "@/components/project/CodeAllButton";
+import { CodeAllButton, GenerateNotesButton } from "@/components/project/BatchButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
 import type { LabelAxis, LabelMap } from "@/components/project/labels";
 import { SourcesActions } from "@/components/sources/SourcesActions";
@@ -18,7 +18,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const supabase = await createClient();
-  const [directory, seat, { rows, error }, { data: axisRows }] = await Promise.all([
+  const [directory, seat, { rows, error }, { data: axisRows }, { data: templates }] = await Promise.all([
     loadDirectory(supabase),
     currentSeat(),
     loadTranscripts(supabase, { projectId: id }),
@@ -27,6 +27,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       .select("id,name,ordinal,options:label_option(id,value,ordinal)")
       .eq("project_id", id)
       .order("ordinal"),
+    supabase.from("note_template").select("id,name,notes:note(transcript_id)").eq("project_id", id).order("name"),
   ]);
   const editor = canEdit(seat);
 
@@ -85,6 +86,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <CodeAllButton
               targets={rows.filter((t) => t.status !== "coded").map((t) => ({ id: t.id, title: t.title }))}
             />
+            <GenerateNotesButton
+              templates={(templates ?? []).map((tp) => {
+                const noted = new Set((tp.notes ?? []).map((n: { transcript_id: string }) => n.transcript_id));
+                return {
+                  id: tp.id,
+                  name: tp.name,
+                  // Coded interviews without a note from this template yet.
+                  targets: rows.filter((t) => t.status === "coded" && !noted.has(t.id)).map((t) => ({ id: t.id, title: t.title })),
+                };
+              })}
+            />
             <SourcesActions directory={directory} projectId={id} newProject={false} />
           </div>
         )}
@@ -108,7 +120,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <ProjectInterviews projectId={id} editor={editor} axes={axes} labels={labels} rows={interviews} />
 
       <p className="meta" style={{ margin: 0 }}>
-        Open an interview&apos;s Coding tab to review its codes. Interview notes and themes arrive with Phases 3–4.
+        Open an interview to review its codes and notes. Themes across interviews arrive with Phase 4.
       </p>
     </div>
   );

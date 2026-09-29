@@ -118,6 +118,16 @@ Cost is not a constraint here: a 40-minute transcript is roughly 10k input token
 - Coverage check (codes used / total, orphan list) as a SQL query, not a client computation.
 - Human edits with attribution, revert, and locks.
 
+**Decisions (2026-09-29):**
+- **Templates are a library plus project copies.** Library templates have no project. Adding one to a project copies it (sections and all) into the project, which then edits its copy freely; the library and other projects never change. A copy remembers what it was copied from.
+- **Several notes per interview**, one per template, from any of its project's templates. Unassigned interviews can't have notes until they're in a project.
+- **Section code types limit Claude, not people** — the anchoring hybrid again. Claude's items may only cite codes of their section's types (a section with no types accepts any); people may cite any code anywhere.
+- **Every item cites at least one code of its own interview**, enforced by the database at commit. A citation of a merged code is refused; cite the code it was merged into.
+- **Notes are a rearrangement, not a rewrite:** items restate what their codes say, organised by the template, and add no new claims.
+- **Evidence can't be deleted from under a note:** removing a section that has items is refused (it used to cascade), as is deleting a template that notes use.
+- **Coverage is a database function**, not a client computation: every active code of the interview, and whether the note uses it (directly, or through a code merged into it).
+- **Locks stay deferred**, as in Phase 2.
+
 ### Phase 4 — Themes + the findings memo (stage 04)
 - Themes cluster codes across the project. Claude proposes clusters; a human confirms. `theme_code` rows yield the `codes · ivs` weights for free.
 - **Ship the findings memo first.** Of the four product shapes it carries the most value and the least bespoke rendering. Export to Markdown and PDF.

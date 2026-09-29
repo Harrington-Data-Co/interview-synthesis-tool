@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CodingStage } from "@/components/coding/CodingStage";
+import { NotesStage } from "@/components/notes/NotesStage";
 import { EditRecordButton } from "@/components/transcript/EditRecord";
 import {
   TranscriptLines,
@@ -33,10 +34,11 @@ export default async function TranscriptPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ stage?: string }>;
+  searchParams: Promise<{ stage?: string; template?: string }>;
 }) {
   const { id } = await params;
-  const stage = (await searchParams).stage === "coding" ? "coding" : "transcript";
+  const query = await searchParams;
+  const stage = query.stage === "coding" || query.stage === "notes" ? query.stage : "transcript";
   if (!UUID.test(id)) notFound();
   const supabase = await createClient();
 
@@ -90,11 +92,10 @@ export default async function TranscriptPage({
     ),
   ].join(", ");
   const ingested = new Date(t.ingested_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
-  const { count: codeCount } = await supabase
-    .from("code")
-    .select("id", { count: "exact", head: true })
-    .eq("transcript_id", id)
-    .is("merged_into_id", null);
+  const [{ count: codeCount }, { count: noteCount }] = await Promise.all([
+    supabase.from("code").select("id", { count: "exact", head: true }).eq("transcript_id", id).is("merged_into_id", null),
+    supabase.from("note").select("id", { count: "exact", head: true }).eq("transcript_id", id),
+  ]);
 
   const backLink = (
     <Link href={project ? `/projects/${project.id}` : "/sources"} className="meta">
@@ -107,6 +108,7 @@ export default async function TranscriptPage({
         [
           ["transcript", "01 · Transcript", `/transcripts/${id}`],
           ["coding", `02 · Coding${codeCount ? ` (${codeCount})` : ""}`, `/transcripts/${id}?stage=coding`],
+          ["notes", `03 · Notes${noteCount ? ` (${noteCount})` : ""}`, `/transcripts/${id}?stage=notes`],
         ] as const
       ).map(([key, text, href]) => (
         <Link
@@ -129,6 +131,19 @@ export default async function TranscriptPage({
       ))}
     </div>
   );
+
+  if (stage === "notes") {
+    return (
+      <main style={{ flex: 1, padding: "var(--space-6)", maxWidth: 1600, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        {backLink}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: 24, margin: 0 }}>{t.title}</h2>
+          {stageTabs}
+        </div>
+        <NotesStage transcriptId={id} projectId={t.project_id} templateId={query.template} editor={canEdit(seat)} />
+      </main>
+    );
+  }
 
   if (stage === "coding") {
     return (

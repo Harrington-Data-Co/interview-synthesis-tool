@@ -2,8 +2,7 @@
  *  records which prompt produced its codes. */
 export const PROMPT_VERSION = "coding-v1";
 
-export const MODEL = "claude-opus-5-5";
-export const EFFORT = "high" as const;
+export { MODEL, EFFORT } from "@/lib/claude/call";
 
 export const CLAUDE_CODE_TYPES = ["Pain", "Step", "Tool", "Goal", "Constraint", "Question"] as const;
 export type ClaudeCodeType = (typeof CLAUDE_CODE_TYPES)[number];

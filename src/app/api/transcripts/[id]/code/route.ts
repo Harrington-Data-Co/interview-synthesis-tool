@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { ApiError, errorResponse, requireEditor } from "@/lib/api";
+import { claudeErrorResponse } from "@/lib/claude/respond";
 import { withPaths } from "@/lib/directory";
 import { gate } from "@/lib/coding/gate";
 import { EFFORT, MODEL, PROMPT_VERSION, type CodingLine } from "@/lib/coding/prompt";
@@ -118,26 +118,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       const message = e instanceof Error ? e.message : String(e);
       await supabase.rpc("fail_coding_run", { p_run_id: runId, p_error: message, p_usage: usage });
     }
-    if (e instanceof CodingError) return Response.json({ error: e.message }, { status: 502 });
-    // The SDK's own errors, most specific first.
-    if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
-      return Response.json({ error: "Claude rejected the API key. Check ANTHROPIC_API_KEY in .env.local." }, { status: 502 });
-    }
-    if (e instanceof Anthropic.RateLimitError) {
-      return Response.json({ error: "Claude is rate-limited right now. Try again in a minute." }, { status: 503 });
-    }
-    if (e instanceof Anthropic.APIError) {
-      console.error("[coding]", e);
-      return Response.json({ error: `Claude returned an error (${e.status ?? "no status"}). Try again.` }, { status: 502 });
-    }
-    if (e instanceof Anthropic.AnthropicError) {
-      // Raised before any request, e.g. when no credentials are configured.
-      console.error("[coding]", e);
-      return Response.json(
-        { error: "Claude isn't set up yet: add ANTHROPIC_API_KEY to .env.local and restart the app." },
-        { status: 503 },
-      );
-    }
+    const fromClaude = claudeErrorResponse(e);
+    if (fromClaude) return fromClaude;
     return errorResponse(e);
   }
 }
