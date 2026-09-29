@@ -148,7 +148,7 @@ the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 | 1 | Upload and parse transcripts; the transcript view; projects, organizations, labels | **done** |
 | 2 | Coding — Claude first pass, then the human layer | **done** (prompt `coding-v1`) |
 | 3 | Interview notes from templates | **done** (prompt `note-v2`) |
-| 4 | Themes and the findings memo | built, in testing (prompts `themes-v1`, `memo-v1`) |
+| 4 | Themes and the findings memo | **done** (prompts `themes-v1`, `memo-v1`) |
 | 5 | The chain board and corpus views | |
 | 6 | Connectors, remaining product shapes, multi-tenancy | |
 
