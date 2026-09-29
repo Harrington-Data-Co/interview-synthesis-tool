@@ -6,19 +6,32 @@ import { Dialog, Field, Notice } from "@/components/ui";
 import type { ClientOption, Directory } from "@/lib/directory";
 import { UploadDialog } from "./UploadDialog";
 
-/** The Sources page's editor actions: add a transcript, start a project. */
-export function SourcesActions({ directory }: { directory: Directory }) {
+/** Editor actions: add transcripts (into a given project, when on one) and,
+ *  from the library, start a project. */
+export function SourcesActions({
+  directory,
+  projectId,
+  newProject = true,
+}: {
+  directory: Directory;
+  projectId?: string;
+  newProject?: boolean;
+}) {
   const [open, setOpen] = useState<"upload" | "project" | null>(null);
 
   return (
     <div style={{ display: "flex", gap: "var(--space-2)" }}>
-      <button className="btn btn-secondary" onClick={() => setOpen("project")}>
-        New project
-      </button>
+      {newProject && (
+        <button className="btn btn-secondary" onClick={() => setOpen("project")}>
+          New project
+        </button>
+      )}
       <button className="btn btn-primary" onClick={() => setOpen("upload")}>
-        Add transcript
+        Add transcripts
       </button>
-      {open === "upload" && <UploadDialog directory={directory} onClose={() => setOpen(null)} />}
+      {open === "upload" && (
+        <UploadDialog directory={directory} defaultProjectId={projectId} onClose={() => setOpen(null)} />
+      )}
       {open === "project" && <NewProjectDialog clients={directory.clients} onClose={() => setOpen(null)} />}
     </div>
   );
@@ -44,13 +57,14 @@ function NewProjectDialog({ clients, onClose }: { clients: ClientOption[]; onClo
     const body = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(body.error ?? `Request failed (${res.status}).`);
+    router.push(`/projects/${body.id}`);
     router.refresh();
     onClose();
   }
 
   return (
     <Dialog title="New project" onClose={busy ? undefined : onClose}>
-      <Field label="Client">
+      <Field label="Client" hint="The paying customer the project is for.">
         <select className="input" value={clientId} onChange={(e) => setClientId(e.target.value)}>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>

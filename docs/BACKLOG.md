@@ -7,6 +7,7 @@ Order is not priority — see *Suggested order* at the end.
 ## From the Phase 1 review
 
 ### 1. Bulk upload
+*Built 2026-09-28 — no migration needed; awaiting review.*
 Add several files at once instead of one per dialog.
 
 - Pick many files → one review table, a row per file: parsed layout, turns,
@@ -18,6 +19,7 @@ Add several files at once instead of one per dialog.
   failure doesn't block the rest, and the result lists what landed.
 
 ### 2. "Save and add another"
+*Built 2026-09-28 — no migration needed; awaiting review.*
 After saving, offer to add the next transcript without leaving the dialog.
 
 - A second button beside *Save transcript*. Keeps the client and project just
@@ -72,6 +74,7 @@ speaker roles, and speaker organizations (3a).
 - Changing client/project reuses the assignment rules (`new` ↔ `queued`).
 
 ### 5. Project view, and a library organized by it
+*Built 2026-09-28 — no migration needed; awaiting review.*
 Click into a project to see its transcripts; the library becomes a queue of
 unassigned transcripts, with everything else living under its client and
 project.
@@ -85,17 +88,56 @@ project.
 
 ## Carried over
 
-- **Labels** (Phase 1 step 6): label axes per project and bulk labelling.
-  Fits naturally into the project view (item 5).
-- **Verify** button: re-hash the stored original and compare to `sha256`.
-- **Wispr Flow paste**: test with a real transcript once one is copied out.
-- **Attribution on inserts**: policies check the caller can edit, not that
-  `created_by` is them. Ingest already sets it server-side; tighten the rest.
-- **Block outside sign-ups**: Supabase "before user created" hook rejecting
-  non-`@harringtondata.com` addresses. Before going live.
-- **Custom SMTP**: before adding teammates (Supabase's built-in mailer is
-  rate-limited).
-- **Lint**: unused `redirect` import in `src/app/(app)/layout.tsx`.
+- **Labels** (Phase 1 step 6). *Done 2026-09-28 — migration `20260928c`,
+  tested.* Label axes and options per project. Reworked after review
+  to one Labels column of chips, one *Label as…* menu for a row or a
+  selection (new labels and options typed in place), and *Manage labels* for
+  renaming and removing. Then reworked again: the Group by switch and filter
+  pills are gone; sorting, grouping and filtering happen from the column
+  headers (participant, organization, each label, recorded, length, status),
+  the sidebar counts whatever the table is grouped by, and the view is
+  remembered per project in the browser. The database keeps options on their
+  own axis and labels in the transcript's project, and a transcript that moves
+  project drops the old project's labels.
+- **Verify** button. *Built 2026-09-28; awaiting review.* Re-hashes the stored
+  original against its `sha256`; editors' checks are logged to activity.
+- **Wispr Flow paste**. *Tested 2026-09-28.* Follow-up built: the paste form
+  asks where the text came from (default Wispr Flow) instead of assuming.
+- **Attribution on inserts**. *Built 2026-09-28 — migration `20260928c`;
+  awaiting review.* A row's author must be the person writing it, and who
+  created a row can't be changed afterwards (`keep_attribution`). Tables
+  without an author column yet (`note_section`, `note_item`,
+  `product_section`, the join tables) get one when their phase builds them.
+- **Block outside sign-ups**. *Built 2026-09-28 — migration `20260928c`;
+  deliberately not turned on.* The hook function exists but is inert until
+  enabled (Authentication → Hooks → Before User Created →
+  `public.hook_restrict_signup_domain`). Likely superseded by the invitation
+  model below. Until then, a stranger can create an empty account against the
+  Auth API but sees nothing: every policy requires a seat.
+
+## Under consideration
+
+### Invitation-only access, with project roles
+Only invited people can use the tool, whatever their email domain, so clients
+and partners can be let in too. Not yet designed; considered 2026-09-28.
+
+- **Accounts by invitation only**: turn off public sign-ups in Supabase and
+  invite from the app (server-side, via Supabase's invite API). This replaces
+  the sign-up hook and the `@harringtondata.com` check in the sign-in form
+  (`ALLOWED_EMAIL_DOMAIN`, `src/lib/config.ts`).
+- **An invitation creates the seat**, perhaps pending until first sign-in;
+  authentication still isn't membership.
+- **Project roles**: a `project_member` (project, person, role) table, and
+  read policies that check project membership instead of just `has_seat()` —
+  the seam `schema.sql` was built to leave.
+- **Open questions**: who can invite (workspace owners, project owners?);
+  which roles exist per project (owner / editor / viewer / client?); what a
+  client may see (their project's raw transcripts, or only deliverables?);
+  who sees workspace-wide things (the Unassigned queue, the organization
+  list); whether invitations expire.
+- **Custom SMTP**. *Needs doing in Supabase and DNS* — not code. Steps in the
+  README under "Before adding teammates". Before adding teammates.
+- **Lint**: unused `redirect` import. *Fixed 2026-09-28.*
 
 ## Suggested order
 

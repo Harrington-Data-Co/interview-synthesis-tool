@@ -1,6 +1,117 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+/** A menu anchored under (or, near the bottom of the window, over) the element
+ *  that opened it. Fixed positioning, so a scrolling table can't clip it.
+ *  Closes on a click outside, Escape, or a resize. */
+export function Popover({
+  anchor,
+  onClose,
+  width = 280,
+  label,
+  children,
+}: {
+  anchor: DOMRect;
+  onClose: () => void;
+  width?: number;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const away = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && onClose();
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", key);
+    window.addEventListener("resize", onClose);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("resize", onClose);
+    };
+  }, [onClose]);
+
+  const openUp = window.innerHeight - anchor.bottom < 320 && anchor.top > 320;
+  return (
+    <div
+      ref={ref}
+      role="menu"
+      aria-label={label}
+      className="panel"
+      style={{
+        position: "fixed",
+        zIndex: 50,
+        width,
+        left: Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8)),
+        ...(openUp ? { bottom: window.innerHeight - anchor.top + 4 } : { top: anchor.bottom + 4 }),
+        maxHeight: 420,
+        overflow: "auto",
+        background: "var(--color-surface)",
+        boxShadow: "var(--shadow-lg)",
+        padding: "6px 0",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** A full-width row in a Popover menu. */
+export function MenuItem({
+  onClick,
+  disabled,
+  checked,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  /** Shows a ✓ gutter; omit for items that aren't choices. */
+  checked?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role={checked === undefined ? "menuitem" : "menuitemcheckbox"}
+      aria-checked={checked}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: "flex",
+        width: "100%",
+        gap: 8,
+        alignItems: "center",
+        textAlign: "left",
+        border: 0,
+        background: "none",
+        padding: "5px 12px",
+        fontSize: 13,
+        cursor: "pointer",
+        color: "var(--color-text)",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-accent-tint-soft)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+    >
+      {checked !== undefined && (
+        <span style={{ width: 12, flex: "none", color: "var(--color-accent-800)" }}>{checked ? "✓" : ""}</span>
+      )}
+      {children}
+    </button>
+  );
+}
+
+/** A small uppercase heading inside a Popover. */
+export function MenuHeading({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", padding: "6px 12px 2px" }}>
+      <span className="kicker" style={{ fontSize: 10 }}>
+        {children}
+      </span>
+      {action && <span style={{ marginLeft: "auto" }}>{action}</span>}
+    </div>
+  );
+}
 
 /** Modal in the prototype's style (Discovery Workspace.dc.html, Workspace
  *  dialog). Omit onClose to make it undismissable while work is in flight. */

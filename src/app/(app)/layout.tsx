@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { currentSeat } from "@/lib/seat";
 import { supabaseConfigured } from "@/lib/config";

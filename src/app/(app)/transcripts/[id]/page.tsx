@@ -7,6 +7,7 @@ import {
   type LineView,
   type SpeakerRole,
 } from "@/components/transcript/TranscriptLines";
+import { VerifyButton } from "@/components/transcript/VerifyButton";
 import { loadDirectory } from "@/lib/directory";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
@@ -108,8 +109,8 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
       }}
     >
       <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-        <Link href="/sources" className="meta">
-          ← Transcript library
+        <Link href={project ? `/projects/${project.id}` : "/sources"} className="meta">
+          ← {project ? `${client?.name ? `${client.name} · ` : ""}${project.name}` : "Transcript library"}
         </Link>
         <span className="kicker">01 · Transcript</span>
         <h2 style={{ fontSize: 28, margin: 0 }}>{t.title}</h2>
@@ -206,6 +207,7 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
           </div>
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             <TryEditButton />
+            <VerifyButton transcriptId={t.id} />
             <a className="btn btn-ghost" style={{ fontSize: 11.5 }} href={`/api/transcripts/${t.id}/original`}>
               Download original
             </a>

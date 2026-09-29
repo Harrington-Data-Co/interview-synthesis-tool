@@ -7,9 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import type { Seat } from "@/lib/seat";
 
 const VIEWS = [
-  { key: "sources", label: "Sources", href: "/sources" },
-  { key: "templates", label: "Templates", href: "/templates" },
-  { key: "study", label: "Study", href: "/study" },
+  // Projects and transcripts are reached through the library, so they light it up.
+  { key: "sources", label: "Sources", href: "/sources", also: ["/projects", "/transcripts"] },
+  { key: "templates", label: "Templates", href: "/templates", also: [] },
+  { key: "study", label: "Study", href: "/study", also: [] },
 ] as const;
 
 const roleTag = (r: string) =>
@@ -59,7 +60,7 @@ export function AppHeader({ seat }: { seat: Seat }) {
 
         <nav style={{ display: "flex", gap: 2 }}>
           {VIEWS.map((v) => {
-            const on = pathname.startsWith(v.href);
+            const on = [v.href, ...v.also].some((h) => pathname.startsWith(h));
             return (
               <Link
                 key={v.key}

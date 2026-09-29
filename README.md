@@ -41,10 +41,15 @@ can see the sign-in screen before there is a database.
 4. **Apply the schema.** Paste `supabase/schema.sql` into the Supabase SQL
    editor and run it. It creates every table, the append-only trigger on
    `transcript_line`, and the row-level security policies. Every policy keys
-   on a seat row, not on being signed in: the domain check lives only in the
-   sign-in form, and anyone can create a Supabase account against the Auth API
-   directly.
-5. **Give yourself a seat.** Sign in once at `/sign-in` with your
+   on a seat row, not on being signed in, and every row's author must be the
+   person writing it.
+5. **Restrict sign-ups to the domain.** In Authentication → Hooks, add a
+   *Before User Created* hook of type Postgres and choose
+   `public.hook_restrict_signup_domain`. Supabase then refuses to create any
+   account outside `@harringtondata.com` — without it, the sign-in form's
+   check is the only one, and anyone holding the public anon key can create
+   an (empty, seatless) account straight against the Auth API.
+6. **Give yourself a seat.** Sign in once at `/sign-in` with your
    `@harringtondata.com` address to create the auth user, then insert the
    matching seat:
 
@@ -57,7 +62,7 @@ can see the sign-in screen before there is a database.
    Authentication and membership are deliberately separate: a valid sign-in with
    no seat row gets told it has no seat, not let in. This first seat has to be
    inserted from the SQL editor; after that, only owners can add seats.
-6. **Check the access rules.** In the SQL editor, run as a single statement
+7. **Check the access rules.** In the SQL editor, run as a single statement
    (the editor only shows the last result, so keep the checks in one row):
 
    ```sql
@@ -72,7 +77,27 @@ can see the sign-in screen before there is a database.
    With your own id from `auth.users`, `has_seat` is true and `seats` counts
    every seat. With a made-up id such as
    `00000000-0000-0000-0000-000000000000`, `has_seat` is false and `seats` is 0.
-7. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
+8. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
+
+## Before adding teammates: your own email sender
+
+Sign-in is by emailed link, and Supabase's built-in sender is only meant for
+testing: it sends a handful of emails an hour, from a Supabase address. Before
+anyone else relies on signing in, send from Harrington's own domain:
+
+1. **Pick a transactional email provider** (Resend, Postmark, Amazon SES and
+   SendGrid all work) and add `harringtondata.com` as a sending domain there.
+2. **Add the DNS records it gives you** (SPF, DKIM, and usually a return-path
+   or DMARC record) wherever the domain's DNS is hosted, and wait for the
+   provider to show the domain as verified.
+3. **Point Supabase at it.** Authentication → SMTP Settings → enable custom
+   SMTP, then enter the provider's host, port, username and password, a
+   sender address such as `tools@harringtondata.com`, and a sender name such
+   as *Harrington Tools*.
+4. **Raise the email rate limit** under Authentication → Rate Limits; the
+   default assumes the built-in sender.
+5. **Test it**: sign out, request a link, and check it arrives from the new
+   address and isn't in spam.
 
 ## Updating an existing database
 
@@ -87,12 +112,19 @@ editor. Each file says which version it starts from.
 src/app/sign-in/        the door
 src/app/auth/callback/  magic-link landing
 src/app/(app)/          everything behind the seat check
-  sources/              stage 00 — the transcript library
-  templates/            note templates, product templates, label axes
-  study/                stages 01–04
+  sources/              the library: Unassigned queue, clients and projects
+  projects/[id]/        a project's interviews, labels and organizations
+  transcripts/[id]/     stage 01 — one transcript and its source record
+  templates/            note and product templates (Phase 3 on)
+  study/                stages 02–04
+src/app/api/            ingest, projects, labels, organizations, transcripts
+src/lib/parsers/        Teams/Zoom .vtt, .srt, Google Meet .docx, pasted text
+src/lib/ingest/         upload preview and save
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may change
-supabase/schema.sql     the data model
+supabase/schema.sql     the data model; migrations/ updates an existing one
+docs/                   the build plan and backlog
+fixtures/private/       real transcripts for local checks — never committed
 reference/              the Claude Design prototype, as specification
 ```
 
@@ -104,11 +136,11 @@ the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 | Phase | Scope | State |
 |---|---|---|
 | 0 | Scaffold, brand, auth, seats, app shell | **done** |
-| 1 | Upload and parse transcripts; the transcript view | next |
-| 2 | Coding — Claude first pass, then the human layer | |
+| 1 | Upload and parse transcripts; the transcript view; projects, organizations, labels | **done** |
+| 2 | Coding — Claude first pass, then the human layer | next |
 | 3 | Interview notes from templates | |
 | 4 | Themes and the findings memo | |
 | 5 | The chain board and corpus views | |
 | 6 | Connectors, remaining product shapes, multi-tenancy | |
 
-The full plan is at `docs/PLAN.md`.
+The full plan is at `docs/PLAN.md`; follow-ups are in `docs/BACKLOG.md`.
