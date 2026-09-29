@@ -99,12 +99,12 @@ project.
   remembered per project in the browser. The database keeps options on their
   own axis and labels in the transcript's project, and a transcript that moves
   project drops the old project's labels.
-- **Verify** button. *Built 2026-09-28; awaiting review.* Re-hashes the stored
+- **Verify** button. *Done 2026-09-28, tested.* Re-hashes the stored
   original against its `sha256`; editors' checks are logged to activity.
 - **Wispr Flow paste**. *Tested 2026-09-28.* Follow-up built: the paste form
   asks where the text came from (default Wispr Flow) instead of assuming.
-- **Attribution on inserts**. *Built 2026-09-28 — migration `20260928c`;
-  awaiting review.* A row's author must be the person writing it, and who
+- **Attribution on inserts**. *Done 2026-09-28 — migration `20260928c`,
+  tested.* A row's author must be the person writing it, and who
   created a row can't be changed afterwards (`keep_attribution`). Tables
   without an author column yet (`note_section`, `note_item`,
   `product_section`, the join tables) get one when their phase builds them.
