@@ -115,6 +115,10 @@ project.
   model below. Until then, a stranger can create an empty account against the
   Auth API but sees nothing: every policy requires a seat.
 
+- **Custom SMTP**. *Needs doing in Supabase and DNS* — not code. Steps in the
+  README under "Before adding teammates". Before adding teammates.
+- **Lint**: unused `redirect` import. *Fixed 2026-09-28.*
+
 ## Under consideration
 
 ### Invitation-only access, with project roles
@@ -135,10 +139,6 @@ and partners can be let in too. Not yet designed; considered 2026-09-28.
   client may see (their project's raw transcripts, or only deliverables?);
   who sees workspace-wide things (the Unassigned queue, the organization
   list); whether invitations expire.
-- **Custom SMTP**. *Needs doing in Supabase and DNS* — not code. Steps in the
-  README under "Before adding teammates". Before adding teammates.
-- **Lint**: unused `redirect` import. *Fixed 2026-09-28.*
-
 ## Suggested order
 
 1. **Items 3, 3a, then 4.** The client → project picker and organizations
