@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CodingStage } from "@/components/coding/CodingStage";
 import { EditRecordButton } from "@/components/transcript/EditRecord";
 import {
   TranscriptLines,
@@ -27,8 +28,15 @@ const PAGE = 1000; // PostgREST's default row cap
 
 const muted = { color: "color-mix(in srgb, var(--color-text) 55%, transparent)" } as const;
 
-export default async function TranscriptPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TranscriptPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ stage?: string }>;
+}) {
   const { id } = await params;
+  const stage = (await searchParams).stage === "coding" ? "coding" : "transcript";
   if (!UUID.test(id)) notFound();
   const supabase = await createClient();
 
@@ -82,6 +90,67 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
     ),
   ].join(", ");
   const ingested = new Date(t.ingested_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  const { count: codeCount } = await supabase
+    .from("code")
+    .select("id", { count: "exact", head: true })
+    .eq("transcript_id", id)
+    .is("merged_into_id", null);
+
+  const backLink = (
+    <Link href={project ? `/projects/${project.id}` : "/sources"} className="meta">
+      ← {project ? `${client?.name ? `${client.name} · ` : ""}${project.name}` : "Transcript library"}
+    </Link>
+  );
+  const stageTabs = (
+    <div className="seg" style={{ alignSelf: "flex-start" }}>
+      {(
+        [
+          ["transcript", "01 · Transcript", `/transcripts/${id}`],
+          ["coding", `02 · Coding${codeCount ? ` (${codeCount})` : ""}`, `/transcripts/${id}?stage=coding`],
+        ] as const
+      ).map(([key, text, href]) => (
+        <Link
+          key={key}
+          href={href}
+          className="seg-opt"
+          aria-current={stage === key ? "page" : undefined}
+          style={{ textDecoration: "none" }}
+        >
+          <span
+            style={
+              stage === key
+                ? { background: "var(--color-accent-tint)", color: "var(--color-accent-800)", fontWeight: 700 }
+                : undefined
+            }
+          >
+            {text}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+
+  if (stage === "coding") {
+    return (
+      <main style={{ flex: 1, padding: "var(--space-6)", maxWidth: 1600, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        {backLink}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: 24, margin: 0 }}>{t.title}</h2>
+          {stageTabs}
+        </div>
+        <CodingStage
+          transcriptId={id}
+          editor={canEdit(seat)}
+          lines={lines.map((l) => ({
+            n: l.n,
+            speaker: names[l.speaker] ?? l.speaker,
+            role: roles[l.speaker] ?? "other",
+            text: l.text,
+          }))}
+        />
+      </main>
+    );
+  }
 
   const record: [string, React.ReactNode][] = [
     ["File", <span key="f" className="mono" style={{ fontSize: 12 }}>{t.original_name ?? "—"}</span>],
@@ -109,10 +178,8 @@ export default async function TranscriptPage({ params }: { params: Promise<{ id:
       }}
     >
       <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-        <Link href={project ? `/projects/${project.id}` : "/sources"} className="meta">
-          ← {project ? `${client?.name ? `${client.name} · ` : ""}${project.name}` : "Transcript library"}
-        </Link>
-        <span className="kicker">01 · Transcript</span>
+        {backLink}
+        {stageTabs}
         <h2 style={{ fontSize: 28, margin: 0 }}>{t.title}</h2>
         <p style={{ fontSize: 14, maxWidth: "46ch", margin: 0, color: "color-mix(in srgb, var(--color-text) 72%, transparent)" }}>
           Nothing is inferred yet. Every line has a permanent address — <strong>L14</strong> — and every claim

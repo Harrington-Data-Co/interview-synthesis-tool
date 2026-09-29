@@ -114,12 +114,14 @@ src/app/auth/callback/  magic-link landing
 src/app/(app)/          everything behind the seat check
   sources/              the library: Unassigned queue, clients and projects
   projects/[id]/        a project's interviews, labels and organizations
-  transcripts/[id]/     stage 01 — one transcript and its source record
+  transcripts/[id]/     stage 01 — one transcript and its source record;
+                        ?stage=coding is stage 02, its codes
   templates/            note and product templates (Phase 3 on)
   study/                stages 02–04
 src/app/api/            ingest, projects, labels, organizations, transcripts
 src/lib/parsers/        Teams/Zoom .vtt, .srt, Google Meet .docx, pasted text
 src/lib/ingest/         upload preview and save
+src/lib/coding/         Claude's coding pass: prompt, call, quote check, chunking
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may change
 supabase/schema.sql     the data model; migrations/ updates an existing one
@@ -137,8 +139,8 @@ the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 |---|---|---|
 | 0 | Scaffold, brand, auth, seats, app shell | **done** |
 | 1 | Upload and parse transcripts; the transcript view; projects, organizations, labels | **done** |
-| 2 | Coding — Claude first pass, then the human layer | next |
-| 3 | Interview notes from templates | |
+| 2 | Coding — Claude first pass, then the human layer | **done** (prompt `coding-v1`) |
+| 3 | Interview notes from templates | next |
 | 4 | Themes and the findings memo | |
 | 5 | The chain board and corpus views | |
 | 6 | Connectors, remaining product shapes, multi-tenancy | |

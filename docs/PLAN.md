@@ -104,6 +104,14 @@ activity          project_id, actor, verb, object, at             -- ACTIVITY
 
 Cost is not a constraint here: a 40-minute transcript is roughly 10k input tokens; a coding pass runs about **$0.10–0.20 per transcript** on Opus 5.5 ($4 / $20 per MTok).
 
+**Decisions (2026-09-29):**
+- **Vocabulary:** Claude proposes the six types above. `Quote` and `Stakeholder` stay in the enum for hand-made codes only.
+- **Claude's codes land accepted**, marked `origin = 'claude'`, and are edited from there. Only gate rejections wait for review, in `code_rejection`.
+- **Anchoring is a hybrid:** Claude codes participant turns only ("other" speakers count as participants); interviewer turns are context it may not quote. People can code any speaker's turns. The database enforces both.
+- **The quote check lives in the database** — a trigger on `code` — not only in the app, so every path that writes a code is held to it: the pass, the human layer, anything later.
+- **Soft locks are deferred** until teammates join; one editor doesn't need them.
+- **No fixture eval:** `discovery-data.js` (the prototype's hand-coded Dana Reyes interview) isn't in the repo. Prompt quality is judged on real transcripts in `fixtures/private/`, with runs approved before they spend.
+
 ### Phase 3 — Artifact (stage 03)
 - Template defines sections and which code types fill each.
 - Second Claude call: given one transcript's codes and the template's section schema, produce note items, each citing code ids. **Reject any item whose refs are not real code ids for that transcript** — same discipline as Phase 2.

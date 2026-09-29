@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CodeAllButton } from "@/components/project/CodeAllButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
 import type { LabelAxis, LabelMap } from "@/components/project/labels";
 import { SourcesActions } from "@/components/sources/SourcesActions";
@@ -80,7 +81,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <h2 style={{ fontSize: 26, margin: 0 }}>{project.name}</h2>
         </div>
         {editor && (
-          <div style={{ marginLeft: "auto" }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
+            <CodeAllButton
+              targets={rows.filter((t) => t.status !== "coded").map((t) => ({ id: t.id, title: t.title }))}
+            />
             <SourcesActions directory={directory} projectId={id} newProject={false} />
           </div>
         )}
@@ -104,7 +108,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <ProjectInterviews projectId={id} editor={editor} axes={axes} labels={labels} rows={interviews} />
 
       <p className="meta" style={{ margin: 0 }}>
-        Coding, interview notes and themes for this project arrive with Phases 2–4.
+        Open an interview&apos;s Coding tab to review its codes. Interview notes and themes arrive with Phases 3–4.
       </p>
     </div>
   );
