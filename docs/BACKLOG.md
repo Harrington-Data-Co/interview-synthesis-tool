@@ -7,7 +7,7 @@ Order is not priority — see *Suggested order* at the end.
 ## From the Phase 1 review
 
 ### 1. Bulk upload
-*Built 2026-09-28 — no migration needed; awaiting review.*
+*Done 2026-09-28 — no migration needed, tested.*
 Add several files at once instead of one per dialog.
 
 - Pick many files → one review table, a row per file: parsed layout, turns,
@@ -19,7 +19,7 @@ Add several files at once instead of one per dialog.
   failure doesn't block the rest, and the result lists what landed.
 
 ### 2. "Save and add another"
-*Built 2026-09-28 — no migration needed; awaiting review.*
+*Done 2026-09-28 — no migration needed, tested.*
 After saving, offer to add the next transcript without leaving the dialog.
 
 - A second button beside *Save transcript*. Keeps the client and project just
@@ -74,7 +74,7 @@ speaker roles, and speaker organizations (3a).
 - Changing client/project reuses the assignment rules (`new` ↔ `queued`).
 
 ### 5. Project view, and a library organized by it
-*Built 2026-09-28 — no migration needed; awaiting review.*
+*Done 2026-09-28 — no migration needed, tested.*
 Click into a project to see its transcripts; the library becomes a queue of
 unassigned transcripts, with everything else living under its client and
 project.
