@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Notice } from "@/components/ui";
 import type { Directory } from "@/lib/directory";
 
-const TYPES = ["Pain", "Step", "Tool", "Goal", "Constraint", "Question", "Quote", "Stakeholder"] as const;
+const CODE_TYPES = ["Pain", "Step", "Tool", "Goal", "Constraint", "Question", "Quote", "Stakeholder"];
+const SOURCE_LABEL: Record<string, string> = { themes: "Themes" };
 
 export type TemplateRow = {
   id: string;
@@ -32,16 +33,23 @@ export async function templateAction(body: Record<string, unknown>): Promise<{ e
 /** The template list (library, then projects) and the selected template's
  *  sections. Names and guidance save when the field loses focus. */
 export function TemplatesEditor({
+  kind = "note",
   templates,
   selectedId,
   directory,
   editor,
 }: {
+  kind?: "note" | "memo";
   templates: TemplateRow[];
   selectedId: string | null;
   directory: Pick<Directory, "clients" | "projects">;
   editor: boolean;
 }) {
+  const memo = kind === "memo";
+  // Memo sections can also fill from confirmed themes.
+  const TYPES = memo ? ["themes", ...CODE_TYPES] : CODE_TYPES;
+  const starterName = memo ? "Findings memo" : "Discovery interview";
+  const uses = memo ? "memo" : "note";
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,19 +72,20 @@ export function TemplatesEditor({
   async function run(body: Record<string, unknown>, then?: (id?: string) => void) {
     setBusy(true);
     setError("");
-    const { error: err, id } = await templateAction(body);
+    const { error: err, id } = await templateAction({ ...body, kind });
     setBusy(false);
     setConfirming(null);
     if (err) return setError(err);
     then?.(id);
     router.refresh();
   }
-  const go = (id?: string) => id && router.push(`/templates?t=${id}`);
+  const base = memo ? "/templates?kind=memo&" : "/templates?";
+  const go = (id?: string) => id && router.push(`${base}t=${id}`);
 
   const listItem = (t: TemplateRow) => (
     <Link
       key={t.id}
-      href={`/templates?t=${t.id}`}
+      href={`${base}t=${t.id}`}
       className="card"
       style={{
         gap: 2,
@@ -88,7 +97,7 @@ export function TemplatesEditor({
       <span style={{ fontWeight: 700, fontSize: 13.5 }}>{t.name}</span>
       <span className="meta" style={{ fontSize: 11.5 }}>
         {t.sections.length} section{t.sections.length === 1 ? "" : "s"}
-        {t.notes ? ` · ${t.notes} note${t.notes === 1 ? "" : "s"}` : ""}
+        {t.notes ? ` · ${t.notes} ${uses}${t.notes === 1 ? "" : "s"}` : ""}
       </span>
     </Link>
   );
@@ -117,9 +126,9 @@ export function TemplatesEditor({
         )}
         {editor && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {!templates.some((t) => t.name === "Discovery interview" && !t.projectId) && (
+            {!templates.some((t) => t.name === starterName && !t.projectId) && (
               <button className="btn btn-primary" disabled={busy} onClick={() => run({ action: "starter" }, go)}>
-                Add the Discovery interview template
+                Add the {starterName} template
               </button>
             )}
             <button className="btn btn-secondary" disabled={busy} onClick={() => run({ action: "create", name: "New template" }, go)}>
@@ -142,7 +151,7 @@ export function TemplatesEditor({
             {origin && (
               <span className="meta" style={{ fontSize: 12 }}>
                 copied from{" "}
-                <Link href={`/templates?t=${origin.id}`}>{origin.name}</Link>
+                <Link href={`${base}t=${origin.id}`}>{origin.name}</Link>
                 {origin.projectId ? "" : " (library)"}
               </span>
             )}
@@ -179,10 +188,10 @@ export function TemplatesEditor({
                 <button
                   className="btn btn-ghost"
                   disabled={busy || selected.notes > 0}
-                  title={selected.notes ? "Notes use this template" : undefined}
+                  title={selected.notes ? `A ${uses} uses this template` : undefined}
                   onClick={() =>
                     confirming === "delete"
-                      ? run({ action: "delete", templateId: selected.id }, () => router.push("/templates"))
+                      ? run({ action: "delete", templateId: selected.id }, () => router.push(memo ? "/templates?kind=memo" : "/templates"))
                       : setConfirming("delete")
                   }
                 >
@@ -210,16 +219,18 @@ export function TemplatesEditor({
           />
           {selected.projectId && selected.notes > 0 && (
             <p className="meta" style={{ margin: 0, fontSize: 12 }}>
-              {selected.notes} note{selected.notes === 1 ? " uses" : "s use"} this template. Section changes apply the
-              next time a note is generated; existing items stay where they are.
+              {selected.notes} {uses}
+              {selected.notes === 1 ? " uses" : "s use"} this template. Section changes apply the next time it&apos;s
+              generated; existing {memo ? "paragraphs" : "items"} stay where they are.
             </p>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span className="kicker">Sections — in the order the note shows them</span>
+            <span className="kicker">Sections — in the order the {uses} shows them</span>
             <span className="meta" style={{ fontSize: 12 }}>
-              “Fills from” limits which codes Claude may cite in a section. People can cite any code anywhere. A section
-              with none selected takes any code.
+              {memo
+                ? "“Fills from” limits what Claude may cite in a section: confirmed Themes, or codes of the chosen types. People can cite anything. A section with none selected takes anything."
+                : "“Fills from” limits which codes Claude may cite in a section. People can cite any code anywhere. A section with none selected takes any code."}
             </span>
           </div>
 
@@ -258,7 +269,7 @@ export function TemplatesEditor({
                         }
                         style={{ cursor: editor ? "pointer" : "default", font: "inherit", fontSize: 11, opacity: on ? 1 : 0.7 }}
                       >
-                        {t}
+                        {SOURCE_LABEL[t] ?? t}
                       </button>
                     );
                   })}
@@ -314,7 +325,7 @@ export function TemplatesEditor({
       ) : (
         <div className="panel" style={{ flex: "1 1 560px", padding: "var(--space-6)" }}>
           <p className="meta" style={{ margin: 0 }}>
-            No templates yet. {editor ? "Add the Discovery interview template to start, or create your own." : ""}
+            No templates yet. {editor ? `Add the ${starterName} template to start, or create your own.` : ""}
           </p>
         </div>
       )}

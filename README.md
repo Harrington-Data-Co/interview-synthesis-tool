@@ -113,22 +113,26 @@ src/app/sign-in/        the door
 src/app/auth/callback/  magic-link landing
 src/app/(app)/          everything behind the seat check
   sources/              the library: Unassigned queue, clients and projects
-  projects/[id]/        a project's interviews, labels and organizations
+  projects/[id]/        a project's interviews, labels and organizations;
+                        ?view=themes is stage 04, its themes;
+                        ?view=memo is the findings memo; memo/print prints it
   transcripts/[id]/     stage 01 — one transcript and its source record;
                         ?stage=coding is stage 02, its codes;
                         ?stage=notes is stage 03, its interview notes
-  templates/            note templates: the library and project copies
+  templates/            note and memo templates: the library and project copies
   study/                stages 02–04
 src/app/api/            ingest, projects, labels, organizations, transcripts
 src/lib/parsers/        Teams/Zoom .vtt, .srt, Google Meet .docx, pasted text
 src/lib/ingest/         upload preview and save
 src/lib/claude/         the shared Claude call: model, structured output, cost, errors
 src/lib/coding/         the coding pass: prompt, quote check, chunking
-src/lib/notes/          note generation: prompt, citation check, starter template
+src/lib/notes/          note generation: prompt, citation check, starter templates
+src/lib/themes/         theme proposals: prompt, gate, project evidence
+src/lib/memo/           the findings memo: prompt, citation gate, loader, Markdown export
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may change
 supabase/schema.sql     the data model; migrations/ updates an existing one
-docs/                   the build plan and backlog
+docs/                   the build plan, backlog, and session handoff
 fixtures/private/       real transcripts for local checks — never committed
 reference/              the Claude Design prototype, as specification
 ```
@@ -144,7 +148,7 @@ the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 | 1 | Upload and parse transcripts; the transcript view; projects, organizations, labels | **done** |
 | 2 | Coding — Claude first pass, then the human layer | **done** (prompt `coding-v1`) |
 | 3 | Interview notes from templates | **done** (prompt `note-v2`) |
-| 4 | Themes and the findings memo | next |
+| 4 | Themes and the findings memo | built, in testing (prompts `themes-v1`, `memo-v1`) |
 | 5 | The chain board and corpus views | |
 | 6 | Connectors, remaining product shapes, multi-tenancy | |
 

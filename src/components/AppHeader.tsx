@@ -29,6 +29,7 @@ export function AppHeader({ seat }: { seat: Seat }) {
 
   return (
     <header
+      className="no-print"
       style={{
         borderBottom: "1px solid var(--line-3)",
         position: "sticky",

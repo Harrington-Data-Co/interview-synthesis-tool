@@ -1,5 +1,5 @@
 import { ApiError, errorResponse, requireEditor } from "@/lib/api";
-import { STARTER_TEMPLATE } from "@/lib/notes/starter";
+import { STARTER_MEMO_TEMPLATE, STARTER_TEMPLATE } from "@/lib/notes/starter";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,15 +14,18 @@ const name = (v: unknown, what: string) => {
   if (!s || s.length > 120) throw new ApiError(`Give the ${what} a name.`);
   return s;
 };
-const types = (v: unknown) => {
-  if (!Array.isArray(v) || !v.every((t) => TYPES.includes(t))) throw new ApiError("Unknown code type.");
+const types = (v: unknown, memo: boolean) => {
+  const known = memo ? ["themes", ...TYPES] : TYPES;
+  if (!Array.isArray(v) || !v.every((t) => known.includes(t))) throw new ApiError("Unknown code type.");
   return [...new Set(v as string[])];
 };
 const longText = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 2000) || null : null);
 
-/** Note templates: the library (no project) and project copies.
+/** Note and memo templates: the library (no project) and project copies.
+ *  Memo templates are product templates of kind "report"; their sections can
+ *  also fill from "themes".
  *
- *  Body: { action, ... }
+ *  Body: { kind?: "note" | "memo", action, ... }
  *    starter                                  → { id }  the Discovery interview template, into the library
  *    create     { name, scope?, projectId? }  → { id }
  *    update     { templateId, name?, scope? }
@@ -38,28 +41,32 @@ export async function POST(request: Request) {
     const seat = await requireEditor();
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const supabase = await createClient();
+    const memo = body.kind === "memo";
+    const T = memo ? "product_template" : "note_template";
+    const S = memo ? "product_section" : "note_section";
+    const starter = memo ? STARTER_MEMO_TEMPLATE : STARTER_TEMPLATE;
     let id: string | undefined;
 
     const insertTemplate = async (tName: string, scope: string | null, projectId: string | null) => {
       const { data, error } = await supabase
-        .from("note_template")
-        .insert({ name: tName, scope, project_id: projectId, created_by: seat.user_id })
+        .from(T)
+        .insert({ name: tName, scope, project_id: projectId, created_by: seat.user_id, ...(memo ? { kind: "report" } : {}) })
         .select("id")
         .single();
       if (error) throw error;
       return data.id as string;
     };
     const templateOf = async (sectionId: string) => {
-      const { data } = await supabase.from("note_section").select("template_id,ordinal").eq("id", sectionId).maybeSingle();
+      const { data } = await supabase.from(S).select("template_id,ordinal").eq("id", sectionId).maybeSingle();
       if (!data) throw new ApiError("Unknown section.", 404);
       return data;
     };
 
     switch (body.action) {
       case "starter": {
-        id = await insertTemplate(STARTER_TEMPLATE.name, STARTER_TEMPLATE.scope, null);
-        const { error } = await supabase.from("note_section").insert(
-          STARTER_TEMPLATE.sections.map((s, i) => ({
+        id = await insertTemplate(starter.name, starter.scope, null);
+        const { error } = await supabase.from(S).insert(
+          starter.sections.map((s, i) => ({
             template_id: id,
             ordinal: i + 1,
             name: s.name,
@@ -81,7 +88,7 @@ export async function POST(request: Request) {
         const patch: Record<string, unknown> = {};
         if (body.name !== undefined) patch.name = name(body.name, "template");
         if (body.scope !== undefined) patch.scope = longText(body.scope);
-        const { error } = await supabase.from("note_template").update(patch).eq("id", templateId);
+        const { error } = await supabase.from(T).update(patch).eq("id", templateId);
         if (error) throw error;
         break;
       }
@@ -92,20 +99,23 @@ export async function POST(request: Request) {
         if (body.action === "addToProject") {
           projectId = uuid(body.projectId, "project");
         } else {
-          const { data } = await supabase.from("note_template").select("project_id").eq("id", templateId).maybeSingle();
+          const { data } = await supabase.from(T).select("project_id").eq("id", templateId).maybeSingle();
           if (!data) throw new ApiError("Unknown template.", 404);
           projectId = data.project_id;
         }
-        const { data, error } = await supabase.rpc("copy_note_template", { p_template_id: templateId, p_project_id: projectId });
+        const { data, error } = await supabase.rpc(memo ? "copy_product_template" : "copy_note_template", {
+          p_template_id: templateId,
+          p_project_id: projectId,
+        });
         if (error) throw error;
         id = data as string;
         break;
       }
       case "delete": {
         const templateId = uuid(body.templateId, "template");
-        const { error } = await supabase.from("note_template").delete().eq("id", templateId);
+        const { error } = await supabase.from(T).delete().eq("id", templateId);
         if (error) {
-          if (error.code === "23503") throw new ApiError("Notes use this template, so it can't be deleted.", 409);
+          if (error.code === "23503") throw new ApiError(`${memo ? "A memo uses" : "Notes use"} this template, so it can't be deleted.`, 409);
           throw error;
         }
         break;
@@ -113,17 +123,17 @@ export async function POST(request: Request) {
       case "addSection": {
         const templateId = uuid(body.templateId, "template");
         const { data: last } = await supabase
-          .from("note_section")
+          .from(S)
           .select("ordinal")
           .eq("template_id", templateId)
           .order("ordinal", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const { error } = await supabase.from("note_section").insert({
+        const { error } = await supabase.from(S).insert({
           template_id: templateId,
           ordinal: (last?.ordinal ?? 0) + 1,
           name: name(body.name, "section"),
-          requires: types(body.requires ?? []),
+          requires: types(body.requires ?? [], memo),
           note: longText(body.note),
           created_by: seat.user_id,
         });
@@ -134,9 +144,9 @@ export async function POST(request: Request) {
         const sectionId = uuid(body.sectionId, "section");
         const patch: Record<string, unknown> = {};
         if (body.name !== undefined) patch.name = name(body.name, "section");
-        if (body.requires !== undefined) patch.requires = types(body.requires);
+        if (body.requires !== undefined) patch.requires = types(body.requires, memo);
         if (body.note !== undefined) patch.note = longText(body.note);
-        const { error } = await supabase.from("note_section").update(patch).eq("id", sectionId);
+        const { error } = await supabase.from(S).update(patch).eq("id", sectionId);
         if (error) throw error;
         break;
       }
@@ -145,7 +155,7 @@ export async function POST(request: Request) {
         const me = await templateOf(sectionId);
         const up = body.delta === -1;
         const { data: other } = await supabase
-          .from("note_section")
+          .from(S)
           .select("id,ordinal")
           .eq("template_id", me.template_id)
           [up ? "lt" : "gt"]("ordinal", me.ordinal)
@@ -161,7 +171,7 @@ export async function POST(request: Request) {
             [other.id, me.ordinal],
             [sectionId, other.ordinal],
           ] as const) {
-            const { error } = await supabase.from("note_section").update({ ordinal: ord }).eq("id", sid);
+            const { error } = await supabase.from(S).update({ ordinal: ord }).eq("id", sid);
             if (error) throw error;
           }
         }
@@ -169,9 +179,10 @@ export async function POST(request: Request) {
       }
       case "removeSection": {
         const sectionId = uuid(body.sectionId, "section");
-        const { error } = await supabase.from("note_section").delete().eq("id", sectionId);
+        const { error } = await supabase.from(S).delete().eq("id", sectionId);
         if (error) {
-          if (error.code === "23503") throw new ApiError("Note items sit in this section, so it can't be removed. Move them first.", 409);
+          // The database's own refusal names the section and says why.
+          if (error.code === "P0001" || error.code === "23503") throw new ApiError(error.message, 409);
           throw error;
         }
         break;

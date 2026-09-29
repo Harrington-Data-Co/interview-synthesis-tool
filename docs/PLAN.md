@@ -133,6 +133,20 @@ Cost is not a constraint here: a 40-minute transcript is roughly 10k input token
 - **Ship the findings memo first.** Of the four product shapes it carries the most value and the least bespoke rendering. Export to Markdown and PDF.
 - Deck, current-state architecture, and swimlane follow in Phase 6.
 
+**Decisions (2026-09-29):**
+- **Themes are per project** (the open question below, closed). Cross-project patterns can come later as a client-level view.
+- **Themes cluster codes**, not note items: codes are the evidence, note items are already summaries. Interviews are keyed I1, I2… in the prompt, since code refs repeat across interviews.
+- **Claude's themes count only once confirmed.** They land as proposals; a person confirms each (or edits, merges, splits, deletes it). The memo is written from confirmed themes only. Regenerating replaces unconfirmed proposals and leaves confirmed themes alone.
+- **The memo is template-driven now**, not in Phase 6: product templates follow note templates exactly — a library plus project copies, sections with guidance and what they fill from. A memo section can fill from *Themes* (cite confirmed themes) or from code types (cite those codes).
+- **Memo paragraphs are rows, not a blob**: each cites at least one theme or code of its project, enforced by the database, edited and reverted like note items. A theme or code a memo cites can't be deleted.
+- **PDF is a print-ready page** (Print → Save as PDF); Markdown is a direct download, with citations as footnotes.
+
+**As built:**
+- Migration `20260929c_themes_memo.sql`. Themes: `theme_run`, `theme_rejection`, proposed/confirmed status, and definer functions for create, update, confirm, merge, split, delete and revert. Memo: `product_run`, `product_item` with theme and code citations, `product_item_rejection`, and the same function set as note items plus `set_product_title`.
+- **Claude's memo paragraphs are held to more than people's:** confirmed themes only, themes only in sections that fill from themes, and codes only of the section's types or members of a cited theme. People may cite any theme or code in the project. The app's gate mirrors the rules; the database has the final word.
+- **An unknown citation rejects the whole paragraph** (unlike themes, where unknown codes are trimmed): the wording may rest on it.
+- Coverage for the memo is confirmed themes cited; the left-out ones are the check.
+
 ### Phase 5 — The chain board and corpus views
 Saturation, the code × interview matrix, and coverage-by-label are pure derivations of tables that now hold real data — mostly SQL plus the SVG edge-drawing already written in `measure()` / `edges()` / `chain()`. Cheap at this point, and the most persuasive thing in the product.
 
@@ -172,5 +186,5 @@ components/…                        ← ported view by view from the .dc.html
 *Resolved:* codes attach to an inclusive line range (`line_start`, `line_end`); a single-line code is a range of one.
 
 
-- Whether themes are per-project or can span projects for a client.
+- ~~Whether themes are per-project or can span projects for a client.~~ Per project (2026-09-29).
 - Whether the note template's `requires` is advisory or enforced at generation time.

@@ -43,3 +43,27 @@ export const STARTER_TEMPLATE = {
     },
   ],
 };
+
+/** The memo template offered when the memo library is empty. "Findings"
+ *  takes one or two paragraphs per confirmed theme. */
+export const STARTER_MEMO_TEMPLATE = {
+  name: "Findings memo",
+  scope: "What the interviews found, for the client: the headline findings, the evidence behind each, and what's still open.",
+  sections: [
+    {
+      name: "Summary",
+      requires: ["themes"],
+      note: "Two or three sentences: the most important findings, stated plainly, for a reader who reads nothing else.",
+    },
+    {
+      name: "Findings",
+      requires: ["themes"],
+      note: "One or two paragraphs per confirmed theme, most-supported first: the finding, then what the interviews showed.",
+    },
+    {
+      name: "Open questions",
+      requires: ["Question"],
+      note: "What the interviews couldn't answer, and who might be able to.",
+    },
+  ],
+};

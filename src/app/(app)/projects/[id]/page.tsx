@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { CodeAllButton, GenerateNotesButton } from "@/components/project/BatchButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
 import type { LabelAxis, LabelMap } from "@/components/project/labels";
+import { MemoStage } from "@/components/memo/MemoStage";
 import { SourcesActions } from "@/components/sources/SourcesActions";
+import { ThemesStage } from "@/components/themes/ThemesStage";
 import { loadDirectory } from "@/lib/directory";
 import { loadTranscripts, participantNames, participantOrgIds, SOURCE_LABEL } from "@/lib/library";
 import { canEdit, currentSeat } from "@/lib/seat";
@@ -11,11 +13,25 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** One project: its interviews, who was interviewed and which organizations
- *  they came from. The Study stages (codes, notes, themes) land here in
- *  Phases 2–4. */
-export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+const VIEWS = [
+  ["interviews", "Interviews"],
+  ["themes", "Themes"],
+  ["memo", "Memo"],
+] as const;
+type ViewKey = (typeof VIEWS)[number][0];
+
+/** One project: its interviews (with labels, notes and coding), the themes
+ *  across them, and the findings memo written from those themes. */
+export default async function ProjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string; template?: string }>;
+}) {
   const { id } = await params;
+  const query = await searchParams;
+  const view: ViewKey = VIEWS.some(([k]) => k === query.view) ? (query.view as ViewKey) : "interviews";
   if (!UUID.test(id)) notFound();
   const supabase = await createClient();
   const [directory, seat, { rows, error }, { data: axisRows }, { data: templates }] = await Promise.all([
@@ -117,11 +133,34 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      <ProjectInterviews projectId={id} editor={editor} axes={axes} labels={labels} rows={interviews} />
+      <div className="seg" style={{ alignSelf: "flex-start" }}>
+        {VIEWS.map(([key, text]) => (
+          <Link
+            key={key}
+            href={key === "interviews" ? `/projects/${id}` : `/projects/${id}?view=${key}`}
+            className="seg-opt"
+            aria-current={view === key ? "page" : undefined}
+            style={{ textDecoration: "none" }}
+          >
+            <span
+              style={view === key ? { background: "var(--color-accent-tint)", color: "var(--color-accent-800)", fontWeight: 700 } : undefined}
+            >
+              {text}
+            </span>
+          </Link>
+        ))}
+      </div>
 
-      <p className="meta" style={{ margin: 0 }}>
-        Open an interview to review its codes and notes. Themes across interviews arrive with Phase 4.
-      </p>
+      {view === "interviews" && (
+        <>
+          <ProjectInterviews projectId={id} editor={editor} axes={axes} labels={labels} rows={interviews} />
+          <p className="meta" style={{ margin: 0 }}>
+            Open an interview to review its codes and notes.
+          </p>
+        </>
+      )}
+      {view === "themes" && <ThemesStage projectId={id} editor={editor} />}
+      {view === "memo" && <MemoStage projectId={id} templateId={query.template} editor={editor} />}
     </div>
   );
 }

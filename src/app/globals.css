@@ -189,3 +189,9 @@ select.input { appearance: none; padding-right: 26px; }
 .scroll-y::-webkit-scrollbar { width: 9px; }
 .scroll-y::-webkit-scrollbar-thumb { background: var(--line-4); border-radius: var(--radius-pill); }
 .scroll-y::-webkit-scrollbar-track { background: transparent; }
+
+/* Print: the memo's print page (Print → Save as PDF). */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+}
