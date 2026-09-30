@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { templateAction } from "@/components/templates/TemplatesEditor";
+import { EvidenceDrawer, type DrawerQuote, type DrawerSection } from "@/components/evidence/EvidenceDrawer";
 import { Notice } from "@/components/ui";
 import type { LoadedMemo } from "@/lib/memo/load";
 import { ParagraphEditor, type ParagraphSeed } from "./ParagraphEditor";
@@ -16,7 +17,10 @@ import { memoAction } from "./types";
 export function MemoView({ projectId, editor, memo }: { projectId: string; editor: boolean; memo: LoadedMemo }) {
   const { templates, library, template, product, paragraphs, themes, interviews, codes, rejections, runs } = memo;
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(null);
+  // The paragraph whose evidence is open in the drawer, and optionally the
+  // one theme of it that was clicked.
+  const [open, setOpen] = useState<{ paragraphId: string; themeId?: string } | null>(null);
+  const selected = open?.paragraphId ?? null;
   const [seed, setSeed] = useState<{ title: string; seed: ParagraphSeed } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,9 +38,51 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
   const citedThemes = new Set(paragraphs.flatMap((p) => p.themeIds));
   const leftOut = confirmed.filter((t) => !citedThemes.has(t.id));
   const claudeItems = paragraphs.filter((p) => p.origin === "claude").length;
-  const chosen = paragraphs.find((p) => p.id === selected);
   const lastRun = runs[0];
   const small = { fontSize: 11.5, padding: "2px 8px" } as const;
+
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [open]);
+
+  // Codes in interview order, then by line, as the corpus drawer lists them.
+  const order = new Map(interviews.map((iv, i) => [iv.id, i]));
+  const quotesOf = (ids: string[]): DrawerQuote[] =>
+    ids
+      .map((id) => codeById.get(id))
+      .filter((c): c is NonNullable<typeof c> => !!c)
+      .sort((a, b) => (order.get(a.transcriptId) ?? 0) - (order.get(b.transcriptId) ?? 0) || a.line_start - b.line_start)
+      .map((c) => ({ id: c.id, transcriptId: c.transcriptId, ref: c.ref, type: c.type, label: c.label, verbatim: c.verbatim, start: c.line_start, end: c.line_end }));
+  const themeSection = (tid: string): DrawerSection | null => {
+    const t = themeById.get(tid);
+    if (!t) return null;
+    const n = new Set(t.codeIds.map((c) => codeById.get(c)?.transcriptId)).size;
+    return {
+      key: tid,
+      heading: { ref: t.ref, title: t.title, note: `${t.codeIds.length} codes · ${n} of ${interviews.length} interviews${t.status === "proposed" ? " · not confirmed" : ""}` },
+      quotes: quotesOf(t.codeIds),
+    };
+  };
+  const drawer = (() => {
+    const p = open && paragraphs.find((x) => x.id === open.paragraphId);
+    if (!p || !template) return null;
+    const section = template.sections.find((s) => s.id === p.sectionId);
+    if (open.themeId) {
+      const t = themeById.get(open.themeId);
+      const sec = themeSection(open.themeId);
+      return t && sec ? { kicker: `${t.ref} · cited in ${section?.name ?? "the memo"}`, title: t.title, sections: [sec] } : null;
+    }
+    const sections: DrawerSection[] = [];
+    if (p.codeIds.length) sections.push({ key: "codes", heading: { title: "Codes cited directly" }, quotes: quotesOf(p.codeIds) });
+    for (const tid of p.themeIds) {
+      const sec = themeSection(tid);
+      if (sec) sections.push(sec);
+    }
+    return { kicker: `Evidence · ${section?.name ?? "paragraph"}`, title: p.text, sections };
+  })();
 
   async function act(body: Record<string, unknown>, done?: string) {
     if (!product) return;
@@ -209,7 +255,7 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
                 <h2 style={{ margin: 0, fontSize: 20 }}>{product.title ?? template.name}</h2>
               )}
               <span className="meta" style={{ fontSize: 12 }}>
-                Cites {citedThemes.size} of {confirmed.length} confirmed themes · {interviews.length} interviews
+                Cites {citedThemes.size} of {confirmed.length} confirmed themes · {interviews.length} interviews · click a paragraph or theme for its evidence
               </span>
             </div>
             {template.sections.map((s, si) => {
@@ -237,7 +283,8 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
                   {inSection.map((p, pi) => (
                     <div
                       key={p.id}
-                      onClick={() => setSelected(p.id)}
+                      onClick={() => setOpen(selected === p.id && !open?.themeId ? null : { paragraphId: p.id })}
+                      title="Show the evidence for this paragraph"
                       style={{
                         paddingLeft: 26,
                         paddingTop: 4,
@@ -253,9 +300,24 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
                       <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{p.text}</p>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
                         {p.themeIds.map((tid) => (
-                          <span key={tid} className="tag tag-accent" title={themeById.get(tid)?.title} style={{ fontSize: 10.5 }}>
+                          <button
+                            key={tid}
+                            type="button"
+                            className="tag tag-accent"
+                            title={`${themeById.get(tid)?.title ?? ""} — show this theme's quotes`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpen({ paragraphId: p.id, themeId: tid });
+                            }}
+                            style={{
+                              font: "inherit",
+                              fontSize: 10.5,
+                              cursor: "pointer",
+                              outline: open?.paragraphId === p.id && open.themeId === tid ? "2px solid var(--color-accent-600)" : undefined,
+                            }}
+                          >
                             {themeById.get(tid)?.ref ?? "?"}
-                          </span>
+                          </button>
                         ))}
                         {p.codeIds.map((cid) => (
                           <span key={cid} className="tag tag-neutral" title={codeById.get(cid)?.label} style={{ fontSize: 10.5 }}>
@@ -313,56 +375,6 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
 
           {/* ── evidence, coverage, review ── */}
           <aside style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <div className="card" style={{ gap: "var(--space-2)" }}>
-              <span className="card-kicker">Evidence for the selected paragraph</span>
-              {!chosen ? (
-                <p className="meta" style={{ margin: 0, fontSize: 12.5 }}>
-                  Click a paragraph to see the themes and quotes it rests on.
-                </p>
-              ) : (
-                <>
-                  {chosen.themeIds.map((tid) => {
-                    const t = themeById.get(tid);
-                    if (!t) return null;
-                    const n = new Set(t.codeIds.map((c) => codeById.get(c)?.transcriptId)).size;
-                    return (
-                      <div key={tid} style={{ display: "flex", flexDirection: "column", gap: 2, borderTop: "1px solid var(--line-1)", paddingTop: 6 }}>
-                        <span style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                          <span className="mono" style={{ fontSize: 11.5, fontWeight: 700 }}>
-                            {t.ref}
-                          </span>
-                          <span style={{ fontSize: 12.5, fontWeight: 600 }}>{t.title}</span>
-                        </span>
-                        <span className="meta" style={{ fontSize: 11.5 }}>
-                          {t.codeIds.length} codes · {n} of {interviews.length} interviews
-                          {t.status === "proposed" ? " · not confirmed" : ""}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {chosen.codeIds.map((cid) => {
-                    const c = codeById.get(cid);
-                    if (!c) return null;
-                    const who = interviewById.get(c.transcriptId);
-                    return (
-                      <div key={cid} style={{ display: "flex", flexDirection: "column", gap: 2, borderTop: "1px solid var(--line-1)", paddingTop: 6 }}>
-                        <span style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                          <span className="mono" style={{ fontSize: 11.5, fontWeight: 700 }}>
-                            {c.key}
-                          </span>
-                          <span className="tag tag-neutral">{c.type}</span>
-                          <Link href={`/transcripts/${c.transcriptId}#L${c.line_start}`} className="meta" style={{ fontSize: 11, marginLeft: "auto" }}>
-                            {who?.participant ?? who?.title ?? "Interview"} ↗
-                          </Link>
-                        </span>
-                        <span style={{ fontSize: 12.5, fontStyle: "italic" }}>“{c.verbatim}”</span>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-
             <div className="card" style={{ gap: "var(--space-2)" }}>
               <span className="card-kicker">Coverage</span>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
@@ -463,6 +475,8 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
           </aside>
         </div>
       )}
+
+      {drawer && <EvidenceDrawer kicker={drawer.kicker} title={drawer.title} sections={drawer.sections} interviews={interviewById} onClose={() => setOpen(null)} />}
 
       {seed && product && (
         <ParagraphEditor

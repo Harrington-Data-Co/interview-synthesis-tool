@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { templateAction } from "@/components/templates/TemplatesEditor";
+import { EvidenceDrawer } from "@/components/evidence/EvidenceDrawer";
 import { Notice } from "@/components/ui";
 import { ItemEditor, type ItemSeed } from "./ItemEditor";
 import {
-  addr,
   itemAction,
   type CoverageRow,
   type NoteCodeView,
@@ -67,6 +67,13 @@ export function NoteView({
   const chosen = items.find((i) => i.id === selected);
   const lastRun = runs[0];
   const small = { fontSize: 11.5, padding: "2px 8px" } as const;
+
+  useEffect(() => {
+    if (!selected) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setSelected(null);
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [selected]);
 
   async function act(body: Record<string, unknown>, done?: string) {
     if (!noteId) return;
@@ -240,7 +247,8 @@ export function NoteView({
                   {inSection.map((it, ii) => (
                     <div
                       key={it.id}
-                      onClick={() => setSelected(it.id)}
+                      onClick={() => setSelected(selected === it.id ? null : it.id)}
+                      title="Show the evidence for this item"
                       style={{
                         paddingLeft: 26,
                         paddingTop: 4,
@@ -302,36 +310,9 @@ export function NoteView({
           {/* ── evidence, coverage, review ── */}
           <aside style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <p className="meta" style={{ margin: 0, fontSize: 12.5 }}>
-              The note is a <em>rearrangement</em>, not a rewrite: the template decides the sections; the codes decide what fills them.
+              The note is a <em>rearrangement</em>, not a rewrite: the template decides the sections; the codes decide what fills them. Click
+              an item to see the quotes it rests on.
             </p>
-
-            <div className="card" style={{ gap: "var(--space-2)" }}>
-              <span className="card-kicker">Evidence for the selected item</span>
-              {!chosen ? (
-                <p className="meta" style={{ margin: 0, fontSize: 12.5 }}>
-                  Click an item in the note to see what it rests on.
-                </p>
-              ) : (
-                chosen.codeIds.map((cid) => {
-                  const c = byId.get(cid);
-                  if (!c) return null;
-                  return (
-                    <div key={cid} style={{ display: "flex", flexDirection: "column", gap: 2, borderTop: "1px solid var(--line-1)", paddingTop: 6 }}>
-                      <span style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                        <span className="mono" style={{ fontSize: 11.5, fontWeight: 700 }}>
-                          {c.ref}
-                        </span>
-                        <span className="tag tag-neutral">{c.type}</span>
-                        <Link href={`/transcripts/${transcriptId}#L${c.line_start}`} className="mono meta" style={{ fontSize: 11, marginLeft: "auto" }}>
-                          {addr(c)} ↗
-                        </Link>
-                      </span>
-                      <span style={{ fontSize: 12.5, fontStyle: "italic" }}>“{c.verbatim}”</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
 
             <div className="card" style={{ gap: "var(--space-2)" }}>
               <span className="card-kicker">Coverage</span>
@@ -417,6 +398,24 @@ export function NoteView({
             )}
           </aside>
         </div>
+      )}
+
+      {chosen && (
+        <EvidenceDrawer
+          kicker={`Evidence · ${template.sections.find((x) => x.id === chosen.sectionId)?.name ?? "note item"}`}
+          title={chosen.text}
+          sections={[
+            {
+              key: chosen.id,
+              quotes: chosen.codeIds
+                .map((id) => byId.get(id))
+                .filter((c): c is NoteCodeView => !!c)
+                .sort((a, b) => a.line_start - b.line_start)
+                .map((c) => ({ id: c.id, transcriptId, ref: c.ref, type: c.type, label: c.label, verbatim: c.verbatim, start: c.line_start, end: c.line_end })),
+            },
+          ]}
+          onClose={() => setSelected(null)}
+        />
       )}
 
       {seed && noteId && (
