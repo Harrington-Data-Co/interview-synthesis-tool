@@ -139,6 +139,32 @@ and partners can be let in too. Not yet designed; considered 2026-09-28.
   client may see (their project's raw transcripts, or only deliverables?);
   who sees workspace-wide things (the Unassigned queue, the organization
   list); whether invitations expire.
+
+### Mobile-friendly layout
+Make the tool usable on a phone. Raised 2026-09-29. Most pages already work
+reasonably well; **the chain board and the corpus views are the concern.**
+
+- **Chain board** (`src/components/chain/`): five side-by-side columns with
+  minimum widths (Fit needs about 1,330px before it scrolls; Spread is
+  wider), and edges measured between them. On a phone that's a sideways
+  scroll with little of any column visible. Likely one stage at a time with
+  a stage switcher, the selected chain carried from stage to stage instead
+  of drawn as edges.
+- **Corpus** (`src/components/corpus/`):
+  - The theme × interview matrix is a wide grid with angled group labels;
+    sideways scroll may be acceptable, but the theme name column should stay
+    pinned while the cells scroll.
+  - The memo map and chord diagram are SVGs that scale down with the screen,
+    so their text gets very small; their side lists sit beside them and
+    should stack below instead.
+  - The evidence-mix rows need about 650px across (ref, name, bar, label).
+  - Tooltips are hover-only, and touch has no hover: needs a tap equivalent
+    that doesn't fight with tap-to-select.
+  - Check the selection bar and quotes panel at phone width (the panel is
+    already `min(480px, 100vw)`).
+- The rest of the app mostly works; a pass over the tables on Sources and
+  the project's Interviews tab is worth doing alongside.
+
 ## Suggested order
 
 1. **Items 3, 3a, then 4.** The client → project picker and organizations

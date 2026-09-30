@@ -25,8 +25,9 @@ Updated 2026-09-29, Phase 5 session. Read this first, then `docs/PLAN.md`.
    (`src/app/(app)/study/page.tsx`); the study views now live as project
    tabs. Decide whether to remove it or make it a project picker.
 3. Open items in `docs/BACKLOG.md`, including the invitation model with
-   project roles (why the sign-up hook was deliberately left off) and soft
-   locks.
+   project roles (why the sign-up hook was deliberately left off), soft
+   locks, and a mobile-friendly layout (the chain board and corpus views
+   are the problem areas).
 4. Phase 6: connectors, remaining product shapes, multi-tenancy
    (`docs/PLAN.md`).
 
