@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChainStage } from "@/components/chain/ChainStage";
 import { CorpusStage } from "@/components/corpus/CorpusStage";
+import { FlowStage } from "@/components/flow/FlowStage";
 import { CodeAllButton, GenerateNotesButton } from "@/components/project/BatchButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
 import type { LabelAxis, LabelMap } from "@/components/project/labels";
@@ -19,6 +20,7 @@ const VIEWS = [
   ["interviews", "Interviews"],
   ["themes", "Themes"],
   ["memo", "Memo"],
+  ["swimlanes", "Swimlanes"],
   ["chain", "Chain"],
   ["corpus", "Corpus"],
 ] as const;
@@ -40,6 +42,7 @@ export default async function ProjectPage({
     memo?: string;
     facet?: string;
     proposed?: string;
+    map?: string;
   }>;
 }) {
   const { id } = await params;
@@ -186,6 +189,7 @@ export default async function ProjectPage({
       )}
       {view === "themes" && <ThemesStage projectId={id} editor={editor} />}
       {view === "memo" && <MemoStage projectId={id} templateId={query.template} editor={editor} />}
+      {view === "swimlanes" && <FlowStage projectId={id} mapId={query.map} editor={editor} />}
       {view === "chain" && (
         <ChainStage
           projectId={id}
