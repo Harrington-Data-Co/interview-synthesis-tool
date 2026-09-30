@@ -341,6 +341,11 @@ Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
   whole process: **Interviews → Themes → Memo**, then Chain set apart.
 
 ### R10. Swimlane whitespace
+*Built 2026-09-30 (branch `evening`), on a reading of the complaint Ryan
+should confirm: with real output (an eight-step OCCL visit map), the last
+column sat off-screen with no scroll cue, leaving lanes looking empty.
+Columns now shrink to 140px before the map scrolls, cards are a little
+tighter, and lanes with no steps are slim.*
 Short process maps leave a wide empty area on the right. Size the grid to
 its steps (or spread steps to fill) in `Swimlane.tsx`. Small.
 

@@ -39,6 +39,20 @@ crowded architecture maps, trying Swimlanes/Deck/Architecture signed in,
 the flaky corpus check). Work goes on a branch for Ryan's review; new
 migrations go in `supabase/migrations/` for Ryan to apply.
 
+### How the evening went
+
+- `people` merged into `main` (`a208353`) and pushed.
+- Branch **`evening`** (pushed, not merged): R7 + R3 (`54a78be`), R6
+  (`1de6531`), R9 (`6e5d3c6`), R10 (next commit). Each is noted in
+  `docs/BACKLOG.md`.
+- **Two new migrations for Ryan to apply:**
+  `supabase/migrations/20260930d_client_codes.sql` (R7) and
+  `20260930e_drive_inbox.sql` (R6). Both checked in PGlite.
+- To confirm with Ryan: R10 was built on a reading of "whitespace on the
+  right" (a wide map's last steps off-screen); if he meant something else,
+  ask for a screenshot. R6 doesn't yet suggest a client from the Drive
+  folder.
+
 ## Decisions from 2026-09-30 (don't re-ask)
 
 - **Client short codes are optional**, a through-line key Ryan uses to
