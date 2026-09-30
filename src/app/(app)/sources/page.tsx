@@ -1,19 +1,41 @@
 import Link from "next/link";
+import { GoogleConnection } from "@/components/connectors/GoogleConnection";
 import { AssignProject } from "@/components/sources/AssignProject";
 import { SourcesActions } from "@/components/sources/SourcesActions";
 import { loadDirectory } from "@/lib/directory";
 import { loadTranscripts, participantsOf, SOURCE_LABEL, type TranscriptRow } from "@/lib/library";
+import { googleConfigured } from "@/lib/connectors/google";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 /** The library: an Unassigned queue of transcripts not yet in a project,
  *  then every client with its projects. A transcript lives under its project
  *  once assigned; its page is one click from there. */
-export default async function SourcesPage() {
+export default async function SourcesPage({ searchParams }: { searchParams: Promise<{ google?: string; reason?: string }> }) {
+  const query = await searchParams;
   const seat = await currentSeat();
   const editor = canEdit(seat);
   const supabase = await createClient();
-  const [{ rows, error }, directory] = await Promise.all([loadTranscripts(supabase), loadDirectory(supabase)]);
+  const [{ rows, error }, directory, { data: google, error: googleError }] = await Promise.all([
+    loadTranscripts(supabase),
+    loadDirectory(supabase),
+    supabase.from("connector_account").select("account_email").eq("provider", "google").maybeSingle(),
+  ]);
+  const googleState = !googleConfigured()
+    ? "unconfigured"
+    : googleError
+      ? "needs-migration"
+      : google
+        ? "connected"
+        : "disconnected";
+  const googleNotice =
+    query.google === "connected"
+      ? { tone: "info" as const, text: "Google Drive is connected." }
+      : query.google === "declined"
+        ? { tone: "error" as const, text: "Google Drive wasn't connected: access was declined." }
+        : query.google === "failed"
+          ? { tone: "error" as const, text: query.reason ?? "Connecting Google Drive failed. Try again." }
+          : null;
 
   const unassigned = rows.filter((t) => !t.project_id);
   const byProject = new Map<string, TranscriptRow[]>();
@@ -33,6 +55,8 @@ export default async function SourcesPage() {
           </div>
         )}
       </div>
+
+      <GoogleConnection state={googleState} email={google?.account_email ?? null} editor={editor} notice={googleNotice} />
 
       {error && (
         <div className="panel" style={{ padding: "var(--space-4)" }}>
