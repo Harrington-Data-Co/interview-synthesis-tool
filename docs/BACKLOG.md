@@ -327,6 +327,10 @@ its projects) and **Templates** (Note, Memo and Deck templates directly).
   layout*).
 
 ### R9. Separate process from outputs in a project's tabs
+*Built 2026-09-30 (branch `evening`): `src/components/project/ProjectTabs.tsx`
+groups the tabs as Process (Interviews → Themes → Memo, with arrows),
+Check (Chain) and Outputs (Deck, Swimlanes, Architecture, Corpus); the
+current tab is a raised segment.*
 Process: **Interviews → Themes → Memo → Chain**, shown as steps with arrows.
 Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
 
