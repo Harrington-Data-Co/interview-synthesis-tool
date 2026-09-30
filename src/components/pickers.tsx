@@ -117,7 +117,7 @@ export function ClientProjectPicker({
 
   return (
     <>
-      <Field label="Client" hint="Who the project is for.">
+      <Field label="Client">
         {making === "client" ? (
           form("client")
         ) : (
@@ -602,12 +602,13 @@ export function SpeakersEditor({
               const shared = (counts.get(ofRow(v)) ?? 0) > 1;
               return (
                 <tr key={r.name}>
-                  <td style={{ verticalAlign: "top", maxWidth: 200 }}>
-                    <span className="mono" style={{ fontSize: 12.5 }}>
+                  <td style={{ verticalAlign: "top", width: 210, maxWidth: 210 }}>
+                    <span className="mono" style={{ fontSize: 12.5, fontWeight: 600 }}>
                       {r.name}
                     </span>
                     {r.detail && (
-                      <div className="meta" style={{ fontSize: 11.5, marginTop: 2 }}>
+                      // Their first words, to tell who "Jen :)" is; two lines at most.
+                      <div className="meta" style={{ fontSize: 11.5, marginTop: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                         {r.detail}
                       </div>
                     )}
@@ -632,7 +633,7 @@ export function SpeakersEditor({
                       className="input"
                       value={v.role}
                       onChange={(e) => set({ role: e.target.value as SpeakerRole })}
-                      style={{ fontSize: 12.5 }}
+                      style={{ fontSize: 12.5, minWidth: 128 }}
                       aria-label={`Part in the call for ${r.name}`}
                     >
                       <option value="interviewer">Interviewer</option>

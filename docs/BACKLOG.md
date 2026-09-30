@@ -288,6 +288,14 @@ page; visibility is designed for client access.
   transcripts with no participant speaker).
 
 ### R6. Rework the upload dialog; new Meet transcripts show up by themselves
+*Built 2026-09-30 (branch `evening`) — migration `20260930e_drive_inbox`.
+The review is wider and in numbered steps (Where it goes, Details, Who's
+speaking), with a tighter speakers table, Review/Hide on batch rows, and
+the note beside the buttons. Sources shows new Meet transcripts in Drive by
+themselves (the newest not imported, not uploaded by hand, not set aside):
+tick and "Review and import", or "Not an interview" to set one aside
+(brought back from Browse and search Drive). Not built: suggesting a
+client from the Drive folder.*
 - A design pass on the dialog, best done after R2–R5 change what's in it.
 - New Meet transcripts appear on Sources without clicking *Import from
   Google Meet*: a "Waiting in Drive" list of Docs not yet imported, checked
