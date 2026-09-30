@@ -1,3 +1,4 @@
+import { PeopleHeader } from "@/components/people/PeopleHeader";
 import { PeopleView } from "@/components/people/PeopleView";
 import type { PersonInterview, PersonRow } from "@/components/people/view";
 import { loadDirectory } from "@/lib/directory";
@@ -7,7 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 /** Everyone who speaks in an interview, with their current organization and
  *  title and the interviews they're in: where people are fixed up and
  *  duplicates merged. */
-export default async function PeoplePage() {
+export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ person?: string }> }) {
+  const { person: openPersonId } = await searchParams;
   const seat = await currentSeat();
   const supabase = await createClient();
   const [directory, { data, error }] = await Promise.all([
@@ -15,8 +17,7 @@ export default async function PeoplePage() {
     supabase
       .from("person")
       .select(
-        "id,name,organization_id,title," +
-          "speakers:transcript_speaker(name,role,title,organization_id,transcript:transcript_id(id,title,recorded_on,ingested_at,project_id))",
+        "id,name,organization_id,title," + "speakers:transcript_speaker(name,role,title,organization_id,transcript:transcript_id(id,title,recorded_on,ingested_at,project_id))",
       )
       .order("name"),
   ]);
@@ -65,14 +66,15 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5, 20px)", maxWidth: 1400, width: "100%", margin: "0 auto" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <span className="kicker">People</span>
-        <h2 style={{ fontSize: 20 }}>Who&apos;s in the interviews</h2>
-        <p className="meta" style={{ maxWidth: "80ch" }}>
-          Everyone who speaks in a transcript, interviewers included. Organization and title are their latest, and the next
-          upload pre-fills them; each interview keeps what was true at the time. Merge duplicates here.
-        </p>
-      </div>
+      <PeopleHeader
+        tab="people"
+        blurb={
+          <>
+            Everyone who speaks in a transcript, interviewers included. Organization and title are their latest, and the next upload pre-fills them; each interview keeps what was
+            true at the time. Merge duplicates here.
+          </>
+        }
+      />
       {error ? (
         <div className="panel" style={{ padding: "var(--space-4)" }}>
           <p className="meta" style={{ margin: 0 }}>
@@ -80,7 +82,7 @@ export default async function PeoplePage() {
           </p>
         </div>
       ) : (
-        <PeopleView people={people} organizations={directory.organizations} editor={canEdit(seat)} />
+        <PeopleView people={people} organizations={directory.organizations} editor={canEdit(seat)} initialOpenId={openPersonId} />
       )}
     </div>
   );

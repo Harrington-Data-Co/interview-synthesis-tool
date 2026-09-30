@@ -258,8 +258,14 @@ page; visibility is designed for client access.
   added in place. The People and Interviews tables and the corpus can
   also group and filter by **top organization** (every office of Delaware
   DOE together).
-- **Not built yet: managing organizations** — renaming, moving under a
-  different parent, merging or deleting one. Today they're only created.
+- **Managing organizations** (migration `20260930b_organizations`): an
+  Organizations tab beside People shows the tree with people and
+  interview counts (own, and "in all" with sub-organizations). The drawer
+  renames, moves (under another organization or to the top level) and
+  deletes one nothing uses; ticking two or more merges them, moving their
+  people, speakers and sub-organizations to the one kept. All through
+  definer functions that log to `edit`; direct updates and deletes of
+  organizations are closed.
 - **Later, with project roles:** who may edit people in place (Ryan,
   2026-09-30). Today any editor can.
 - **Follow-up:** a migration dropping `transcript.participant` and

@@ -32,7 +32,18 @@ async function peopleAction(body: Record<string, unknown>): Promise<string | nul
  *  in place; clicking a row opens the person in the drawer; ticking two or
  *  more offers a merge from the selection bar, which clears on a click off
  *  the table or on Escape (after the drawer, if it's open). */
-export function PeopleView({ people, organizations: initialOrgs, editor }: { people: PersonRow[]; organizations: OrgOption[]; editor: boolean }) {
+export function PeopleView({
+  people,
+  organizations: initialOrgs,
+  editor,
+  initialOpenId,
+}: {
+  people: PersonRow[];
+  organizations: OrgOption[];
+  editor: boolean;
+  /** Open this person's drawer on arrival (/people?person=…). */
+  initialOpenId?: string;
+}) {
   const router = useRouter();
   const [organizations, setOrganizations] = useState(initialOrgs);
   const orgPath = useMemo(() => new Map(organizations.map((o) => [o.id, o.path])), [organizations]);
@@ -43,7 +54,7 @@ export function PeopleView({ people, organizations: initialOrgs, editor }: { peo
   const [columnMenu, setColumnMenu] = useState<{ sections: Column<PersonRow>[]; anchor: DOMRect } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [keepId, setKeepId] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null);
   const [saving, setSaving] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "info" | "error"; text: string } | null>(null);

@@ -22,11 +22,12 @@ Updated 2026-09-30, after Phase 6 merged. Read this first, then
 
 ## Likely next steps
 
-1. **The person model** (backlog R2 + R4 + R5) is built on branch `people`,
-   not committed or merged. Ryan applies
+1. **The person model** (backlog R2 + R4 + R5) and **organization
+   management** are built on branch `people`, not merged. Ryan applies
    `supabase/migrations/20260930a_people.sql` (preview its backfill first),
-   tries uploads, Edit record and the People page, then commit and merge.
-   Design notes are in `docs/BACKLOG.md` under "The person model".
+   then `20260930b_organizations.sql`; tries uploads, Edit record, and the
+   People and Organizations pages; then merge. Design notes are in
+   `docs/BACKLOG.md` under "The person model".
 2. Then the backlog's *Suggested order*: optional client short codes and
    "new client/project" in the upload dialog, the upload dialog redesign,
    meaningful URLs with the new top navigation, and the quick wins.
