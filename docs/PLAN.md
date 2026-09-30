@@ -153,7 +153,9 @@ Saturation, the code × interview matrix, and coverage-by-label are pure derivat
 *Decided 2026-09-29:* a code belongs to one transcript, so the thing that recurs across interviews is the **theme**. The matrix is theme × interview (cell = that interview's codes in the theme), with a foot row of codes in no theme; saturation counts new themes per interview in recording order. Confirmed themes by default, with a toggle to include proposals. The counting lives in `corpus_matrix()`; grouping, saturation and coverage are pure functions in `src/lib/corpus/`. The chain board is per interview and ends in memo paragraphs (themes → paragraph, and codes → paragraph for direct citations); theme edges come from codes, not from the note.
 
 ### Phase 6 — Deferred
-Meet / Zoom / Otter connectors (the `source` column and connector table exist from Phase 1, so this is an insert path, not a migration), remaining product shapes, `.pptx` export, multi-tenant client access.
+Connectors and the remaining product shapes (deck, current-state architecture, swimlane), with `.pptx` export. *Rescoped 2026-09-29:* multi-tenant client access moved to the backlog, to be designed with invitation-only access and project roles. Connectors follow where Ryan's transcripts actually come from: Google Meet (as Google Docs in Drive) first and best; Zoom and Teams stay file uploads, not integrations.
+
+*Decided 2026-09-29:* connectors are **Google Meet only** (transcripts read from Google Drive, where Meet saves them as Google Docs); Wispr Flow stays paste-in, Zoom and Teams stay file uploads, and the Otter connector is dropped. The deck is built in the app (slides citing themes and codes, like the memo) with a `.pptx` download. Build order: **swimlane**, then deck, then current-state architecture, then the Meet connector.
 
 ## Files to create (representative)
 

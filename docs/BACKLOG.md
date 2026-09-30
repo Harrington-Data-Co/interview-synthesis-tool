@@ -121,9 +121,11 @@ project.
 
 ## Under consideration
 
-### Invitation-only access, with project roles
+### Invitation-only access, project roles, and client access
 Only invited people can use the tool, whatever their email domain, so clients
 and partners can be let in too. Not yet designed; considered 2026-09-28.
+Multi-tenant client access (clients seeing their own projects) moved here
+from Phase 6 on 2026-09-29, to be designed alongside this.
 
 - **Accounts by invitation only**: turn off public sign-ups in Supabase and
   invite from the app (server-side, via Supabase's invite API). This replaces
