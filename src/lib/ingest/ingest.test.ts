@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readCommitFields } from "./fields";
-import { buildPreview } from "./preview";
+import { buildPreview, isGenericSpeaker } from "./preview";
 import { ApiError } from "@/lib/api";
 import { MAX_UPLOAD_BYTES, readSource, sha256Hex, storagePath } from "./source";
 import type { ParsedTranscript } from "@/lib/parsers";
@@ -88,13 +88,45 @@ describe("buildPreview", () => {
       pasted: false,
       uploaderName: "Someone Else",
       duplicateOf: null,
-      known: { "Pat :)": { displayName: "Patricia Koh", organizationId: "org-1", role: "interviewer" } },
+      known: { "Pat :)": { personId: "p-pat", displayName: "Patricia Koh", organizationId: "org-1", title: "Analyst", role: "interviewer" } },
+      people: [{ id: "p-pat", name: "Patricia Koh", organizationId: "org-2", title: "Director" }],
     });
+    // The person this export name was last, with their current organization and title.
     expect(p.speakers.find((s) => s.name === "Pat :)")).toMatchObject({
       role: "interviewer",
-      displayName: "Patricia Koh",
-      organizationId: "org-1",
+      personId: "p-pat",
+      newPerson: null,
+      organizationId: "org-2",
+      title: "Director",
     });
+  });
+
+  it("matches known people by name, and names new ones", () => {
+    const p = buildPreview({
+      parsed: { ...parsed, speakers: [...parsed.speakers, "Unknown"] },
+      fileName: "Ryan & Pat (Elizabeth (Betty) Timm) - 2026_09_10 14_15 EDT - Notes by Gemini.docx",
+      sha256: "0".repeat(64),
+      pasted: false,
+      uploaderName: "Ryan Harrington",
+      duplicateOf: null,
+      people: [
+        { id: "p-ryan", name: "ryan harrington", organizationId: "hdc", title: null },
+        { id: "p-sam1", name: "Pat :)", organizationId: null, title: null },
+        { id: "p-sam2", name: "Pat :)", organizationId: null, title: null },
+      ],
+    });
+    const by = Object.fromEntries(p.speakers.map((s) => [s.name, s]));
+    expect(by["Ryan Harrington"]).toMatchObject({ personId: "p-ryan", organizationId: "hdc" });
+    // A participant whose first name matches the file gets the file's fuller name.
+    expect(by["Elizabeth Timm"]).toMatchObject({ personId: null, newPerson: "Elizabeth (Betty) Timm" });
+    // Two people share the name: no guess, a new person to be sorted out.
+    expect(by["Pat :)"]).toMatchObject({ personId: null, newPerson: "Pat :)" });
+    expect(by["Unknown"]).toMatchObject({ personId: null, newPerson: null });
+  });
+
+  it("knows exports' placeholder names", () => {
+    expect(["Unknown", "Speaker 2", "speaker", "Guest 1", "3", "??"].every(isGenericSpeaker)).toBe(true);
+    expect(["Dana", "Jen :)", "Speaker Pelosi"].some(isGenericSpeaker)).toBe(false);
   });
 
   it("guesses Wispr Flow for pasted text", () => {
@@ -117,20 +149,21 @@ describe("readCommitFields", () => {
     const f = readCommitFields(
       form({
         ...base,
-        participant: " Cy Park ",
         recordedOn: "2026-09-10",
         source: "meet",
         speakers: JSON.stringify([
-          { name: "Cy Park", role: "participant", displayName: " Cyrus Park ", organizationId: "1b4e28ba-2fa1-11d2-883f-0016d3cca427" },
-          { name: "Ana", role: "boss", displayName: "", organizationId: "not-a-uuid" },
+          { name: "Cy Park", role: "participant", newPerson: " Cyrus Park ", title: " Director ", organizationId: "1b4e28ba-2fa1-11d2-883f-0016d3cca427" },
+          { name: "Ana", role: "boss", personId: "0e4e28ba-2fa1-11d2-883f-0016d3cca427", newPerson: "ignored", organizationId: "not-a-uuid" },
+          { name: "Bo", role: "other", personId: "not-a-uuid", newPerson: "" },
           { role: "interviewer" },
         ]),
       }),
     );
-    expect(f).toMatchObject({ participant: "Cy Park", recordedOn: "2026-09-10", source: "meet", projectId: null });
+    expect(f).toMatchObject({ recordedOn: "2026-09-10", source: "meet", projectId: null });
     expect(f.speakers).toEqual([
-      { name: "Cy Park", role: "participant", display_name: "Cyrus Park", organization_id: "1b4e28ba-2fa1-11d2-883f-0016d3cca427" },
-      { name: "Ana", role: "other", display_name: null, organization_id: null },
+      { name: "Cy Park", role: "participant", person_id: null, new_person: "Cyrus Park", organization_id: "1b4e28ba-2fa1-11d2-883f-0016d3cca427", title: "Director" },
+      { name: "Ana", role: "other", person_id: "0e4e28ba-2fa1-11d2-883f-0016d3cca427", new_person: null, organization_id: null, title: null },
+      { name: "Bo", role: "other", person_id: null, new_person: null, organization_id: null, title: null },
     ]);
   });
 

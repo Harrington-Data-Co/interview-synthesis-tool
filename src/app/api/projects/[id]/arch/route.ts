@@ -49,11 +49,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     if (replaced && !body.replace) {
       throw new ApiError(`Redrawing replaces ${replaced} map${replaced === 1 ? "" : "s"} nobody has edited. Maps you've edited are kept.`, 409);
     }
-    const [{ data: people }, { data: themes }] = await Promise.all([
-      supabase.from("transcript").select("id,participant_role").in("id", loaded.interviews.map((i) => i.id)),
+    const [{ data: themes }] = await Promise.all([
       supabase.from("theme").select("ref,title").eq("project_id", id).eq("status", "confirmed").order("ordinal"),
     ]);
-    const roleOf = new Map((people ?? []).map((p) => [p.id, p.participant_role as string | null]));
 
     const { data: run, error: startError } = await supabase.rpc("start_arch_run", { p_project_id: id, p_model: MODEL, p_effort: EFFORT, p_prompt_version: ARCH_PROMPT_VERSION });
     if (startError) {
@@ -62,7 +60,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     }
     runId = run as string;
     const { proposals, usage } = await drawArch(
-      { project: loaded.project.name, client: loaded.project.client, interviews: loaded.interviews.map((i) => ({ key: i.key, role: roleOf.get(i.id) ?? null, organization: i.organization })) },
+      { project: loaded.project.name, client: loaded.project.client, interviews: loaded.interviews.map((i) => ({ key: i.key, role: i.role, organization: i.organization })) },
       themes ?? [],
       codes,
     );

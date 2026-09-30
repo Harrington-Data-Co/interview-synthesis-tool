@@ -4,19 +4,22 @@ import { ApiError } from "@/lib/api";
 export type CommitFields = {
   expectedSha256: string;
   title: string;
-  participant: string | null;
-  participantRole: string | null;
   recordedOn: string | null;
   source: SourceKind;
   projectId: string | null;
   speakers: SpeakerChoice[];
 };
 
+/** One speaker as ingest_transcript() takes it: who they are (person_id, or
+ *  new_person to create one by name, or neither), their part in the call,
+ *  and their organization and title at the time. */
 export type SpeakerChoice = {
   name: string;
   role: SpeakerRole;
-  display_name: string | null;
+  person_id: string | null;
+  new_person: string | null;
   organization_id: string | null;
+  title: string | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,17 +67,23 @@ export function readCommitFields(form: FormData): CommitFields {
       const role = typeof s.role === "string" && (SPEAKER_ROLES as readonly string[]).includes(s.role)
         ? (s.role as SpeakerRole)
         : "other";
-      const displayName = typeof s.displayName === "string" ? s.displayName.trim().slice(0, 200) : "";
+      const str = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 200) : "") || null;
+      const personId = typeof s.personId === "string" && UUID.test(s.personId) ? s.personId : null;
       const org = typeof s.organizationId === "string" && UUID.test(s.organizationId) ? s.organizationId : null;
-      speakers.push({ name: s.name, role, display_name: displayName || null, organization_id: org });
+      speakers.push({
+        name: s.name,
+        role,
+        person_id: personId,
+        new_person: personId ? null : str(s.newPerson),
+        organization_id: org,
+        title: str(s.title),
+      });
     }
   }
 
   return {
     expectedSha256,
     title,
-    participant: text(form, "participant", 200),
-    participantRole: text(form, "participantRole", 200),
     recordedOn,
     source: source as SourceKind,
     projectId,

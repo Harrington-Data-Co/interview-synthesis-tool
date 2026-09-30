@@ -7,6 +7,10 @@ export type EvidenceInterview = {
   title: string;
   participant: string | null;
   organization: string | null;
+  /** The same organization, by id (for grouping by kind). */
+  organizationId: string | null;
+  /** The participants' titles at the time ("Program officer, Controller"). */
+  role: string | null;
   codeCount: number;
 };
 
@@ -32,7 +36,7 @@ export async function loadProjectEvidence(
   const [{ data: ts }, { data: orgs }] = await Promise.all([
     supabase
       .from("transcript")
-      .select("id,title,participant,recorded_on,speakers:transcript_speaker(name,display_name,role,organization_id)")
+      .select("id,title,participant,recorded_on,speakers:transcript_speaker(name,display_name,role,organization_id,title)")
       .eq("project_id", projectId)
       .order("recorded_on", { ascending: true, nullsFirst: false })
       .order("title"),
@@ -63,7 +67,8 @@ export async function loadProjectEvidence(
   const coded = (ts ?? []).filter((t) => codes.some((c) => c.transcriptId === t.id));
   const interviews: EvidenceInterview[] = coded.map((t, i) => {
     const participants = (t.speakers ?? []).filter((s: { role: string }) => s.role === "participant");
-    const org = participants.map((s: { organization_id: string | null }) => s.organization_id && orgPath.get(s.organization_id)).find(Boolean);
+    const orgId: string | null = participants.map((s: { organization_id: string | null }) => s.organization_id).find((id: string | null) => id && orgPath.has(id)) ?? null;
+    const org = orgId ? orgPath.get(orgId) : null;
     return {
       id: t.id,
       key: `I${i + 1}`,
@@ -72,6 +77,8 @@ export async function loadProjectEvidence(
         participants.map((s: { name: string; display_name: string | null }) => s.display_name ?? s.name).join(", ") ||
         t.participant,
       organization: org || null,
+      organizationId: orgId,
+      role: [...new Set(participants.map((s: { title: string | null }) => s.title).filter(Boolean))].join(", ") || null,
       codeCount: codes.filter((c) => c.transcriptId === t.id).length,
     };
   });

@@ -2,7 +2,7 @@ import { ApiError, errorResponse, requireEditor } from "@/lib/api";
 import { claudeErrorResponse } from "@/lib/claude/respond";
 import { withPaths } from "@/lib/directory";
 import { gate } from "@/lib/coding/gate";
-import { EFFORT, MODEL, PROMPT_VERSION, type CodingLine } from "@/lib/coding/prompt";
+import { EFFORT, MODEL, PROMPT_VERSION, type CodingLine, type InterviewPerson } from "@/lib/coding/prompt";
 import { codeTranscript, CodingError, type Usage } from "@/lib/coding/run";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,7 +29,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
     const { data: t } = await supabase
       .from("transcript")
-      .select("id,title,participant,participant_role")
+      .select("id,title")
       .eq("id", id)
       .maybeSingle();
     if (!t) throw new ApiError("Unknown transcript.", 404);
@@ -56,7 +56,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       if (!data || data.length < PAGE) break;
     }
     const [{ data: speakers }, { data: orgs }] = await Promise.all([
-      supabase.from("transcript_speaker").select("name,role,display_name,organization_id").eq("transcript_id", id),
+      supabase.from("transcript_speaker").select("name,role,display_name,organization_id,title,person_id").eq("transcript_id", id),
       supabase.from("organization").select("id,name,parent_id"),
     ]);
     const bySpeaker = new Map((speakers ?? []).map((s) => [s.name, s]));
@@ -69,13 +69,23 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       displayName: bySpeaker.get(l.speaker)?.display_name ?? null,
     }));
     const orgPath = new Map(withPaths(orgs ?? []).map((o) => [o.id, o.path]));
-    const participantOrgs = [
-      ...new Set(
+    // Everyone who speaks, once per person: participants first.
+    const order = { participant: 0, interviewer: 1, other: 2 } as const;
+    const people: InterviewPerson[] = [
+      ...new Map(
         (speakers ?? [])
-          .filter((s) => s.role === "participant" && s.organization_id)
-          .map((s) => orgPath.get(s.organization_id as string))
-          .filter((p): p is string => !!p),
-      ),
+          .slice()
+          .sort((a, b) => order[a.role as CodingLine["role"]] - order[b.role as CodingLine["role"]])
+          .map((s) => [
+            s.person_id ?? s.name,
+            {
+              name: s.display_name ?? s.name,
+              role: s.role as CodingLine["role"],
+              title: s.title,
+              organization: s.organization_id ? (orgPath.get(s.organization_id) ?? null) : null,
+            },
+          ]),
+      ).values(),
     ];
 
     const { data: run, error: startError } = await supabase.rpc("start_coding_run", {
@@ -91,7 +101,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     runId = run as string;
 
     const { proposals, usage } = await codeTranscript(
-      { title: t.title, participant: t.participant, participantRole: t.participant_role, organizations: participantOrgs },
+      { title: t.title, people },
       lines,
     );
     const { accepted, rejected } = gate(proposals, lines);

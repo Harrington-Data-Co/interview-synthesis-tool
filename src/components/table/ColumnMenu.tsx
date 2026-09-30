@@ -1,12 +1,12 @@
 "use client";
 
 import { MenuHeading, MenuItem, Popover } from "@/components/ui";
-import { countsFor, type Column, type InterviewRow, type View } from "./view";
+import { countsFor, type Column, type View } from "./view";
 
 /** A column header's menu: sort either way, group by it, and filter its
- *  values. The Labels header passes one column per label axis, each as its
- *  own section. */
-export function ColumnMenu({
+ *  values. A header can control several columns (the Interviews table's
+ *  Labels header passes one per label axis), each as its own section. */
+export function ColumnMenu<R>({
   columns,
   sections,
   rows,
@@ -14,16 +14,19 @@ export function ColumnMenu({
   anchor,
   onChange,
   onClose,
+  emptyText = "Nothing to sort or filter yet.",
 }: {
   /** Every column, for filter counts. */
-  columns: Column[];
+  columns: Column<R>[];
   /** The column(s) this header controls. */
-  sections: Column[];
-  rows: InterviewRow[];
+  sections: Column<R>[];
+  rows: R[];
   view: View;
   anchor: DOMRect;
   onChange: (v: View) => void;
   onClose: () => void;
+  /** Shown when a header controls no columns yet. */
+  emptyText?: string;
 }) {
   const setFilter = (key: string, keep: string[] | null) => {
     const filters = { ...view.filters };
@@ -36,7 +39,7 @@ export function ColumnMenu({
     <Popover anchor={anchor} onClose={onClose} label={sections.map((s) => s.name).join(", ")} width={260}>
       {!sections.length && (
         <p className="meta" style={{ margin: 0, padding: "4px 12px", fontSize: 12 }}>
-          No labels yet. Tick some interviews and choose Label as….
+          {emptyText}
         </p>
       )}
       {sections.map((col, i) => {

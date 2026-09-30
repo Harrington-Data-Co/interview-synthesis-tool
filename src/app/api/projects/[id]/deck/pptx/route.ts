@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { ApiError, errorResponse } from "@/lib/api";
 import { loadDeck } from "@/lib/deck/load";
 import { deckPptx } from "@/lib/deck/pptx";
+import { quoteRoles } from "@/lib/people/roles";
 import { currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,8 +19,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
     const supabase = await createClient();
     const deck = await loadDeck(supabase, id, templateId && UUID.test(templateId) ? templateId : undefined);
     if (!deck?.product || !deck.slides.length) throw new ApiError("There's no deck to download yet.", 404);
-    const { data: people } = await supabase.from("transcript").select("id,participant_role").eq("project_id", id);
-    const buf = await deckPptx(deck, new Map((people ?? []).map((p) => [p.id, p.participant_role as string | null])));
+    const buf = await deckPptx(deck, await quoteRoles(supabase, id));
     const name = `${deck.project.name} - ${deck.template?.name ?? "Deck"}`.replace(/[^\w .()-]+/g, "").slice(0, 120);
     return new Response(new Uint8Array(buf), {
       headers: {

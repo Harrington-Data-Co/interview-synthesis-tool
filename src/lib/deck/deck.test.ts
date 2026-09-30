@@ -82,7 +82,7 @@ describe("the .pptx", () => {
   });
 
   it("has a title slide and one slide each, quotes verbatim, never a name", async () => {
-    const buf = await deckPptx(deck, new Map([["t1", "Program officer"], ["t2", null]]));
+    const buf = await deckPptx(deck, new Map([["c1", "Program officer"], ["c2", null]]));
     const zip = await JSZip.loadAsync(buf);
     const slideFiles = Object.keys(zip.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f));
     expect(slideFiles).toHaveLength(4);

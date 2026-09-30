@@ -1,6 +1,6 @@
 /** Bump when the instructions or the output shape change, so every run
  *  records which prompt produced its codes. */
-export const PROMPT_VERSION = "coding-v1";
+export const PROMPT_VERSION = "coding-v2";
 
 export { MODEL, EFFORT } from "@/lib/claude/call";
 
@@ -15,12 +15,22 @@ export type CodingLine = {
   displayName: string | null;
 };
 
+/** Someone in the interview, as the header lists them. */
+export type InterviewPerson = {
+  name: string;
+  role: CodingLine["role"];
+  title: string | null;
+  organization: string | null;
+};
+
 export type TranscriptContext = {
   title: string;
-  participant: string | null;
-  participantRole: string | null;
-  organizations: string[];
+  /** Everyone who speaks, once per person (two export names for one person
+   *  are listed once). */
+  people: InterviewPerson[];
 };
+
+const PART: Record<CodingLine["role"], string> = { interviewer: "interviewer", participant: "participant", other: "other" };
 
 /** Stable across every run (and so cacheable): what coding means here. */
 export const SYSTEM = `You are coding a discovery interview for Harrington Data Co, a data consultancy. The interviews study how people's work actually happens today — the steps, the systems, what goes wrong — so a team can design better data, reporting and processes. Your codes are the evidence everything later is built on: interview notes, themes across interviews, and a findings memo a client will read. Each one must be something the participant actually said.
@@ -53,8 +63,8 @@ export function transcriptMessage(
 ): string {
   const header = [
     `Interview: ${ctx.title}`,
-    ctx.participant && `Participant: ${ctx.participant}${ctx.participantRole ? ` — ${ctx.participantRole}` : ""}`,
-    ctx.organizations.length > 0 && `Organization: ${ctx.organizations.join(", ")}`,
+    ctx.people.length > 0 &&
+      `People:\n${ctx.people.map((p) => `- ${p.name} (${PART[p.role]})${[p.title, p.organization].filter(Boolean).map((x) => `, ${x}`).join("")}`).join("\n")}`,
   ].filter(Boolean);
 
   const scope = part

@@ -9,6 +9,7 @@ import type { Seat } from "@/lib/seat";
 const VIEWS = [
   // Projects and transcripts are reached through the library, so they light it up.
   { key: "sources", label: "Sources", href: "/sources", also: ["/projects", "/transcripts"] },
+  { key: "people", label: "People", href: "/people", also: ["/organizations"] },
   { key: "templates", label: "Templates", href: "/templates", also: [] },
   { key: "study", label: "Study", href: "/study", also: [] },
 ] as const;

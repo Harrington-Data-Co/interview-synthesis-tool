@@ -1,35 +1,96 @@
 # Handoff — where things stand
 
-Updated 2026-09-30, after Phase 6 merged. Read this first, then
-`docs/PLAN.md` and `docs/BACKLOG.md`.
+Updated 2026-09-30 evening, before the people work merged and Ryan's
+one-hour away session. Read this first, then `docs/PLAN.md` and
+`docs/BACKLOG.md`.
 
 ## State
 
-- `main` holds Phases 0–6 (Phase 6 squash-merged 2026-09-30). All
-  migrations through `20260929h_architecture` are applied.
+- `main` holds Phases 0–6 plus the evidence drawer; the **people and
+  organizations** work (branch `people`) is being squash-merged into `main`
+  as the first step of the evening session (see "Evening plan").
+- **Migrations: everything is applied**, through
+  `20260930a_people`, `20260930b_organizations` and
+  `20260930c_organization_detail` (checked against Supabase 2026-09-30).
 - **Google Drive is connected** (Ryan's harringtondata.com account,
   read-only scope). Meet transcripts live across his drives, mostly the
   shared drive, not in "Meet Recordings".
-- Since the overnight session: one evidence drawer
-  (`src/components/evidence/EvidenceDrawer.tsx`) now serves the corpus,
-  memo (paragraph or theme tag), interview notes (item) and themes page
-  (theme card; the source ledger and inline quote list are gone). Action
-  buttons say "Draw"/"Write", not "… with Claude".
-- Prompts: `coding-v1`, `note-v2`, `themes-v1`, `memo-v1`, `flow-v1`,
-  `deck-v1`, `arch-v1`. Model `claude-opus-5-5`, effort `high`.
-- Deliberate gaps: architecture edits have no undo; big architecture maps
-  are crowded (see backlog).
+- Prompts: `coding-v2` (lists the people in the call), `note-v2`,
+  `themes-v1`, `memo-v1`, `flow-v1`, `deck-v1`, `arch-v1`. Model
+  `claude-opus-5-5`, effort `high`. coding-v2 hasn't been run against
+  Claude yet.
 
-## Likely next steps
+## Evening plan (2026-09-30, Ryan away ~1 hour)
 
-1. **The person model** (backlog R2 + R4 + R5), decided 2026-09-30 to come
-   before everything else. A proposal went to Ryan on 2026-09-30; build once
-   he's answered its open questions.
-2. Then the backlog's *Suggested order*: optional client short codes and
-   "new client/project" in the upload dialog, the upload dialog redesign,
-   meaningful URLs with the new top navigation, and the quick wins.
-3. Try Swimlanes, Deck and Architecture on a real project; none has been
-   clicked through signed in yet.
+Ryan asked for, in order:
+
+1. Write this handoff. (Done.)
+2. Merge `people` into `main`.
+3. **R7 + R3**: optional client short codes; "New client…" / "New
+   project…" from the upload dialog's dropdowns.
+4. **R6**: rework the upload dialog; new Meet transcripts show up on
+   Sources by themselves.
+5. Quick wins **R9** (project tabs: process vs outputs, Chain set apart as
+   a check) and **R10** (swimlane whitespace).
+
+Explicitly **not** tonight: R1 + R8 (URLs, top navigation), R11 (favicon),
+and the loose ends (dropping the participant columns, architecture undo,
+crowded architecture maps, trying Swimlanes/Deck/Architecture signed in,
+the flaky corpus check). Work goes on a branch for Ryan's review; new
+migrations go in `supabase/migrations/` for Ryan to apply.
+
+## Decisions from 2026-09-30 (don't re-ask)
+
+- **Client short codes are optional**, a through-line key Ryan uses to
+  match clients across all his tools. Never required; **URLs use the
+  client's name**, not the code.
+- **Chain is not a process step.** Project tabs read Interviews → Themes →
+  Memo, with Chain set apart as a check on the whole process; outputs
+  (Deck, Swimlanes, Architecture, Corpus) are separate.
+- **Interviewers are people too.** A speaker's part in the call is
+  **Part** (interviewer / participant / other); their job is **Title**.
+- **Design for client access**: who may see a person goes through
+  `can_see_person()`; permissions for inline editing come with project
+  roles.
+- **Organizations nest arbitrarily deep** (State of Delaware › Department
+  › Division › Unit), each with an optional **kind** and **short name**.
+- Tables share one engine (`src/components/table/`); drawers share one
+  frame (`src/components/Drawer.tsx`); selections share one pill
+  (`src/components/SelectionBar.tsx`). Keep new tables, drawers and
+  selections on these.
+
+## How people and organizations are put together
+
+- **person** (name; current organization and title) behind each
+  `transcript_speaker` (`person_id`, plus `title` as of that call; the
+  speaker's organization is also as of that call). `display_name` follows
+  the person's name by trigger, so older views show people without
+  changes. Current organization/title follow the person's latest interview
+  whenever a speaker of theirs changes.
+- **Who's speaking** (`SpeakersEditor` in `src/components/pickers.tsx`):
+  As written, Person (typed; matches known people, else a new person),
+  Part, Organization, Title. The upload preview pre-fills from the last
+  time an export name was seen or a known person's name. Two export names
+  for one person: pick the same person on both rows.
+- **People page** (`/people`, `src/components/people/`): shared table
+  engine with columns Name (+ possible-duplicate section), Organization
+  (+ top organization + one section per kind), Title, Part, Clients,
+  Interviews, Latest; inline organization and title; row click opens the
+  drawer (Information, Projects); merge from the selection pill.
+  `/people?person=<id>` opens a drawer.
+- **Organizations page** (`/organizations`): the tree (Show levels,
+  search by name, short name, kind), drawer to rename, set short name and
+  kind, move ("Sits under"), add a sub-organization, delete when unused;
+  merge from the pill; New organization; Add from outline (indented lines,
+  `(SHORT)` and `[Kind]`, reuses what exists).
+- **Grouping by kind**: `kindColumns()` (`src/components/table/`) adds a
+  column per kind in use to the People and Interviews tables; the corpus
+  gets a facet per kind.
+- **Quote attribution** is by the title of whoever spoke the quoted line
+  (`code_speakers()`); swimlanes and architecture use participants'
+  titles per interview.
+- Database rules: `supabase/migrations/20260930a–c`; all writes to people
+  and organizations go through definer functions that log to `edit`.
 
 ## How Phase 6 is put together
 

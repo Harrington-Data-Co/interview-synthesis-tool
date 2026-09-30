@@ -187,6 +187,8 @@ build them in is under *Suggested order* below.
   ids).
 
 ### R2. Remove participant name and role from the upload dialog
+*Built 2026-09-30 on branch `people` with R4 and R5 — migration
+`20260930a_people`. See "The person model" below.*
 They duplicate *Who's speaking*, and don't fit interviews that aren't 1:1.
 
 - **Not just a form change.** `transcript.participant` and
@@ -206,6 +208,7 @@ They duplicate *Who's speaking*, and don't fit interviews that aren't 1:1.
 place. Small. A new client can take a short code (R7), optionally.
 
 ### R4. Remember each person's organization and role
+*Built 2026-09-30 (branch `people`).*
 When a known person turns up in *Who's speaking*, fill in their most recent
 organization and role; both stay editable per transcript.
 
@@ -218,12 +221,68 @@ organization and role; both stay editable per transcript.
   person changing jobs doesn't rewrite old interviews.
 
 ### R5. Merge speakers
+*Built 2026-09-30 (branch `people`).*
 Someone joins by phone, then by computer, and appears as two speakers.
 
 - `display_name` already lets two export names show as one name, but they
   stay two speakers. With R4's `person`, merging is pointing both speakers
   at the same person; views that count or list speakers count people.
 - The lines stay immutable: each keeps the name the export wrote.
+
+### The person model (R2 + R4 + R5), as built
+Designed with Ryan 2026-09-30: interviewers are people too; the speaker's
+part in the call is **Part** and their job is **Title**; there's a People
+page; visibility is designed for client access.
+
+- `person` (name; current organization and title) behind each
+  `transcript_speaker` (`person_id`, plus `title` as of that call).
+  `display_name` follows the person's name (triggers), so every existing
+  view shows people without changes.
+- Current organization and title follow the person's most recent
+  interview whenever a speaker of theirs changes; editable on People.
+- Two export names for one person in a call: pick the same person on both
+  rows. Duplicate people across interviews: merge on the People page.
+- Quotes are attributed by the title of whoever spoke the quoted line
+  (`code_speakers()`); swimlanes and architecture get participants' titles
+  per interview; coding prompt `coding-v2` lists the people in the call.
+- Client access: `can_see_person()` is the one place that decides who sees
+  a person (today `has_seat()`).
+- The People page uses the shared table engine (`src/components/table/`:
+  sort, group and filter from the headers, remembered per browser), the
+  same as a project's Interviews table. Organization and title are edited
+  in place; clicking a row opens the person in the drawer; ticking two or
+  more brings up the selection bar (as on the Corpus page) to merge them.
+- **Organization levels** (2026-09-30): the drawer shows a person's
+  organization level by level (Organization, then Sub-organization rows),
+  with "Show all" to filter the table by any level and sub-organizations
+  added in place. The People and Interviews tables and the corpus can
+  also group and filter by **top organization** (every office of Delaware
+  DOE together).
+- **Managing organizations** (migration `20260930b_organizations`): an
+  Organizations tab beside People shows the tree with people and
+  interview counts (own, and "in all" with sub-organizations). The drawer
+  renames, moves (under another organization or to the top level) and
+  deletes one nothing uses; ticking two or more merges them, moving their
+  people, speakers and sub-organizations to the one kept. All through
+  definer functions that log to `edit`; direct updates and deletes of
+  organizations are closed.
+- **Deep organizations** (migration `20260930c_organization_detail`), for
+  structures like the State of Delaware (agencies, departments,
+  divisions, units): each organization has an optional **kind** (what the
+  layer is) and **short name** (DOE, OEL). Organizations can be created
+  directly (New organization; Add a sub-organization in the drawer) or a
+  whole hierarchy at once from an indented outline, which reuses what
+  exists. Every kind in use becomes a grouping in the People and
+  Interviews tables and the corpus (a row counts under its nearest
+  organization of that kind). The organization picker is searchable by
+  any part of the path, short names and kind. The tree has "Show levels"
+  and the drawer's path links to each parent.
+- **Later, with project roles:** who may edit people in place (Ryan,
+  2026-09-30). Today any editor can.
+- **Follow-up:** a migration dropping `transcript.participant` and
+  `participant_role` once the backfill is confirmed on real data. Only
+  fallbacks still read `participant` (library and evidence lists, for
+  transcripts with no participant speaker).
 
 ### R6. Rework the upload dialog; new Meet transcripts show up by themselves
 - A design pass on the dialog, best done after R2–R5 change what's in it.

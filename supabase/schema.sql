@@ -69,6 +69,10 @@ create table organization (
   id         uuid primary key default gen_random_uuid(),
   parent_id  uuid references organization (id) on delete restrict,
   name       text not null check (btrim(name) <> ''),
+  -- The acronym people say (DOE, OEL), and what this layer is (Agency,
+  -- Department, Division, Unit…). Migration 20260930c.
+  short_name text check (short_name is null or btrim(short_name) <> ''),
+  kind       text check (kind is null or btrim(kind) <> ''),
   created_by uuid not null references seat (user_id),
   created_at timestamptz not null default now(),
   check (parent_id is distinct from id)
@@ -101,6 +105,23 @@ $$;
 create trigger organization_no_cycle
   before insert or update of parent_id on organization
   for each row execute function refuse_organization_cycle();
+
+-- ─── people ────────────────────────────────────────────────────────────
+-- Who a speaker is, across interviews (migration 20260930a). A transcript's
+-- speakers point at people; a person keeps their current organization and
+-- title, which the next upload pre-fills.
+
+create table person (
+  id              uuid primary key default gen_random_uuid(),
+  name            text not null check (btrim(name) <> ''),
+  -- Current: from their most recent interview, or as last edited.
+  organization_id uuid references organization (id) on delete set null,
+  title           text check (title is null or btrim(title) <> ''),
+  created_by      uuid not null references seat (user_id),
+  created_at      timestamptz not null default now()
+);
+create index on person (lower(name));
+create index on person (organization_id);
 
 -- ─── stage 00: sources ───────────────────────────────────────────────────
 
@@ -179,11 +200,16 @@ create table transcript_speaker (
   -- always keep the export's own name.
   display_name    text check (display_name is null or btrim(display_name) <> ''),
   organization_id uuid references organization (id) on delete set null,
+  -- Who this is (null: never identified, e.g. "Unknown"). The display name
+  -- follows the person's name. Title is their job at the time of this call.
+  person_id     uuid references person (id) on delete restrict,
+  title         text check (title is null or btrim(title) <> ''),
   set_by        uuid not null references seat (user_id),
   set_at        timestamptz not null default now(),
   primary key (transcript_id, name)
 );
 create index on transcript_speaker (organization_id);
+create index on transcript_speaker (person_id);
 create index on transcript_speaker (lower(coalesce(display_name, name)));
 
 -- ─── grouping: label axes ────────────────────────────────────────────────
@@ -758,6 +784,7 @@ declare
   v_uid   uuid := auth.uid();
   v_id    uuid;
   v_count integer;
+  s       jsonb;
 begin
   if not can_edit() then
     raise exception 'Only editors and owners can ingest transcripts.' using errcode = '42501';
@@ -803,19 +830,27 @@ begin
          then make_interval(secs => (l ->> 'ts_end')::float8) end
   from jsonb_array_elements(p_lines) as l;
 
-  -- What the uploader chose for each speaker, then defaults for any they
-  -- didn't. A display name equal to the name as written is stored as null.
-  insert into transcript_speaker (transcript_id, name, role, display_name, organization_id, set_by)
-  select
-    v_id,
-    s ->> 'name',
-    coalesce((s ->> 'role')::speaker_role, 'other'),
-    nullif(nullif(btrim(s ->> 'display_name'), ''), s ->> 'name'),
-    nullif(s ->> 'organization_id', '')::uuid,
-    v_uid
-  from jsonb_array_elements(p_speakers) as s
-  where s ->> 'name' in (select speaker from transcript_line where transcript_id = v_id)
-  on conflict do nothing;
+  -- What the uploader chose for each speaker (who they are, their part in
+  -- the call, organization and title), then defaults for any they didn't.
+  -- A display name equal to the name as written is stored as null; with a
+  -- person, the display name follows the person's name.
+  for s in
+    select value from jsonb_array_elements(p_speakers)
+    where value ->> 'name' in (select speaker from transcript_line where transcript_id = v_id)
+  loop
+    insert into transcript_speaker (transcript_id, name, role, display_name, organization_id, title, person_id, set_by)
+    values (
+      v_id,
+      s ->> 'name',
+      coalesce(nullif(s ->> 'role', '')::speaker_role, 'other'),
+      nullif(nullif(btrim(s ->> 'display_name'), ''), s ->> 'name'),
+      nullif(s ->> 'organization_id', '')::uuid,
+      nullif(btrim(s ->> 'title'), ''),
+      person_for_speaker(s, v_uid),
+      v_uid
+    )
+    on conflict do nothing;
+  end loop;
 
   insert into transcript_speaker (transcript_id, name, set_by)
   select distinct v_id, speaker, v_uid from transcript_line where transcript_id = v_id
@@ -831,16 +866,18 @@ $$;
 revoke execute on function ingest_transcript from public, anon;
 grant execute on function ingest_transcript to authenticated;
 
+
 -- ─── editing a source record ─────────────────────────────────────────────
 -- Everything about a transcript except its lines can change: title,
 -- participant, participant role, recorded date, project, and each speaker's
--- display name, role and organization. One call, all or nothing, and every
+-- person, display name, part in the call (role), organization and title. One call, all or nothing, and every
 -- change becomes an edit row carrying who made it and what it was before.
 --
 -- p_record: any of {title, participant, participant_role, recorded_on,
 --   project_id}; a key that is present is applied (null clears it), a key that
 --   is absent is left alone.
--- p_speakers: [{name, display_name?, role?, organization_id?}], same rule.
+-- p_speakers: [{name, person_id? | new_person?, display_name?, role?,
+--   organization_id?, title?}], same rule. person_id null unlinks.
 
 create or replace function update_source_record(
   p_transcript_id uuid,
@@ -861,6 +898,7 @@ declare
   v_dn      text;
   v_role    speaker_role;
   v_org     uuid;
+  v_person  uuid;
 begin
   if not can_edit() then
     raise exception 'Only editors and owners can edit a source record.' using errcode = '42501';
@@ -931,6 +969,35 @@ begin
     for update;
     if not found then
       raise exception 'Unknown speaker: %', s ->> 'name';
+    end if;
+
+    if s ? 'person_id' or s ? 'new_person' then
+      v_person := person_for_speaker(s, v_uid);
+      if v_person is distinct from sp.person_id then
+        update transcript_speaker set person_id = v_person, set_by = v_uid, set_at = now()
+        where transcript_id = p_transcript_id and name = sp.name;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('transcript_speaker', p_transcript_id,
+                format('%s person: %s → %s', quote_literal(sp.name),
+                       coalesce((select quote_literal(name) from person where id = sp.person_id), 'none'),
+                       coalesce((select quote_literal(name) from person where id = v_person), 'none')),
+                v_uid);
+        v_changes := v_changes + 1;
+      end if;
+    end if;
+
+    if s ? 'title' then
+      v_dn := nullif(btrim(s ->> 'title'), '');
+      if v_dn is distinct from sp.title then
+        update transcript_speaker set title = v_dn, set_by = v_uid, set_at = now()
+        where transcript_id = p_transcript_id and name = sp.name;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('transcript_speaker', p_transcript_id,
+                format('%s title: %s → %s', quote_literal(sp.name),
+                       coalesce(quote_literal(sp.title), 'empty'), coalesce(quote_literal(v_dn), 'empty')),
+                v_uid);
+        v_changes := v_changes + 1;
+      end if;
     end if;
 
     if s ? 'display_name' then
@@ -5081,3 +5148,537 @@ end;
 $$;
 
 commit;
+
+-- ═══ People (migration 20260930a) ═══════════════════════════════════════
+-- A person behind each speaker. See the migration's header for the design,
+-- including the seam for client access (can_see_person).
+
+-- Who may see a person. Today: anyone with a seat, like everything else.
+-- With client access: a person is visible to someone who can see a project
+-- they speak in. Policies and functions ask this, never has_seat() directly.
+create or replace function can_see_person(p_person_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select has_seat();
+$$;
+
+alter table person enable row level security;
+create policy person_read on person for select to authenticated using (can_see_person(id));
+-- No insert, update or delete policies: the functions below are the only way in.
+grant select on person to authenticated;
+
+create trigger person_keep_created_by
+  before update on person for each row execute function keep_attribution('created_by');
+
+-- Names no one should be merged by: exports' placeholders.
+create or replace function is_generic_speaker(p_name text)
+returns boolean language sql immutable as $$
+  select btrim(p_name) ~* '^(unknown( speaker)?|speaker ?[0-9]*|participant ?[0-9]*|interviewer ?[0-9]*|guest ?[0-9]*|user ?[0-9]*|[0-9]+|\?+)$';
+$$;
+
+-- ─── keeping speakers and people in step ─────────────────────────────────
+
+-- A linked speaker shows its person's name.
+create or replace function speaker_follows_person()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.person_id is not null then
+    new.display_name := nullif((select name from person where id = new.person_id), new.name);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger speaker_follows_person
+  before insert or update of person_id, display_name on transcript_speaker
+  for each row execute function speaker_follows_person();
+
+create or replace function person_renamed()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  update transcript_speaker set display_name = nullif(new.name, name) where person_id = new.id;
+  return null;
+end;
+$$;
+
+create trigger person_renamed
+  after update of name on person
+  for each row execute function person_renamed();
+
+-- A person's current organization and title: from their most recent
+-- interview that has one (by date recorded, then uploaded), else unchanged.
+create or replace function refresh_person_current(p_person_id uuid)
+returns void language sql security definer set search_path = public as $$
+  update person p set
+    organization_id = coalesce((
+      select s.organization_id from transcript_speaker s join transcript t on t.id = s.transcript_id
+      where s.person_id = p.id and s.organization_id is not null
+      order by t.recorded_on desc nulls last, t.ingested_at desc limit 1), p.organization_id),
+    title = coalesce((
+      select s.title from transcript_speaker s join transcript t on t.id = s.transcript_id
+      where s.person_id = p.id and s.title is not null
+      order by t.recorded_on desc nulls last, t.ingested_at desc limit 1), p.title)
+  where p.id = p_person_id;
+$$;
+
+create or replace function speaker_refreshes_person()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.person_id is not null then
+    perform refresh_person_current(new.person_id);
+  end if;
+  if tg_op = 'UPDATE' and old.person_id is not null and old.person_id is distinct from new.person_id then
+    perform refresh_person_current(old.person_id);
+  end if;
+  return null;
+end;
+$$;
+
+create trigger speaker_refreshes_person
+  after insert or update of person_id, organization_id, title on transcript_speaker
+  for each row execute function speaker_refreshes_person();
+
+-- The person a speaker entry names: an existing person_id, or a new person
+-- by name (created with the entry's organization and title). Two entries in
+-- one call naming the same new person ("Dana" on the phone, then on a
+-- laptop) get the same one. Neither key: null.
+create or replace function person_for_speaker(s jsonb, p_uid uuid)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_id   uuid := nullif(s ->> 'person_id', '')::uuid;
+  v_name text := nullif(btrim(s ->> 'new_person'), '');
+begin
+  if v_id is not null then
+    if not exists (select 1 from person where id = v_id) then
+      raise exception 'Unknown person.';
+    end if;
+    return v_id;
+  end if;
+  if v_name is null then
+    return null;
+  end if;
+  -- now() is the transaction's start, so this finds people made in this call.
+  select id into v_id from person
+  where lower(name) = lower(v_name) and created_by = p_uid and created_at = now();
+  if v_id is null then
+    insert into person (name, organization_id, title, created_by)
+    values (v_name, nullif(s ->> 'organization_id', '')::uuid, nullif(btrim(s ->> 'title'), ''), p_uid)
+    returning id into v_id;
+  end if;
+  return v_id;
+end;
+$$;
+revoke execute on function person_for_speaker from public, anon, authenticated;
+
+-- ─── people: create, edit, merge, delete ─────────────────────────────────
+
+create or replace function create_person(p_name text, p_organization_id uuid default null, p_title text default null)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_id uuid;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can add people.' using errcode = '42501';
+  end if;
+  if nullif(btrim(p_name), '') is null then
+    raise exception 'A person needs a name.';
+  end if;
+  insert into person (name, organization_id, title, created_by)
+  values (btrim(p_name), p_organization_id, nullif(btrim(p_title), ''), auth.uid())
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+-- p_changes: any of {name, organization_id, title}; present keys apply.
+create or replace function update_person(p_person_id uuid, p_changes jsonb)
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_old     person%rowtype;
+  v_changes integer := 0;
+  v_text    text;
+  v_org     uuid;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can edit people.' using errcode = '42501';
+  end if;
+  select * into v_old from person where id = p_person_id for update;
+  if not found then
+    raise exception 'Unknown person.' using errcode = 'P0002';
+  end if;
+
+  if p_changes ? 'name' then
+    v_text := nullif(btrim(p_changes ->> 'name'), '');
+    if v_text is null then
+      raise exception 'A person needs a name.';
+    end if;
+    if v_text is distinct from v_old.name then
+      update person set name = v_text where id = p_person_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('person', p_person_id, format('name: %s → %s', quote_literal(v_old.name), quote_literal(v_text)), v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end if;
+
+  if p_changes ? 'title' then
+    v_text := nullif(btrim(p_changes ->> 'title'), '');
+    if v_text is distinct from v_old.title then
+      update person set title = v_text where id = p_person_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('person', p_person_id,
+              format('title: %s → %s', coalesce(quote_literal(v_old.title), 'empty'), coalesce(quote_literal(v_text), 'empty')), v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end if;
+
+  if p_changes ? 'organization_id' then
+    v_org := nullif(p_changes ->> 'organization_id', '')::uuid;
+    if v_org is distinct from v_old.organization_id then
+      update person set organization_id = v_org where id = p_person_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('person', p_person_id,
+              format('organization: %s → %s',
+                     coalesce((select quote_literal(name) from organization where id = v_old.organization_id), 'none'),
+                     coalesce((select quote_literal(name) from organization where id = v_org), 'none')), v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end if;
+
+  return v_changes;
+end;
+$$;
+
+-- Fold duplicates into one person: their speakers move over, and the kept
+-- person takes any organization or title it lacks. Returns speakers moved.
+create or replace function merge_people(p_keep_id uuid, p_merge_ids uuid[])
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  v_uid   uuid := auth.uid();
+  v_keep  person%rowtype;
+  v_other person%rowtype;
+  v_moved integer := 0;
+  v_n     integer;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can merge people.' using errcode = '42501';
+  end if;
+  select * into v_keep from person where id = p_keep_id for update;
+  if not found then
+    raise exception 'Unknown person.' using errcode = 'P0002';
+  end if;
+  if p_keep_id = any (p_merge_ids) then
+    raise exception 'A person can''t be merged into themselves.';
+  end if;
+
+  for v_other in select * from person where id = any (p_merge_ids) for update loop
+    update transcript_speaker set person_id = p_keep_id, set_by = v_uid, set_at = now()
+    where person_id = v_other.id;
+    get diagnostics v_n = row_count;
+    v_moved := v_moved + v_n;
+    update person set
+      organization_id = coalesce(organization_id, v_other.organization_id),
+      title = coalesce(title, v_other.title)
+    where id = p_keep_id;
+    insert into edit (object_type, object_id, text, edited_by)
+    values ('person', p_keep_id,
+            format('merged in %s (%s speaker entr%s)', quote_literal(v_other.name), v_n, case when v_n = 1 then 'y' else 'ies' end), v_uid);
+    delete from person where id = v_other.id;
+  end loop;
+
+  if (select count(*) from person where id = any (p_merge_ids)) > 0 then
+    raise exception 'Some of those people couldn''t be merged.';
+  end if;
+  perform refresh_person_current(p_keep_id);
+  return v_moved;
+end;
+$$;
+
+-- Only someone who speaks in no interview; otherwise merge them instead.
+create or replace function delete_person(p_person_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_n integer;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can delete people.' using errcode = '42501';
+  end if;
+  select count(distinct transcript_id) into v_n from transcript_speaker where person_id = p_person_id;
+  if v_n > 0 then
+    raise exception 'They speak in % interview%. Unlink them there, or merge them into someone else.', v_n, case when v_n = 1 then '' else 's' end;
+  end if;
+  delete from person where id = p_person_id;
+end;
+$$;
+
+revoke execute on function create_person, update_person, merge_people, delete_person from public, anon;
+grant execute on function create_person, update_person, merge_people, delete_person to authenticated;
+
+-- Who spoke each code (the speaker of its first line), for attributing
+-- quotes by title. Runs as the caller, so it sees what they may see.
+create or replace function code_speakers(p_project_id uuid)
+returns table (code_id uuid, speaker text, person_id uuid, title text, role speaker_role)
+language sql stable set search_path = public as $$
+  select c.id, l.speaker, s.person_id, s.title, s.role
+  from code c
+  join transcript t on t.id = c.transcript_id and t.project_id = p_project_id
+  join transcript_line l on l.transcript_id = c.transcript_id and l.n = c.line_start
+  join transcript_speaker s on s.transcript_id = c.transcript_id and s.name = l.speaker
+  where c.merged_into_id is null;
+$$;
+revoke execute on function code_speakers from public, anon;
+grant execute on function code_speakers to authenticated;
+
+-- ═══ Managing organizations (migration 20260930b) ═══════════════════════
+-- Rename, move, merge and delete through definer functions that check the
+-- rules and log to edit. Direct updates and deletes are closed: a plain
+-- delete would blank the organization of every speaker and person at it.
+
+drop policy if exists organization_update on organization;
+drop policy if exists organization_delete on organization;
+
+create or replace function org_path(p_id uuid)
+returns text language sql stable security definer set search_path = public as $$
+  with recursive up (id, parent_id, name, depth) as (
+    select id, parent_id, name, 0 from organization where id = p_id
+    union all
+    select o.id, o.parent_id, o.name, up.depth + 1 from organization o join up on o.id = up.parent_id where up.depth < 50
+  )
+  select string_agg(name, ' › ' order by depth desc) from up;
+$$;
+
+-- p_changes: any of {name, parent_id, short_name, kind}; present keys apply
+-- ('' or null parent_id: top level; '' or null short_name / kind: clear).
+create or replace function update_organization(p_org_id uuid, p_changes jsonb)
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_old     organization%rowtype;
+  v_name    text;
+  v_parent  uuid;
+  v_text    text;
+  v_key     text;
+  v_changes integer := 0;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can change organizations.' using errcode = '42501';
+  end if;
+  select * into v_old from organization where id = p_org_id for update;
+  if not found then
+    raise exception 'Unknown organization.' using errcode = 'P0002';
+  end if;
+
+  begin
+    if p_changes ? 'name' then
+      v_name := nullif(btrim(p_changes ->> 'name'), '');
+      if v_name is null then
+        raise exception 'An organization needs a name.';
+      end if;
+      if v_name is distinct from v_old.name then
+        update organization set name = v_name where id = p_org_id;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('organization', p_org_id, format('name: %s → %s', quote_literal(v_old.name), quote_literal(v_name)), v_uid);
+        v_changes := v_changes + 1;
+      end if;
+    end if;
+
+    if p_changes ? 'parent_id' then
+      v_parent := nullif(p_changes ->> 'parent_id', '')::uuid;
+      if v_parent is not null and not exists (select 1 from organization where id = v_parent) then
+        raise exception 'Unknown parent organization.';
+      end if;
+      if v_parent is distinct from v_old.parent_id then
+        update organization set parent_id = v_parent where id = p_org_id;
+        insert into edit (object_type, object_id, text, edited_by)
+        values ('organization', p_org_id,
+                format('moved: %s → %s',
+                       coalesce('under ' || quote_literal(org_path(v_old.parent_id)), 'top level'),
+                       coalesce('under ' || quote_literal(org_path(v_parent)), 'top level')), v_uid);
+        v_changes := v_changes + 1;
+      end if;
+    end if;
+  exception when unique_violation then
+    raise exception 'There''s already an organization named % there.', coalesce(v_name, v_old.name);
+  end;
+
+  foreach v_key in array array['short_name', 'kind'] loop
+    continue when not p_changes ? v_key;
+    v_text := nullif(btrim(p_changes ->> v_key), '');
+    if v_text is distinct from (to_jsonb(v_old) ->> v_key) then
+      execute format('update organization set %I = $1 where id = $2', v_key) using v_text, p_org_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('organization', p_org_id,
+              format('%s: %s → %s', replace(v_key, '_', ' '),
+                     coalesce(quote_literal(to_jsonb(v_old) ->> v_key), 'empty'), coalesce(quote_literal(v_text), 'empty')), v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end loop;
+
+  return v_changes;
+end;
+$$;
+
+-- Fold duplicates into one organization. Returns how many speakers and
+-- people moved.
+create or replace function merge_organizations(p_keep_id uuid, p_merge_ids uuid[])
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  v_uid   uuid := auth.uid();
+  v_keep  organization%rowtype;
+  v_other organization%rowtype;
+  v_clash text;
+  v_n     integer;
+  v_p     integer;
+  v_moved integer := 0;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can merge organizations.' using errcode = '42501';
+  end if;
+  select * into v_keep from organization where id = p_keep_id for update;
+  if not found then
+    raise exception 'Unknown organization.' using errcode = 'P0002';
+  end if;
+  if p_keep_id = any (p_merge_ids) then
+    raise exception 'An organization can''t be merged into itself.';
+  end if;
+
+  for v_other in select * from organization where id = any (p_merge_ids) for update loop
+    -- Keeping a sub-organization of the one merged in would put it under itself.
+    if exists (
+      with recursive up (id, parent_id, depth) as (
+        select id, parent_id, 0 from organization where id = p_keep_id
+        union all
+        select o.id, o.parent_id, up.depth + 1 from organization o join up on o.id = up.parent_id where up.depth < 50
+      )
+      select 1 from up where id = v_other.id
+    ) then
+      raise exception '% sits under %; merge the other way round, or move it out first.', v_keep.name, v_other.name;
+    end if;
+    select c.name into v_clash from organization c
+    where c.parent_id = v_other.id
+      and exists (select 1 from organization k where k.parent_id = p_keep_id and lower(k.name) = lower(c.name))
+    limit 1;
+    if v_clash is not null then
+      raise exception 'Both have a sub-organization named %. Merge those two first.', v_clash;
+    end if;
+
+    update transcript_speaker set organization_id = p_keep_id, set_by = v_uid, set_at = now() where organization_id = v_other.id;
+    get diagnostics v_n = row_count;
+    update person set organization_id = p_keep_id where organization_id = v_other.id;
+    get diagnostics v_p = row_count;
+    update organization set parent_id = p_keep_id where parent_id = v_other.id;
+    v_moved := v_moved + v_n + v_p;
+
+    insert into edit (object_type, object_id, text, edited_by)
+    values ('organization', p_keep_id,
+            format('merged in %s (%s speaker entr%s, %s %s)', quote_literal(org_path(v_other.id)),
+                   v_n, case when v_n = 1 then 'y' else 'ies' end, v_p, case when v_p = 1 then 'person' else 'people' end), v_uid);
+    delete from organization where id = v_other.id;
+  end loop;
+
+  if exists (select 1 from organization where id = any (p_merge_ids)) then
+    raise exception 'Some of those organizations couldn''t be merged.';
+  end if;
+  return v_moved;
+end;
+$$;
+
+create or replace function delete_organization(p_org_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_name text;
+  v_subs integer;
+  v_used integer;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can delete organizations.' using errcode = '42501';
+  end if;
+  select name into v_name from organization where id = p_org_id;
+  if v_name is null then
+    raise exception 'Unknown organization.' using errcode = 'P0002';
+  end if;
+  select count(*) into v_subs from organization where parent_id = p_org_id;
+  if v_subs > 0 then
+    raise exception '% has % sub-organization%. Move or delete those first.', v_name, v_subs, case when v_subs = 1 then '' else 's' end;
+  end if;
+  select (select count(*) from transcript_speaker where organization_id = p_org_id)
+       + (select count(*) from person where organization_id = p_org_id) into v_used;
+  if v_used > 0 then
+    raise exception '% is in use by people or speakers. Merge it into another organization instead.', v_name;
+  end if;
+  delete from organization where id = p_org_id;
+end;
+$$;
+
+revoke execute on function update_organization, merge_organizations, delete_organization from public, anon;
+grant execute on function update_organization, merge_organizations, delete_organization to authenticated;
+
+-- ═══ Organization detail (migration 20260930c) ══════════════════════════
+-- Whole hierarchies at once; see update_organization above for short
+-- names and kinds.
+
+-- One level of a tree: each node under p_parent_id, then its children
+-- under it. Returns {created, reused}.
+create or replace function org_tree_level(p_parent_id uuid, p_nodes jsonb, p_uid uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  n         jsonb;
+  v_name    text;
+  v_short   text;
+  v_kind    text;
+  v_id      uuid;
+  v_created integer := 0;
+  v_reused  integer := 0;
+  v_sub     jsonb;
+begin
+  if p_nodes is null or jsonb_typeof(p_nodes) <> 'array' then
+    return jsonb_build_object('created', 0, 'reused', 0);
+  end if;
+  for n in select value from jsonb_array_elements(p_nodes) loop
+    v_name := nullif(btrim(n ->> 'name'), '');
+    if v_name is null then
+      raise exception 'Every organization needs a name.';
+    end if;
+    v_short := nullif(btrim(n ->> 'short_name'), '');
+    v_kind := nullif(btrim(n ->> 'kind'), '');
+
+    select id into v_id from organization
+    where parent_id is not distinct from p_parent_id and lower(name) = lower(v_name);
+    if v_id is null then
+      insert into organization (name, parent_id, short_name, kind, created_by)
+      values (v_name, p_parent_id, v_short, v_kind, p_uid)
+      returning id into v_id;
+      v_created := v_created + 1;
+    else
+      update organization set short_name = coalesce(short_name, v_short), kind = coalesce(kind, v_kind) where id = v_id;
+      v_reused := v_reused + 1;
+    end if;
+
+    v_sub := org_tree_level(v_id, n -> 'children', p_uid);
+    v_created := v_created + (v_sub ->> 'created')::integer;
+    v_reused := v_reused + (v_sub ->> 'reused')::integer;
+  end loop;
+  return jsonb_build_object('created', v_created, 'reused', v_reused);
+end;
+$$;
+revoke execute on function org_tree_level from public, anon, authenticated;
+
+create or replace function create_organization_tree(p_parent_id uuid, p_nodes jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_result jsonb;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can add organizations.' using errcode = '42501';
+  end if;
+  if p_parent_id is not null and not exists (select 1 from organization where id = p_parent_id) then
+    raise exception 'Unknown parent organization.';
+  end if;
+  v_result := org_tree_level(p_parent_id, p_nodes, auth.uid());
+  if (v_result ->> 'created')::integer > 0 then
+    insert into activity (actor, verb, object)
+    values (auth.uid(), 'added organizations',
+            format('%s under %s', v_result ->> 'created', coalesce(org_path(p_parent_id), 'the top level')));
+  end if;
+  return v_result;
+end;
+$$;
+revoke execute on function create_organization_tree from public, anon;
+grant execute on function create_organization_tree to authenticated;

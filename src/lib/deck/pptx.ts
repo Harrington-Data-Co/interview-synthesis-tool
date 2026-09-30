@@ -15,6 +15,7 @@ const FONT = "Arial";
 /** The deck as an editable PowerPoint file (16:9): a title slide, then each
  *  slide in section order, with the quote in the participant's exact words
  *  and the evidence in the footer and speaker notes. */
+/** roleOf: code id → the title of whoever said it (see quoteRoles). */
 export async function deckPptx(deck: LoadedDeck, roleOf: Map<string, string | null>): Promise<Buffer> {
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE"; // 13.33 × 7.5 in
@@ -51,7 +52,7 @@ export async function deckPptx(deck: LoadedDeck, roleOf: Map<string, string | nu
       slide.addText(s.title, { x: 0.6, y: 0.8, w: W - 1.2, h: 0.9, fontFace: FONT, fontSize: 20, bold: true, color: NAVY, fit: "shrink" });
       slide.addShape(pptx.ShapeType.rect, { x: 0.6, y: 1.9, w: 0.08, h: 3.6, fill: { color: GREEN }, line: { color: GREEN } });
       slide.addText(`“${quote.verbatim}”`, { x: 0.95, y: 1.9, w: W - 2, h: 3.6, fontFace: FONT, fontSize: 26, italic: true, color: TEXT, valign: "middle", fit: "shrink" });
-      slide.addText(attribution(roleOf.get(quote.transcriptId)), { x: 0.95, y: 5.6, w: W - 2, h: 0.4, fontFace: FONT, fontSize: 14, color: MUTED });
+      slide.addText(attribution(roleOf.get(quote.id)), { x: 0.95, y: 5.6, w: W - 2, h: 0.4, fontFace: FONT, fontSize: 14, color: MUTED });
     } else {
       slide.addText(s.title, { x: 0.6, y: 0.8, w: W - 1.2, h: 1.1, fontFace: FONT, fontSize: 28, bold: true, color: NAVY, valign: "top", fit: "shrink" });
       const textW = quote ? 7.2 : W - 1.2;
@@ -66,7 +67,7 @@ export async function deckPptx(deck: LoadedDeck, roleOf: Map<string, string | nu
         slide.addText(
           [
             { text: `“${quote.verbatim}”`, options: { italic: true, fontSize: 16, color: TEXT, breakLine: true } },
-            { text: attribution(roleOf.get(quote.transcriptId)), options: { fontSize: 12, color: MUTED } },
+            { text: attribution(roleOf.get(quote.id)), options: { fontSize: 12, color: MUTED } },
           ],
           { x: 8.45, y: 2.3, w: W - 9.3, h: 3.5, fontFace: FONT, valign: "middle", fit: "shrink" },
         );

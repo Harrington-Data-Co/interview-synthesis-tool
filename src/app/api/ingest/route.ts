@@ -53,8 +53,6 @@ export async function POST(request: Request) {
         ts_end: l.tsEnd,
       })),
       p_speakers: fields.speakers,
-      p_participant: fields.participant,
-      p_participant_role: fields.participantRole,
       p_duration_mins:
         parsed.durationSecs === null ? null : Math.max(1, Math.round(parsed.durationSecs / 60)),
       p_recorded_on: fields.recordedOn,

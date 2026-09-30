@@ -13,18 +13,34 @@ export type SpeakerPreview = {
   /** The start of their first turn, so the uploader can tell who "Jen :)" is. */
   firstWords: string;
   role: SpeakerRole;
-  /** From the last transcript this speaker appeared in, if any. */
-  displayName: string | null;
+  /** Who they are: someone known, or a new person to create by name. At
+   *  most one is set; neither means not identified ("Unknown"). */
+  personId: string | null;
+  newPerson: string | null;
+  /** The person's current organization and title, else what this export
+   *  name last had. */
   organizationId: string | null;
+  title: string | null;
 };
 
 /** What was last recorded for a speaker name, so people seen before (Ryan,
  *  "Jen :)" → Jennifer Koester) come pre-filled. */
 export type KnownSpeaker = {
+  personId: string | null;
   displayName: string | null;
   organizationId: string | null;
+  title: string | null;
   role: SpeakerRole;
 };
+
+/** A known person, as the preview matches names against them. */
+export type KnownPerson = { id: string; name: string; organizationId: string | null; title: string | null };
+
+/** Exports' placeholder names, never matched to or made into a person.
+ *  Mirrors is_generic_speaker() in the database. */
+export function isGenericSpeaker(name: string): boolean {
+  return /^(unknown( speaker)?|speaker ?[0-9]*|participant ?[0-9]*|interviewer ?[0-9]*|guest ?[0-9]*|user ?[0-9]*|[0-9]+|\?+)$/i.test(name.trim());
+}
 
 export type IngestPreview = {
   fileName: string;
@@ -67,9 +83,38 @@ export function buildPreview(args: {
   uploaderName: string;
   duplicateOf: { id: string; title: string } | null;
   known?: Record<string, KnownSpeaker>;
+  people?: KnownPerson[];
 }): IngestPreview {
-  const { parsed, fileName, sha256, pasted, uploaderName, duplicateOf, known = {} } = args;
+  const { parsed, fileName, sha256, pasted, uploaderName, duplicateOf, known = {}, people = [] } = args;
+  const byName = new Map<string, KnownPerson[]>();
+  for (const p of people) byName.set(p.name.trim().toLowerCase(), [...(byName.get(p.name.trim().toLowerCase()) ?? []), p]);
+  const personOf = new Map(people.map((p) => [p.id, p]));
   const guess = guessFromFilename(fileName);
+
+  // Who a speaker is: the person this export name was last, else the one
+  // person with this name, else a new person (named from the file name when
+  // the first names agree: "Dana" in "Dana Reyes.docx"). Their current
+  // organization and title come along; placeholders stay unidentified.
+  const who = (name: string, seen: KnownSpeaker | undefined, role: SpeakerRole) => {
+    const lastTime = seen?.personId ? personOf.get(seen.personId) : undefined;
+    const matches = byName.get(name.trim().toLowerCase()) ?? byName.get((seen?.displayName ?? "").trim().toLowerCase()) ?? [];
+    const person = lastTime ?? (matches.length === 1 ? matches[0] : undefined);
+    if (person) {
+      return {
+        personId: person.id,
+        newPerson: null,
+        organizationId: person.organizationId ?? seen?.organizationId ?? null,
+        title: person.title ?? seen?.title ?? null,
+      };
+    }
+    const fromFile = role === "participant" && guess.participant && guess.participant.length > name.length ? guess.participant : null;
+    return {
+      personId: null,
+      newPerson: isGenericSpeaker(name) ? null : (fromFile ?? seen?.displayName ?? name),
+      organizationId: seen?.organizationId ?? null,
+      title: seen?.title ?? null,
+    };
+  };
 
   const speakers = parsed.speakers.map((name): SpeakerPreview => {
     const theirs = parsed.lines.filter((l) => l.speaker === name);
@@ -86,8 +131,7 @@ export function buildPreview(args: {
       words: theirs.reduce((sum, l) => sum + l.text.split(/\s+/).length, 0),
       firstWords: theirs[0]?.text.slice(0, 90) ?? "",
       role,
-      displayName: seen?.displayName ?? null,
-      organizationId: seen?.organizationId ?? null,
+      ...who(name, seen, role),
     };
   });
 

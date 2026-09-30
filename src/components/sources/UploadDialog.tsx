@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { IngestPreview, SourceKind } from "@/lib/ingest/preview";
-import { withPaths, type Directory, type OrgOption } from "@/lib/directory";
-import { ClientProjectPicker, SpeakersEditor, type SpeakerValue } from "@/components/pickers";
+import { addOrg, toOrgRow, type Directory, type OrgOption } from "@/lib/directory";
+import { ClientProjectPicker, SpeakersEditor, speakerValue, type SpeakerValue } from "@/components/pickers";
 import { Dialog, Field, Notice } from "@/components/ui";
 
 const SOURCE_LABEL: Record<SourceKind, string> = {
@@ -25,12 +25,9 @@ const LAYOUT_LABEL: Record<IngestPreview["layout"], string> = {
   plain: "Speaker-labelled text",
 };
 
-const toRow = (o: OrgOption) => ({ id: o.id, name: o.name, parent_id: o.parentId });
 
 type Details = {
   title: string;
-  participant: string;
-  participantRole: string;
   recordedOn: string;
   source: SourceKind;
 };
@@ -60,6 +57,9 @@ type Item = {
 export type External = { provider: "google"; id: string; title: string; recordedOn: string | null };
 export type Incoming = { file: File; external: External };
 
+/** Who's interviewed, by the people picked for participant speakers. */
+const participantsOf = (i: Item) =>
+  [...new Set(Object.values(i.speakers).filter((s) => s.role === "participant" && s.personText.trim()).map((s) => s.personText.trim()))].join(", ");
 const label = (i: Item) => i.file?.name ?? (i.pasted?.name || "Pasted transcript");
 const skipped = (i: Item) => i.state === "unreadable" || !!i.preview?.duplicateOf || !!i.sameAs;
 
@@ -129,7 +129,7 @@ export function UploadDialog({
       error: "",
       preview: null,
       sameAs: null,
-      details: { title: "", participant: "", participantRole: "", recordedOn: "", source: "upload" },
+      details: { title: "", recordedOn: "", source: "upload" },
       speakers: {},
       projectId: undefined,
       savedId: null,
@@ -152,17 +152,10 @@ export function UploadDialog({
           details: {
             // A connector's name for the meeting beats one guessed from the file name.
             title: item.external?.title || item.pasted?.name || preview.title,
-            participant: preview.participant ?? "",
-            participantRole: "",
             recordedOn: preview.recordedOn ?? item.external?.recordedOn ?? "",
             source: item.external ? "meet" : (item.pasted?.source ?? preview.source),
           },
-          speakers: Object.fromEntries(
-            preview.speakers.map((s) => [
-              s.name,
-              { displayName: s.displayName ?? "", role: s.role, organizationId: s.organizationId ?? "" },
-            ]),
-          ),
+          speakers: Object.fromEntries(preview.speakers.map((s) => [s.name, speakerValue(s, directory.people, organizations)])),
         });
       } catch (e) {
         update(item.key, { state: "unreadable", error: (e as Error).message });
@@ -177,12 +170,22 @@ export function UploadDialog({
       const form = sourceForm(item);
       form.append("sha256", item.preview!.sha256);
       form.append("title", item.details.title);
-      form.append("participant", item.details.participant);
-      form.append("participantRole", item.details.participantRole);
       form.append("recordedOn", item.details.recordedOn);
       form.append("source", item.details.source);
       form.append("projectId", item.projectId ?? projectId);
-      form.append("speakers", JSON.stringify(Object.entries(item.speakers).map(([name, v]) => ({ name, ...v }))));
+      form.append(
+        "speakers",
+        JSON.stringify(
+          Object.entries(item.speakers).map(([name, v]) => ({
+            name,
+            role: v.role,
+            personId: v.personId,
+            newPerson: v.newPerson,
+            organizationId: v.organizationId,
+            title: v.title,
+          })),
+        ),
+      );
       const { id } = await post("/api/ingest", form);
       update(item.key, { state: "saved", savedId: id });
       if (item.external) {
@@ -365,7 +368,7 @@ export function UploadDialog({
                 directory={directory}
                 batchProjectId={projectId}
                 organizations={organizations}
-                onOrgCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+                onOrgCreated={(org) => setOrganizations((all) => addOrg(all, toOrgRow(org)))}
                 onChange={(patch) => update(item.key, patch)}
               />
             ))}
@@ -501,7 +504,7 @@ function ItemRow({
           <span className="meta" style={{ fontSize: 11.5 }}>
             {label(item)}
             {p && ` · ${LAYOUT_LABEL[p.layout]} · ${p.lineCount} turns${p.durationMins ? ` · ${p.durationMins} min` : ""}`}
-            {p && !single && d.participant && ` · ${d.participant}`}
+            {p && !single && participantsOf(item) && ` · ${participantsOf(item)}`}
           </span>
         </div>
         <StatusTag item={item} />
@@ -529,16 +532,6 @@ function ItemRow({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "var(--space-3)" }}>
             <Field label="Title">
               <input className="input" value={d.title} onChange={(e) => setDetail({ title: e.target.value })} />
-            </Field>
-            <Field label="Participant">
-              <input className="input" value={d.participant} onChange={(e) => setDetail({ participant: e.target.value })} />
-            </Field>
-            <Field label="Participant's role" hint="Their job, e.g. Director, OCCL.">
-              <input
-                className="input"
-                value={d.participantRole}
-                onChange={(e) => setDetail({ participantRole: e.target.value })}
-              />
             </Field>
             <Field label="Recorded on">
               <input
@@ -600,6 +593,7 @@ function ItemRow({
               onChange={(name, v) => onChange((i) => ({ speakers: { ...i.speakers, [name]: v } }))}
               organizations={organizations}
               onOrgCreated={onOrgCreated}
+              people={directory.people}
             />
             {!Object.values(item.speakers).some((s) => s.role === "participant") && (
               <p className="meta" style={{ margin: 0 }}>

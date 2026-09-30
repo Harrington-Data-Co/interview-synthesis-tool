@@ -199,3 +199,21 @@ select.input { appearance: none; padding-right: 26px; }
 /* — a control that stays out of the way until pointed at or tabbed to — */
 .reveal-on-hover { opacity: 0; transition: opacity .12s; }
 .reveal-on-hover:hover, .reveal-on-hover:focus-visible { opacity: 1; }
+
+/* An input or select edited in place in a table cell: plain text until
+   hovered or focused. */
+.input.cell-input {
+  width: 100%;
+  border-color: transparent;
+  background: transparent;
+  padding-left: 6px;
+  margin-left: -6px;
+}
+.input.cell-input:hover:not(:disabled),
+.input.cell-input:focus {
+  border-color: var(--line-4);
+  background: var(--color-surface);
+}
+select.input.cell-input:not(:hover):not(:focus) {
+  appearance: none;
+}

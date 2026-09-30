@@ -1,5 +1,6 @@
 import type { MatrixCell } from "@/lib/corpus/derive";
 import { createClient } from "@/lib/supabase/server";
+import { kindsInUse, nearestOfKind, orgLabel, PATH_SEP, topOf, withPaths } from "@/lib/directory";
 import { loadProjectEvidence } from "@/lib/themes/evidence";
 import { CorpusView, type CorpusTheme, type FacetData } from "./CorpusView";
 
@@ -71,6 +72,29 @@ export async function CorpusStage({
       values: [...new Set(orgs.map((i) => i.organization!))].sort(),
       valueOf: Object.fromEntries(orgs.map((i) => [i.id, i.organization!])),
     });
+    // Group by each kind of organization in use (Department, Division…):
+    // an interview counts under its participant's nearest one of that kind.
+    const { data: orgRows } = await supabase.from("organization").select("id,name,parent_id,short_name,kind");
+    const all = withPaths(orgRows ?? []);
+    for (const kind of kindsInUse(all)) {
+      const valueOf: Record<string, string> = {};
+      for (const i of orgs) {
+        const o = nearestOfKind(i.organizationId, kind, all);
+        if (o) valueOf[i.id] = orgLabel(o);
+      }
+      if (!Object.keys(valueOf).length) continue;
+      facets.push({ id: `kind-${kind.toLowerCase()}`, name: kind, values: [...new Set(Object.values(valueOf))].sort(), valueOf });
+    }
+    // With sub-organizations in play, also group by the organization they sit
+    // under: every office of Delaware DOE together.
+    if (orgs.some((i) => i.organization!.includes(PATH_SEP))) {
+      facets.push({
+        id: "top-organization",
+        name: "Top organization",
+        values: [...new Set(orgs.map((i) => topOf(i.organization!)))].sort(),
+        valueOf: Object.fromEntries(orgs.map((i) => [i.id, topOf(i.organization!)])),
+      });
+    }
   }
 
   // A theme's codes, as corpus_matrix() counts them: active codes only.

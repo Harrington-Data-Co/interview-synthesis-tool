@@ -96,13 +96,18 @@ describe("chunkLines", () => {
 });
 
 describe("transcriptMessage", () => {
-  it("numbers lines, tags roles, and prefers display names", () => {
+  it("lists the people, numbers lines, tags roles, and prefers display names", () => {
     const msg = transcriptMessage(
-      { title: "Roster", participant: "Cy Park", participantRole: "Director", organizations: ["DOE › OEL"] },
+      {
+        title: "Roster",
+        people: [
+          { name: "Jen Koester", role: "interviewer", title: null, organization: "Harrington Data" },
+          { name: "Cyrus Park", role: "participant", title: "Director", organization: "DOE › OEL" },
+        ],
+      },
       [L(1, "Hi?", "interviewer", "Jen :)"), { ...L(2, "Hello."), displayName: "Cyrus Park" }],
     );
-    expect(msg).toContain("Participant: Cy Park — Director");
-    expect(msg).toContain("Organization: DOE › OEL");
+    expect(msg).toContain("People:\n- Jen Koester (interviewer), Harrington Data\n- Cyrus Park (participant), Director, DOE › OEL");
     expect(msg).toContain("L1 [I] Jen :): Hi?\nL2 [P] Cyrus Park: Hello.");
   });
 });
@@ -142,7 +147,7 @@ describe("codeTranscript", () => {
     content: [{ type: "text", text: JSON.stringify({ codes }) }],
     ...extra,
   });
-  const ctx = { title: "T", participant: null, participantRole: null, organizations: [] };
+  const ctx = { title: "T", people: [] };
 
   it("sends Opus 5.5 at high effort with fallbacks and structured output, and prices the run", async () => {
     const { client, calls } = fakeClient([reply([P({})])]);

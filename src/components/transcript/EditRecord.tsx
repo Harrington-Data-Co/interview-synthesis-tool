@@ -2,29 +2,27 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ClientProjectPicker, SpeakersEditor, type SpeakerValue } from "@/components/pickers";
+import { ClientProjectPicker, SpeakersEditor, speakerValue, type SpeakerValue } from "@/components/pickers";
 import { Dialog, Field, Notice } from "@/components/ui";
-import { withPaths, type Directory, type OrgOption } from "@/lib/directory";
+import { addOrg, toOrgRow, type Directory } from "@/lib/directory";
 import type { SpeakerRole } from "@/lib/ingest/preview";
 
 export type RecordValues = {
   id: string;
   title: string;
-  participant: string | null;
-  participantRole: string | null;
   recordedOn: string | null;
   projectId: string | null;
 };
 
 export type SpeakerRecord = {
   name: string;
-  displayName: string | null;
+  personId: string | null;
   role: SpeakerRole;
   organizationId: string | null;
+  title: string | null;
   turns: number;
 };
 
-const toRow = (o: OrgOption) => ({ id: o.id, name: o.name, parent_id: o.parentId });
 
 /** Edit everything about a transcript except what was said. */
 export function EditRecordButton(props: {
@@ -56,18 +54,11 @@ function EditRecordDialog({
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(record.title);
-  const [participant, setParticipant] = useState(record.participant ?? "");
-  const [participantRole, setParticipantRole] = useState(record.participantRole ?? "");
   const [recordedOn, setRecordedOn] = useState(record.recordedOn ?? "");
   const [projectId, setProjectId] = useState(record.projectId ?? "");
   const [organizations, setOrganizations] = useState(directory.organizations);
   const [speakers, setSpeakers] = useState<Record<string, SpeakerValue>>(() =>
-    Object.fromEntries(
-      initialSpeakers.map((s) => [
-        s.name,
-        { displayName: s.displayName ?? "", role: s.role, organizationId: s.organizationId ?? "" },
-      ]),
-    ),
+    Object.fromEntries(initialSpeakers.map((s) => [s.name, speakerValue({ ...s, newPerson: null }, directory.people, directory.organizations)])),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -81,16 +72,16 @@ function EditRecordDialog({
       body: JSON.stringify({
         record: {
           title,
-          participant,
-          participant_role: participantRole,
           recorded_on: recordedOn || null,
           project_id: projectId || null,
         },
         speakers: Object.entries(speakers).map(([name, v]) => ({
           name,
-          display_name: v.displayName,
+          // A new person is created by name; clearing the field unlinks.
+          ...(v.personId ? { person_id: v.personId } : v.newPerson ? { new_person: v.newPerson } : { person_id: null }),
           role: v.role,
           organization_id: v.organizationId || null,
+          title: v.title || null,
         })),
       }),
     });
@@ -111,12 +102,6 @@ function EditRecordDialog({
         <Field label="Title">
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
-        <Field label="Participant">
-          <input className="input" value={participant} onChange={(e) => setParticipant(e.target.value)} />
-        </Field>
-        <Field label="Participant's role" hint="Their job, e.g. Director, OCCL.">
-          <input className="input" value={participantRole} onChange={(e) => setParticipantRole(e.target.value)} />
-        </Field>
         <Field label="Recorded on">
           <input className="input" type="date" value={recordedOn} onChange={(e) => setRecordedOn(e.target.value)} />
         </Field>
@@ -130,7 +115,8 @@ function EditRecordDialog({
           values={speakers}
           onChange={(name, v) => setSpeakers((all) => ({ ...all, [name]: v }))}
           organizations={organizations}
-          onOrgCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+          onOrgCreated={(org) => setOrganizations((all) => addOrg(all, toOrgRow(org)))}
+          people={directory.people}
         />
       </div>
 
