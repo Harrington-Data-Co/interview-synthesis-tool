@@ -4,9 +4,11 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Drawer } from "@/components/Drawer";
+import { KIND_SUGGESTIONS, NewOrgForm, OrgCombobox } from "@/components/pickers";
 import { KEEP, pillButton, SelectionBar, useClickOff } from "@/components/SelectionBar";
+import { NewOrgDialog, OutlineDialog } from "./OrgCreate";
 import { Notice } from "@/components/ui";
-import { orgChain, withinOrg, type OrgOption } from "@/lib/directory";
+import { orgChain, orgLabel, withinOrg, type OrgOption } from "@/lib/directory";
 
 /** Who's at an organization (its own, not its sub-organizations'): people
  *  whose current organization it is, and interviews with a speaker from it. */
@@ -38,6 +40,7 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "info" | "error"; text: string } | null>(null);
+  const [adding, setAdding] = useState<"one" | "outline" | null>(null);
 
   const byId = new Map(organizations.map((o) => [o.id, o]));
   const childrenOf = (id: string) => organizations.filter((o) => o.parentId === id);
@@ -58,7 +61,7 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
   const needle = q.trim().toLowerCase();
   const visible = new Set<string>();
   for (const o of organizations) {
-    if (needle && !o.name.toLowerCase().includes(needle)) continue;
+    if (needle && ![o.name, o.shortName, o.kind].some((x) => x?.toLowerCase().includes(needle))) continue;
     for (const a of orgChain(o.id, organizations)) visible.add(a.id);
   }
   const hiddenByFold = (o: OrgOption) =>
@@ -67,6 +70,10 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
       .slice(0, -1)
       .some((a) => folded.has(a.id));
   const rows = organizations.filter((o) => visible.has(o.id) && !hiddenByFold(o));
+  const deepest = Math.max(0, ...organizations.map(depth));
+  // Show the tree down to a level: fold everything with sub-organizations at
+  // that depth (level 1 = top-level organizations only).
+  const expandTo = (level: number) => setFolded(new Set(organizations.filter((o) => depth(o) >= level - 1 && childrenOf(o.id).length).map((o) => o.id)));
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
   useClickOff(selected.size > 0, clearSelection);
@@ -134,19 +141,34 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
     <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap", minHeight: 28 }}>
         <input className="input" placeholder="Search organizations" value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 300, fontSize: 12.5 }} />
-        {!needle && organizations.some((o) => o.parentId) && (
-          <>
-            <button className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => setFolded(new Set(organizations.filter((o) => childrenOf(o.id).length).map((o) => o.id)))}>
-              Collapse all
+        {!needle && deepest > 0 && (
+          <span style={{ display: "inline-flex", gap: 2, alignItems: "center", fontSize: 11.5 }}>
+            <span className="meta" style={{ marginRight: 4 }}>
+              Show levels
+            </span>
+            {Array.from({ length: Math.min(deepest, 5) }, (_, i) => (
+              <button key={i} className="btn btn-ghost" style={{ fontSize: 11.5, padding: "2px 8px" }} onClick={() => expandTo(i + 1)} title={`Down to level ${i + 1}`}>
+                {i + 1}
+              </button>
+            ))}
+            <button className="btn btn-ghost" style={{ fontSize: 11.5, padding: "2px 8px" }} onClick={() => setFolded(new Set())}>
+              All
             </button>
-            <button className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => setFolded(new Set())}>
-              Expand all
-            </button>
-          </>
+          </span>
         )}
         <span className="meta" style={{ marginLeft: "auto", fontSize: 12 }}>
           {organizations.length} organization{organizations.length === 1 ? "" : "s"}
         </span>
+        {editor && (
+          <>
+            <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setAdding("outline")}>
+              Add from outline
+            </button>
+            <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => setAdding("one")}>
+              New organization
+            </button>
+          </>
+        )}
       </div>
 
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
@@ -216,6 +238,12 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
                       <button type="button" data-open style={{ all: "unset", cursor: "pointer", fontWeight: depth(o) ? 500 : 700, color: "var(--color-accent-800)" }}>
                         {o.name}
                       </button>
+                      {o.shortName && <span className="meta">({o.shortName})</span>}
+                      {o.kind && (
+                        <span className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 4 }}>
+                          {o.kind}
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className="mono">{count(usage[o.id]?.people.length ?? 0, all.people.length)}</td>
@@ -273,6 +301,30 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
         </SelectionBar>
       )}
 
+      {adding === "one" && (
+        <NewOrgDialog
+          organizations={organizations}
+          onClose={() => setAdding(null)}
+          onCreated={(o) => {
+            setAdding(null);
+            setNotice({ tone: "info", text: `Added ${o.path}.` });
+            router.refresh();
+          }}
+        />
+      )}
+      {adding === "outline" && (
+        <OutlineDialog
+          organizations={organizations}
+          initialParentId={openId ?? ""}
+          onClose={() => setAdding(null)}
+          onDone={(r) => {
+            setAdding(null);
+            setNotice({ tone: "info", text: `Added ${r.created} organization${r.created === 1 ? "" : "s"}${r.reused ? `; ${r.reused} already existed and were reused` : ""}.` });
+            router.refresh();
+          }}
+        />
+      )}
+
       {open && (
         <OrgDrawer
           key={open.id}
@@ -286,6 +338,15 @@ export function OrganizationsView({ organizations, usage, editor }: { organizati
           onClose={() => setOpenId(null)}
           onOpen={setOpenId}
           onSave={(changes, done) => run({ action: "update", orgId: open.id, changes }, done)}
+          onAdded={(o) => {
+            setNotice({ tone: "info", text: `Added ${o.path}.` });
+            setFolded((f) => {
+              const n = new Set(f);
+              n.delete(open.id);
+              return n;
+            });
+            router.refresh();
+          }}
           onDelete={async () => {
             if (await run({ action: "delete", orgId: open.id }, `Deleted ${open.name}.`)) setOpenId(null);
           }}
@@ -310,6 +371,7 @@ function OrgDrawer({
   onClose,
   onOpen,
   onSave,
+  onAdded,
   onDelete,
 }: {
   org: OrgOption;
@@ -321,17 +383,21 @@ function OrgDrawer({
   busy: boolean;
   onClose: () => void;
   onOpen: (id: string) => void;
-  onSave: (changes: { name?: string; parent_id?: string | null }, done: string) => void;
+  onSave: (changes: { name?: string; parent_id?: string | null; short_name?: string | null; kind?: string | null }, done: string) => void;
+  onAdded: (org: OrgOption) => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(org.name);
+  const [shortName, setShortName] = useState(org.shortName ?? "");
+  const [kind, setKind] = useState(org.kind ?? "");
+  const [addingSub, setAddingSub] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const kinds = [...new Set([...organizations.map((o) => o.kind).filter((k): k is string => !!k), ...KIND_SUGGESTIONS])];
   const chain = orgChain(org.id, organizations);
   const parent = chain.at(-2);
   const kids = organizations.filter((o) => o.parentId === org.id);
   // Anywhere but itself or its own sub-organizations.
   const inside = new Set(withinOrg(org.id, organizations));
-  const parents = organizations.filter((o) => !inside.has(o.id));
   const renamed = name.trim() && name.trim() !== org.name;
   const unused = !kids.length && !own.people.length && !own.interviews.length;
 
@@ -359,26 +425,61 @@ function OrgDrawer({
       ),
     ],
     [
+      "Short name",
+      editor ? (
+        <input
+          className="input"
+          value={shortName}
+          placeholder="e.g. OEL"
+          onChange={(e) => setShortName(e.target.value)}
+          onBlur={() => shortName.trim() !== (org.shortName ?? "") && onSave({ short_name: shortName.trim() || null }, "Short name saved.")}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+          style={{ fontSize: 12.5 }}
+          aria-label="Short name"
+        />
+      ) : (
+        (org.shortName ?? "—")
+      ),
+    ],
+    [
+      "Kind",
+      editor ? (
+        <>
+          <input
+            className="input"
+            list="org-kinds"
+            value={kind}
+            placeholder="e.g. Department, Division, Unit"
+            onChange={(e) => setKind(e.target.value)}
+            onBlur={() => kind.trim() !== (org.kind ?? "") && onSave({ kind: kind.trim() || null }, "Kind saved.")}
+            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            style={{ fontSize: 12.5 }}
+            aria-label="Kind"
+          />
+          <datalist id="org-kinds">
+            {kinds.map((k) => (
+              <option key={k} value={k} />
+            ))}
+          </datalist>
+        </>
+      ) : (
+        (org.kind ?? "—")
+      ),
+    ],
+    [
       "Sits under",
       editor ? (
-        <select
-          className="input"
+        <OrgCombobox
+          organizations={organizations}
           value={org.parentId ?? ""}
+          exclude={inside}
           disabled={busy}
-          aria-label="Sits under"
-          onChange={(e) => {
-            const to = e.target.value || null;
-            onSave({ parent_id: to }, to ? `Moved under ${organizations.find((o) => o.id === to)?.path}.` : `Moved to the top level.`);
-          }}
-          style={{ fontSize: 12.5 }}
-        >
-          <option value="">Nothing — a top-level organization</option>
-          {parents.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.path}
-            </option>
-          ))}
-        </select>
+          label="Sits under"
+          noneLabel="Nothing — a top-level organization"
+          onChange={(to) =>
+            (to || null) !== org.parentId && onSave({ parent_id: to || null }, to ? `Moved under ${organizations.find((o) => o.id === to)?.path}.` : "Moved to the top level.")
+          }
+        />
       ) : parent ? (
         parent.path
       ) : (
@@ -391,7 +492,13 @@ function OrgDrawer({
         <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {kids.map((k) => (
             <button key={k.id} type="button" onClick={() => onOpen(k.id)} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-800)", fontWeight: 600 }}>
-              {k.name}
+              {orgLabel(k)}
+              {k.kind && (
+                <span className="meta" style={{ fontWeight: 400 }}>
+                  {" "}
+                  · {k.kind}
+                </span>
+              )}
             </button>
           ))}
         </span>
@@ -418,9 +525,28 @@ function OrgDrawer({
 
   return (
     <Drawer
-      kicker={parent ? `Sub-organization of ${parent.name}` : "Organization"}
+      kicker={[org.kind ?? (parent ? "Sub-organization" : "Organization"), org.shortName].filter(Boolean).join(" · ")}
       title={org.name}
-      description={chain.length > 1 ? org.path : undefined}
+      description={
+        chain.length > 1 ? (
+          <span style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {chain.slice(0, -1).map((a) => (
+              <span key={a.id} style={{ display: "inline-flex", gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(a.id)}
+                  style={{ all: "unset", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                  title={a.kind ?? undefined}
+                >
+                  {a.shortName ?? a.name}
+                </button>
+                <span style={{ opacity: 0.6 }}>›</span>
+              </span>
+            ))}
+            <span>{org.shortName ?? org.name}</span>
+          </span>
+        ) : undefined
+      }
       summary={`${all.people.length} ${all.people.length === 1 ? "person" : "people"} · ${all.interviews.length} interview${all.interviews.length === 1 ? "" : "s"}`}
       onClose={onClose}
     >
@@ -433,6 +559,22 @@ function OrgDrawer({
             </Fragment>
           ))}
         </dl>
+        {editor &&
+          (addingSub ? (
+            <NewOrgForm
+              organizations={organizations}
+              initialParentId={org.id}
+              onCancel={() => setAddingSub(false)}
+              onCreated={(o) => {
+                setAddingSub(false);
+                onAdded(o);
+              }}
+            />
+          ) : (
+            <button className="btn btn-secondary" style={{ alignSelf: "flex-start", fontSize: 12 }} onClick={() => setAddingSub(true)}>
+              + Add a sub-organization
+            </button>
+          ))}
         {editor && unused && (
           <button className="btn btn-ghost" style={{ alignSelf: "flex-start", fontSize: 12 }} disabled={busy} onClick={() => (confirming ? onDelete() : setConfirming(true))}>
             {confirming ? "Delete it?" : "Delete this organization"}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ClientProjectPicker, SpeakersEditor, speakerValue, type SpeakerValue } from "@/components/pickers";
 import { Dialog, Field, Notice } from "@/components/ui";
-import { withPaths, type Directory, type OrgOption } from "@/lib/directory";
+import { addOrg, toOrgRow, type Directory } from "@/lib/directory";
 import type { SpeakerRole } from "@/lib/ingest/preview";
 
 export type RecordValues = {
@@ -23,7 +23,6 @@ export type SpeakerRecord = {
   turns: number;
 };
 
-const toRow = (o: OrgOption) => ({ id: o.id, name: o.name, parent_id: o.parentId });
 
 /** Edit everything about a transcript except what was said. */
 export function EditRecordButton(props: {
@@ -116,7 +115,7 @@ function EditRecordDialog({
           values={speakers}
           onChange={(name, v) => setSpeakers((all) => ({ ...all, [name]: v }))}
           organizations={organizations}
-          onOrgCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+          onOrgCreated={(org) => setOrganizations((all) => addOrg(all, toOrgRow(org)))}
           people={directory.people}
         />
       </div>

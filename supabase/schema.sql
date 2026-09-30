@@ -69,6 +69,10 @@ create table organization (
   id         uuid primary key default gen_random_uuid(),
   parent_id  uuid references organization (id) on delete restrict,
   name       text not null check (btrim(name) <> ''),
+  -- The acronym people say (DOE, OEL), and what this layer is (Agency,
+  -- Department, Division, Unit…). Migration 20260930c.
+  short_name text check (short_name is null or btrim(short_name) <> ''),
+  kind       text check (kind is null or btrim(kind) <> ''),
   created_by uuid not null references seat (user_id),
   created_at timestamptz not null default now(),
   check (parent_id is distinct from id)
@@ -5440,8 +5444,8 @@ returns text language sql stable security definer set search_path = public as $$
   select string_agg(name, ' › ' order by depth desc) from up;
 $$;
 
--- p_changes: any of {name, parent_id}; present keys apply ('' or null
--- parent_id: top level).
+-- p_changes: any of {name, parent_id, short_name, kind}; present keys apply
+-- ('' or null parent_id: top level; '' or null short_name / kind: clear).
 create or replace function update_organization(p_org_id uuid, p_changes jsonb)
 returns integer language plpgsql security definer set search_path = public as $$
 declare
@@ -5449,6 +5453,8 @@ declare
   v_old     organization%rowtype;
   v_name    text;
   v_parent  uuid;
+  v_text    text;
+  v_key     text;
   v_changes integer := 0;
 begin
   if not can_edit() then
@@ -5491,6 +5497,19 @@ begin
   exception when unique_violation then
     raise exception 'There''s already an organization named % there.', coalesce(v_name, v_old.name);
   end;
+
+  foreach v_key in array array['short_name', 'kind'] loop
+    continue when not p_changes ? v_key;
+    v_text := nullif(btrim(p_changes ->> v_key), '');
+    if v_text is distinct from (to_jsonb(v_old) ->> v_key) then
+      execute format('update organization set %I = $1 where id = $2', v_key) using v_text, p_org_id;
+      insert into edit (object_type, object_id, text, edited_by)
+      values ('organization', p_org_id,
+              format('%s: %s → %s', replace(v_key, '_', ' '),
+                     coalesce(quote_literal(to_jsonb(v_old) ->> v_key), 'empty'), coalesce(quote_literal(v_text), 'empty')), v_uid);
+      v_changes := v_changes + 1;
+    end if;
+  end loop;
 
   return v_changes;
 end;
@@ -5590,3 +5609,76 @@ $$;
 
 revoke execute on function update_organization, merge_organizations, delete_organization from public, anon;
 grant execute on function update_organization, merge_organizations, delete_organization to authenticated;
+
+-- ═══ Organization detail (migration 20260930c) ══════════════════════════
+-- Whole hierarchies at once; see update_organization above for short
+-- names and kinds.
+
+-- One level of a tree: each node under p_parent_id, then its children
+-- under it. Returns {created, reused}.
+create or replace function org_tree_level(p_parent_id uuid, p_nodes jsonb, p_uid uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  n         jsonb;
+  v_name    text;
+  v_short   text;
+  v_kind    text;
+  v_id      uuid;
+  v_created integer := 0;
+  v_reused  integer := 0;
+  v_sub     jsonb;
+begin
+  if p_nodes is null or jsonb_typeof(p_nodes) <> 'array' then
+    return jsonb_build_object('created', 0, 'reused', 0);
+  end if;
+  for n in select value from jsonb_array_elements(p_nodes) loop
+    v_name := nullif(btrim(n ->> 'name'), '');
+    if v_name is null then
+      raise exception 'Every organization needs a name.';
+    end if;
+    v_short := nullif(btrim(n ->> 'short_name'), '');
+    v_kind := nullif(btrim(n ->> 'kind'), '');
+
+    select id into v_id from organization
+    where parent_id is not distinct from p_parent_id and lower(name) = lower(v_name);
+    if v_id is null then
+      insert into organization (name, parent_id, short_name, kind, created_by)
+      values (v_name, p_parent_id, v_short, v_kind, p_uid)
+      returning id into v_id;
+      v_created := v_created + 1;
+    else
+      update organization set short_name = coalesce(short_name, v_short), kind = coalesce(kind, v_kind) where id = v_id;
+      v_reused := v_reused + 1;
+    end if;
+
+    v_sub := org_tree_level(v_id, n -> 'children', p_uid);
+    v_created := v_created + (v_sub ->> 'created')::integer;
+    v_reused := v_reused + (v_sub ->> 'reused')::integer;
+  end loop;
+  return jsonb_build_object('created', v_created, 'reused', v_reused);
+end;
+$$;
+revoke execute on function org_tree_level from public, anon, authenticated;
+
+create or replace function create_organization_tree(p_parent_id uuid, p_nodes jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_result jsonb;
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can add organizations.' using errcode = '42501';
+  end if;
+  if p_parent_id is not null and not exists (select 1 from organization where id = p_parent_id) then
+    raise exception 'Unknown parent organization.';
+  end if;
+  v_result := org_tree_level(p_parent_id, p_nodes, auth.uid());
+  if (v_result ->> 'created')::integer > 0 then
+    insert into activity (actor, verb, object)
+    values (auth.uid(), 'added organizations',
+            format('%s under %s', v_result ->> 'created', coalesce(org_path(p_parent_id), 'the top level')));
+  end if;
+  return v_result;
+end;
+$$;
+revoke execute on function create_organization_tree from public, anon;
+grant execute on function create_organization_tree to authenticated;

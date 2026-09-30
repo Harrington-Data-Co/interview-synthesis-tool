@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ColumnMenu } from "@/components/table/ColumnMenu";
+import { kindColumns } from "@/components/table/kindColumns";
+import type { OrgOption } from "@/lib/directory";
 import { GroupCounts, GroupRows, HeaderButton, ViewChips } from "@/components/table/parts";
 import { useSavedView } from "@/components/table/useSavedView";
 import type { LabelAxis, LabelMap } from "./labels";
@@ -24,15 +26,22 @@ export function ProjectInterviews({
   axes,
   labels,
   editor,
+  organizations = [],
 }: {
   projectId: string;
   rows: InterviewRow[];
   axes: LabelAxis[];
   labels: LabelMap;
   editor: boolean;
+  /** For grouping by organization kind (Department, Division…). */
+  organizations?: OrgOption[];
 }) {
   const router = useRouter();
-  const columns = useMemo(() => columnsFor(axes, labels), [axes, labels]);
+  const columns = useMemo(
+    () => [...columnsFor(axes, labels), ...kindColumns<InterviewRow>(organizations, (r) => r.organizationIds ?? [])],
+    [axes, labels, organizations],
+  );
+  const kindCols = columns.filter((c) => c.key.startsWith("kind:"));
   // Server render has no saved view; the browser's is read on hydration.
   const [view, change] = useSavedView(`project-view:${projectId}`);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -202,7 +211,7 @@ export function ProjectInterviews({
                 )}
                 <th>Transcript</th>
                 {header("Participant", [col("participant")])}
-                {header("Organization", [col("organization"), col("topOrganization")])}
+                {header("Organization", [col("organization"), col("topOrganization"), ...kindCols])}
                 {header("Labels", labelCols)}
                 {header("Recorded", [col("recorded")])}
                 {header("Length", [col("length")])}

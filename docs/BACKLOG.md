@@ -266,6 +266,17 @@ page; visibility is designed for client access.
   people, speakers and sub-organizations to the one kept. All through
   definer functions that log to `edit`; direct updates and deletes of
   organizations are closed.
+- **Deep organizations** (migration `20260930c_organization_detail`), for
+  structures like the State of Delaware (agencies, departments,
+  divisions, units): each organization has an optional **kind** (what the
+  layer is) and **short name** (DOE, OEL). Organizations can be created
+  directly (New organization; Add a sub-organization in the drawer) or a
+  whole hierarchy at once from an indented outline, which reuses what
+  exists. Every kind in use becomes a grouping in the People and
+  Interviews tables and the corpus (a row counts under its nearest
+  organization of that kind). The organization picker is searchable by
+  any part of the path, short names and kind. The tree has "Show levels"
+  and the drawer's path links to each parent.
 - **Later, with project roles:** who may edit people in place (Ryan,
   2026-09-30). Today any editor can.
 - **Follow-up:** a migration dropping `transcript.participant` and

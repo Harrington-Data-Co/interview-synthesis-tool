@@ -25,7 +25,8 @@ Updated 2026-09-30, after Phase 6 merged. Read this first, then
 1. **The person model** (backlog R2 + R4 + R5) and **organization
    management** are built on branch `people`, not merged. Ryan applies
    `supabase/migrations/20260930a_people.sql` (preview its backfill first),
-   then `20260930b_organizations.sql`; tries uploads, Edit record, and the
+   then `20260930b_organizations.sql` (applied 2026-09-30) and
+   `20260930c_organization_detail.sql`; tries uploads, Edit record, and the
    People and Organizations pages; then merge. Design notes are in
    `docs/BACKLOG.md` under "The person model".
 2. Then the backlog's *Suggested order*: optional client short codes and

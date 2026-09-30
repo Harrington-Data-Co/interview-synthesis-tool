@@ -10,7 +10,8 @@ const id = (v: unknown) => {
 
 /** Change organizations. Body: { action: "update", orgId, changes: { name?,
  *  parent_id? } } | { action: "merge", keepId, mergeIds } | { action:
- *  "delete", orgId }. The database functions check the rules and log each
+ *  "delete", orgId } | { action: "tree", parentId?, nodes } (a nested outline,
+ *  reusing organizations that already exist). The database functions check the rules and log each
  *  change. */
 async function manage(body: Record<string, unknown>): Promise<Response> {
   const supabase = await createClient();
@@ -20,11 +21,23 @@ async function manage(body: Record<string, unknown>): Promise<Response> {
     const changes: Record<string, string | null> = {};
     if ("name" in raw) changes.name = typeof raw.name === "string" ? raw.name.slice(0, 200) : null;
     if ("parent_id" in raw) changes.parent_id = raw.parent_id ? id(raw.parent_id) : null;
+    for (const k of ["short_name", "kind"] as const) if (k in raw) changes[k] = typeof raw[k] === "string" ? (raw[k] as string).slice(0, 100) : null;
     result = await supabase.rpc("update_organization", { p_org_id: id(body.orgId), p_changes: changes });
   } else if (body.action === "merge") {
     const mergeIds = Array.isArray(body.mergeIds) ? body.mergeIds.map(id) : [];
     if (!mergeIds.length) throw new ApiError("Pick the organizations to merge in.");
     result = await supabase.rpc("merge_organizations", { p_keep_id: id(body.keepId), p_merge_ids: mergeIds });
+  } else if (body.action === "tree") {
+    // A nested outline: [{ name, short_name?, kind?, children? }].
+    const clean = (nodes: unknown, depth = 0): unknown[] => {
+      if (!Array.isArray(nodes) || depth > 20) return [];
+      return nodes.slice(0, 500).map((n) => {
+        const o = (n ?? {}) as Record<string, unknown>;
+        const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : null);
+        return { name: str(o.name, 200), short_name: str(o.short_name, 100), kind: str(o.kind, 100), children: clean(o.children, depth + 1) };
+      });
+    };
+    result = await supabase.rpc("create_organization_tree", { p_parent_id: body.parentId ? id(body.parentId) : null, p_nodes: clean(body.nodes) });
   } else if (body.action === "delete") {
     result = await supabase.rpc("delete_organization", { p_org_id: id(body.orgId) });
   } else {
@@ -52,7 +65,12 @@ export async function POST(request: Request) {
     if (parentId && !UUID.test(parentId)) throw new ApiError("Unknown parent organization.");
 
     const supabase = await createClient();
-    const { data, error } = await supabase.from("organization").insert({ name, parent_id: parentId, created_by: seat.user_id }).select("id,name,parent_id").single();
+    const opt = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 100) : null);
+    const { data, error } = await supabase
+      .from("organization")
+      .insert({ name, parent_id: parentId, short_name: opt(body.shortName), kind: opt(body.kind), created_by: seat.user_id })
+      .select("id,name,parent_id,short_name,kind")
+      .single();
     if (error) {
       if (error.code === "23505") throw new ApiError(`“${name}” already exists there.`, 409);
       throw error;

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { IngestPreview, SourceKind } from "@/lib/ingest/preview";
-import { withPaths, type Directory, type OrgOption } from "@/lib/directory";
+import { addOrg, toOrgRow, type Directory, type OrgOption } from "@/lib/directory";
 import { ClientProjectPicker, SpeakersEditor, speakerValue, type SpeakerValue } from "@/components/pickers";
 import { Dialog, Field, Notice } from "@/components/ui";
 
@@ -25,7 +25,6 @@ const LAYOUT_LABEL: Record<IngestPreview["layout"], string> = {
   plain: "Speaker-labelled text",
 };
 
-const toRow = (o: OrgOption) => ({ id: o.id, name: o.name, parent_id: o.parentId });
 
 type Details = {
   title: string;
@@ -369,7 +368,7 @@ export function UploadDialog({
                 directory={directory}
                 batchProjectId={projectId}
                 organizations={organizations}
-                onOrgCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+                onOrgCreated={(org) => setOrganizations((all) => addOrg(all, toOrgRow(org)))}
                 onChange={(patch) => update(item.key, patch)}
               />
             ))}

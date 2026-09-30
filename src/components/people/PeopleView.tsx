@@ -7,16 +7,16 @@ import { Drawer } from "@/components/Drawer";
 import { OrgLevels, OrgPicker } from "@/components/pickers";
 import { KEEP, pillButton, SelectionBar, useClickOff } from "@/components/SelectionBar";
 import { ColumnMenu } from "@/components/table/ColumnMenu";
+import { kindColumns } from "@/components/table/kindColumns";
 import { GroupRows, HeaderButton, ViewChips } from "@/components/table/parts";
 import { useSavedView } from "@/components/table/useSavedView";
 import { applyView, EMPTY_VIEW, sanitize, type Column } from "@/components/table/view";
 import { Notice } from "@/components/ui";
-import { withinOrg, withPaths, type OrgOption } from "@/lib/directory";
+import { withinOrg, addOrg, toOrgRow, type OrgOption } from "@/lib/directory";
 import { maybeSame, possibleDuplicates } from "@/lib/people/duplicates";
 import { clientsOf, partOf, peopleColumns, type PersonRow } from "./view";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
-const toRow = (o: OrgOption) => ({ id: o.id, name: o.name, parent_id: o.parentId });
 const PART: Record<string, string> = { participant: "Participant", interviewer: "Interviewer", both: "Both", other: "Other" };
 
 async function peopleAction(body: Record<string, unknown>): Promise<string | null> {
@@ -48,7 +48,11 @@ export function PeopleView({
   const [organizations, setOrganizations] = useState(initialOrgs);
   const orgPath = useMemo(() => new Map(organizations.map((o) => [o.id, o.path])), [organizations]);
   const dupes = useMemo(() => possibleDuplicates(people), [people]);
-  const columns = useMemo(() => peopleColumns(orgPath, dupes), [orgPath, dupes]);
+  const columns = useMemo(
+    () => [...peopleColumns(orgPath, dupes), ...kindColumns<PersonRow>(organizations, (r) => (r.organizationId ? [r.organizationId] : []))],
+    [orgPath, dupes, organizations],
+  );
+  const kindCols = columns.filter((c) => c.key.startsWith("kind:"));
   const [view, change] = useSavedView("people-view");
   const [q, setQ] = useState("");
   const [columnMenu, setColumnMenu] = useState<{ sections: Column<PersonRow>[]; anchor: DOMRect } | null>(null);
@@ -177,7 +181,7 @@ export function PeopleView({
               value={p.organizationId ?? ""}
               disabled={saving === p.id}
               onChange={(id) => id !== (p.organizationId ?? "") && save(p, { organization_id: id || null })}
-              onCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+              onCreated={(org) => setOrganizations((all) => addOrg(all, toOrgRow(org)))}
             />
           ) : (
             (p.organizationId && orgPath.get(p.organizationId)) || "—"
@@ -231,7 +235,7 @@ export function PeopleView({
                 </th>
               )}
               {header("Name", [col("name"), col("duplicate")])}
-              {header("Organization", [col("organization"), col("topOrganization")])}
+              {header("Organization", [col("organization"), col("topOrganization"), ...kindCols])}
               {header("Title", [col("title")])}
               {header("Part", [col("part")])}
               {header("Clients", [col("clients")])}
@@ -333,7 +337,7 @@ export function PeopleView({
           onClose={() => setOpenId(null)}
           onOpen={setOpenId}
           onSave={(changes) => save(open, changes)}
-          onOrgCreated={(org) => setOrganizations((all) => withPaths([...all.map(toRow), toRow(org)]))}
+          onOrgCreated={(org) => setOrganizations((all) => addOrg(all, toOrgRow(org)))}
           onShowOrg={(org) => {
             // A top-level organization: everyone under it. A sub-organization:
             // it and anything within it.

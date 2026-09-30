@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Field } from "@/components/ui";
 import type { Directory, OrgOption, PersonOption } from "@/lib/directory";
-import { orgChain, withPaths } from "@/lib/directory";
+import { addOrg, orgChain, orgLabel } from "@/lib/directory";
 import type { SpeakerRole } from "@/lib/ingest/preview";
 
 /** Client, then only that client's projects. The transcript stores the
@@ -58,8 +58,301 @@ export function ClientProjectPicker({
 
 const NEW = "__new__";
 
-/** Pick an organization by its path, or create one (optionally nested) in
- *  place. New organizations are reported upward so every picker sees them. */
+/** Common names for an organization's layers, offered alongside any kinds
+ *  already in use. */
+export const KIND_SUGGESTIONS = ["Government", "Agency", "Department", "Division", "Office", "Bureau", "Section", "Unit", "Team", "Program", "Company", "Nonprofit", "Board"];
+
+/** Does an organization match a search? Every word must appear somewhere in
+ *  its path, the short names along it, or its kind. */
+function orgMatches(o: OrgOption, organizations: OrgOption[], words: string[]): boolean {
+  if (!words.length) return true;
+  const hay = [o.path, o.kind ?? "", ...orgChain(o.id, organizations).map((a) => a.shortName ?? "")].join(" ").toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
+
+/** A searchable organization field. Closed, it shows the chosen path; open,
+ *  it lists the tree (indented) or, once you type, every organization whose
+ *  path, short names or kind match — so "oel" finds Office of Early Learning
+ *  however deep it sits. The last option starts a new organization with
+ *  what was typed. */
+export function OrgCombobox({
+  organizations,
+  value,
+  onChange,
+  onNew,
+  noneLabel = "No organization",
+  newLabel = "New organization…",
+  exclude,
+  compact = false,
+  disabled = false,
+  label = "Organization",
+}: {
+  organizations: OrgOption[];
+  value: string;
+  onChange: (id: string) => void;
+  /** Offer "New organization…" and call this with what was typed. */
+  onNew?: (typed: string) => void;
+  noneLabel?: string;
+  newLabel?: string;
+  /** Organizations that can't be picked (and aren't listed). */
+  exclude?: Set<string>;
+  compact?: boolean;
+  disabled?: boolean;
+  label?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+  const listId = useId();
+  const chosen = organizations.find((o) => o.id === value);
+  // Closed, a deep organization reads by its own name first, then the one it
+  // sits in ("Early Childhood Assessment · OEL"); the full path is the tooltip.
+  const shownAs = (o: OrgOption) => {
+    const up = organizations.find((p) => p.id === o.parentId);
+    return up ? `${o.name} · ${up.shortName ?? up.name}` : o.name;
+  };
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const depth = (o: OrgOption) => orgChain(o.id, organizations).length - 1;
+  const matches = organizations.filter((o) => !exclude?.has(o.id) && orgMatches(o, organizations, words)).slice(0, 200);
+  type Opt = { key: string; org?: OrgOption; action?: "none" | "new" };
+  const options: Opt[] = [
+    ...(words.length ? [] : [{ key: "__none__", action: "none" as const }]),
+    ...matches.map((o) => ({ key: o.id, org: o })),
+    ...(onNew ? [{ key: "__new__", action: "new" as const }] : []),
+  ];
+
+  const place = () => field.current && setRect(field.current.getBoundingClientRect());
+  useEffect(() => {
+    if (!open) return;
+    const again = () => place();
+    window.addEventListener("scroll", again, true);
+    window.addEventListener("resize", again);
+    return () => {
+      window.removeEventListener("scroll", again, true);
+      window.removeEventListener("resize", again);
+    };
+  }, [open]);
+
+  const pick = (o: Opt) => {
+    setOpen(false);
+    setQ("");
+    field.current?.blur();
+    if (o.action === "new") onNew?.(q.trim());
+    else onChange(o.org?.id ?? "");
+  };
+
+  return (
+    <span style={{ position: "relative", display: "block", minWidth: compact ? 0 : 200 }}>
+      <input
+        ref={field}
+        className={compact ? "input cell-input" : "input"}
+        value={open ? q : chosen ? shownAs(chosen) : ""}
+        placeholder={open ? "Type to search" : noneLabel}
+        disabled={disabled}
+        title={chosen?.path}
+        aria-label={label}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onFocus={() => {
+          place();
+          setOpen(true);
+          setQ("");
+          setCursor(0);
+        }}
+        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setCursor(0);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setCursor((c) => Math.min(c + 1, options.length - 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setCursor((c) => Math.max(c - 1, 0));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (options[cursor]) pick(options[cursor]);
+          } else if (e.key === "Escape") {
+            e.stopPropagation();
+            setOpen(false);
+            field.current?.blur();
+          }
+        }}
+        style={{ fontSize: 12.5, textOverflow: "ellipsis" }}
+      />
+      {open && rect && (
+        <div
+          id={listId}
+          role="listbox"
+          data-keep-selection=""
+          onMouseDown={(e) => e.preventDefault()}
+          style={{
+            position: "fixed",
+            top: rect.bottom + 4,
+            // Kept on screen when the field sits near the right edge (a drawer).
+            left: Math.max(8, Math.min(rect.left, window.innerWidth - Math.max(rect.width, 320) - 8)),
+            width: Math.max(rect.width, 320),
+            maxHeight: 300,
+            overflowY: "auto",
+            zIndex: 80,
+            background: "var(--color-surface)",
+            border: "1px solid var(--line-4)",
+            borderRadius: "var(--radius)",
+            boxShadow: "var(--shadow-lg)",
+            padding: "4px 0",
+          }}
+        >
+          {options.map((o, i) => (
+            <div
+              key={o.key}
+              role="option"
+              aria-selected={o.org?.id === value || (o.action === "none" && !value)}
+              onMouseEnter={() => setCursor(i)}
+              onClick={() => pick(o)}
+              style={{
+                padding: "5px 10px",
+                paddingLeft: o.org && !words.length ? 10 + depth(o.org) * 16 : 10,
+                cursor: "pointer",
+                fontSize: 12.5,
+                background: i === cursor ? "var(--color-accent-tint)" : undefined,
+                fontWeight: o.org?.id === value ? 700 : 400,
+                display: "flex",
+                gap: 6,
+                alignItems: "baseline",
+                borderTop: o.action === "new" ? "1px solid var(--line-2)" : undefined,
+                color: o.action ? "var(--color-accent-800)" : undefined,
+              }}
+            >
+              {o.action === "none" ? (
+                noneLabel
+              ) : o.action === "new" ? (
+                q.trim() ? (
+                  `${newLabel.replace(/…$/, "")}: “${q.trim()}”`
+                ) : (
+                  newLabel
+                )
+              ) : (
+                <>
+                  <span style={{ minWidth: 0 }}>
+                    {words.length ? o.org!.path : o.org!.name}
+                    {o.org!.shortName && <span className="meta"> ({o.org!.shortName})</span>}
+                  </span>
+                  {o.org!.kind && (
+                    <span className="meta" style={{ fontSize: 10.5, marginLeft: "auto", textTransform: "uppercase", letterSpacing: "0.06em", flex: "none" }}>
+                      {o.org!.kind}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+          {!matches.length && words.length > 0 && (
+            <div className="meta" style={{ padding: "5px 10px", fontSize: 12 }}>
+              No organization matches.
+            </div>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}
+
+/** A new organization: name, where it sits, and optionally its short name
+ *  and kind. Returns the created organization (with its path). */
+export function NewOrgForm({
+  organizations,
+  initialName = "",
+  initialParentId = "",
+  onCreated,
+  onCancel,
+}: {
+  organizations: OrgOption[];
+  initialName?: string;
+  initialParentId?: string;
+  onCreated: (org: OrgOption) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [parentId, setParentId] = useState(initialParentId);
+  const [shortName, setShortName] = useState("");
+  const [kind, setKind] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const kindsId = useId();
+  const kinds = [...new Set([...organizations.map((o) => o.kind).filter((k): k is string => !!k), ...KIND_SUGGESTIONS])];
+
+  async function create() {
+    setBusy(true);
+    setError("");
+    const res = await fetch("/api/organizations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, parentId: parentId || null, shortName, kind }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) return setError(body.error ?? "Couldn't create it.");
+    // Recompute the new row's path against the list it joins.
+    onCreated(addOrg(organizations, body).find((o) => o.id === body.id)!);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 220 }} onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), onCancel())}>
+      <input
+        className="input"
+        placeholder="Organization name"
+        value={name}
+        autoFocus
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && name.trim() && create()}
+        style={{ fontSize: 12.5 }}
+        aria-label="New organization's name"
+      />
+      <OrgCombobox organizations={organizations} value={parentId} onChange={setParentId} noneLabel="Top level (under nothing)" label="Sits under" />
+      <span style={{ display: "flex", gap: 6 }}>
+        <input
+          className="input"
+          placeholder="Short name, e.g. OEL"
+          value={shortName}
+          onChange={(e) => setShortName(e.target.value)}
+          style={{ fontSize: 12.5 }}
+          aria-label="Short name"
+        />
+        <input
+          className="input"
+          list={kindsId}
+          placeholder="Kind, e.g. Division"
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
+          style={{ fontSize: 12.5 }}
+          aria-label="Kind"
+        />
+        <datalist id={kindsId}>
+          {kinds.map((k) => (
+            <option key={k} value={k} />
+          ))}
+        </datalist>
+      </span>
+      {error && <span style={{ fontSize: 11, color: "var(--color-accent-800)" }}>{error}</span>}
+      <span style={{ display: "flex", gap: 4 }}>
+        <button className="btn btn-primary" style={{ fontSize: 11.5 }} disabled={busy || !name.trim()} onClick={create}>
+          {busy ? "Adding…" : "Add"}
+        </button>
+        <button className="btn btn-ghost" style={{ fontSize: 11.5 }} disabled={busy} onClick={onCancel}>
+          Cancel
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/** Pick an organization (searchable), or create one in place. New
+ *  organizations are reported upward so every picker sees them. */
 export function OrgPicker({
   organizations,
   value,
@@ -76,84 +369,22 @@ export function OrgPicker({
   compact?: boolean;
   disabled?: boolean;
 }) {
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const [parentId, setParentId] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function create() {
-    setBusy(true);
-    setError("");
-    const res = await fetch("/api/organizations", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, parentId: parentId || null }),
-    });
-    const body = await res.json().catch(() => ({}));
-    setBusy(false);
-    if (!res.ok) return setError(body.error ?? "Couldn't create it.");
-    // Recompute the new row's path against the list it joins.
-    const all = withPaths([...organizations.map((o) => ({ id: o.id, name: o.name, parent_id: o.parentId })), body]);
-    onCreated(all.find((o) => o.id === body.id)!);
-    onChange(body.id);
-    setCreating(false);
-    setName("");
-    setParentId("");
-  }
-
-  if (creating) {
+  const [creating, setCreating] = useState<string | null>(null);
+  if (creating !== null) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
-        <input
-          className="input"
-          placeholder="Organization name"
-          value={name}
-          autoFocus
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && name.trim() && create()}
-          style={{ fontSize: 12.5 }}
-        />
-        <select className="input" value={parentId} onChange={(e) => setParentId(e.target.value)} style={{ fontSize: 12.5 }}>
-          <option value="">Top level</option>
-          {organizations.map((o) => (
-            <option key={o.id} value={o.id}>
-              Under {o.path}
-            </option>
-          ))}
-        </select>
-        {error && <span style={{ fontSize: 11, color: "var(--color-accent-800)" }}>{error}</span>}
-        <span style={{ display: "flex", gap: 4 }}>
-          <button className="btn btn-primary" style={{ fontSize: 11.5 }} disabled={busy || !name.trim()} onClick={create}>
-            {busy ? "Adding…" : "Add"}
-          </button>
-          <button className="btn btn-ghost" style={{ fontSize: 11.5 }} disabled={busy} onClick={() => setCreating(false)}>
-            Cancel
-          </button>
-        </span>
-      </div>
+      <NewOrgForm
+        organizations={organizations}
+        initialName={creating}
+        onCancel={() => setCreating(null)}
+        onCreated={(org) => {
+          onCreated(org);
+          onChange(org.id);
+          setCreating(null);
+        }}
+      />
     );
   }
-
-  return (
-    <select
-      className={compact ? "input cell-input" : "input"}
-      value={value}
-      disabled={disabled}
-      onChange={(e) => (e.target.value === NEW ? setCreating(true) : onChange(e.target.value))}
-      style={{ fontSize: 12.5, minWidth: compact ? 0 : 180 }}
-      aria-label="Organization"
-      title={organizations.find((o) => o.id === value)?.path}
-    >
-      <option value="">No organization</option>
-      {organizations.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.path}
-        </option>
-      ))}
-      <option value={NEW}>New organization…</option>
-    </select>
-  );
+  return <OrgCombobox organizations={organizations} value={value} onChange={onChange} onNew={setCreating} compact={compact} disabled={disabled} />;
 }
 
 /** One speaker in the table. personText is what was typed in the Person
@@ -378,7 +609,7 @@ export function OrgLevels({
     const body = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(body.error ?? "Couldn't create it.");
-    const all = withPaths([...organizations.map((o) => ({ id: o.id, name: o.name, parent_id: o.parentId })), body]);
+    const all = addOrg(organizations, body);
     onCreated(all.find((o) => o.id === body.id)!);
     onChange(body.id);
     setAdding(null);
@@ -391,10 +622,12 @@ export function OrgLevels({
         const parent = level === 0 ? null : chain[level - 1];
         const chosen = chain[level];
         const options = childrenOf(parent?.id ?? null);
-        const label = level === 0 ? "Organization" : "Sub-organization";
+        // A level reads as what it is, when its kind is known (Department,
+        // Division); otherwise Organization, then Sub-organization.
+        const label = chosen?.kind ?? (level === 0 ? "Organization" : "Sub-organization");
         let field: React.ReactNode;
         if (!editable) {
-          field = chosen?.name ?? "—";
+          field = chosen ? orgLabel(chosen) : "—";
         } else if (adding === level) {
           field = (
             <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -443,7 +676,7 @@ export function OrgLevels({
               <option value={NONE_OPT}>{parent ? `None — all of ${parent.name}` : "No organization"}</option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.name}
+                  {orgLabel(o)}
                 </option>
               ))}
               <option value={NEW}>{parent ? "New sub-organization…" : "New organization…"}</option>

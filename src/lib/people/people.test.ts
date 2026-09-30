@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { maybeSame, possibleDuplicates } from "./duplicates";
-import { orgChain, topOf, withinOrg } from "@/lib/directory";
+import { outlineSize, parseOutline } from "./outline";
+import { kindColumns } from "@/components/table/kindColumns";
+import { kindsInUse, nearestOfKind, orgChain, orgLabel, topOf, withinOrg, withPaths } from "@/lib/directory";
 import { applyView, countsFor, EMPTY_VIEW } from "@/components/table/view";
 import { partOf, peopleColumns, type PersonRow } from "@/components/people/view";
 
@@ -64,16 +66,82 @@ describe("the People table", () => {
 
 
 describe("organization levels", () => {
-  const orgs = [
-    { id: "doe", name: "Delaware DOE", parentId: null, path: "Delaware DOE" },
-    { id: "oel", name: "Office of Early Learning", parentId: "doe", path: "Delaware DOE › Office of Early Learning" },
-    { id: "ccdf", name: "CCDF", parentId: "oel", path: "Delaware DOE › Office of Early Learning › CCDF" },
-    { id: "hdc", name: "Harrington Data", parentId: null, path: "Harrington Data" },
-  ];
+  const orgs = withPaths([
+    { id: "doe", name: "Delaware DOE", parent_id: null, kind: "Department", short_name: "DOE" },
+    { id: "oel", name: "Office of Early Learning", parent_id: "doe", kind: "Office" },
+    { id: "ccdf", name: "CCDF", parent_id: "oel", kind: "unit" },
+    { id: "occl", name: "OCCL", parent_id: "doe", kind: "office" },
+    { id: "hdc", name: "Harrington Data", parent_id: null, kind: "Company" },
+  ]);
   it("walks up to the top and down to everything within", () => {
     expect(orgChain("ccdf", orgs).map((o) => o.id)).toEqual(["doe", "oel", "ccdf"]);
     expect(orgChain(null, orgs)).toEqual([]);
-    expect(withinOrg("doe", orgs)).toEqual(["doe", "oel", "ccdf"]);
+    expect(withinOrg("doe", orgs).sort()).toEqual(["ccdf", "doe", "occl", "oel"]);
     expect(topOf("Delaware DOE › Office of Early Learning")).toBe("Delaware DOE");
+  });
+  it("finds the nearest organization of a kind, and orders kinds outermost first", () => {
+    expect(nearestOfKind("ccdf", "office", orgs)?.id).toBe("oel");
+    expect(nearestOfKind("ccdf", "Department", orgs)?.id).toBe("doe");
+    expect(nearestOfKind("hdc", "Department", orgs)).toBeUndefined();
+    expect(kindsInUse(orgs)).toEqual(["Company", "Department", "Office", "unit"]);
+    expect(orgLabel(orgs.find((o) => o.id === "doe")!)).toBe("Delaware DOE (DOE)");
+  });
+});
+
+describe("parseOutline", () => {
+  it("nests by indentation and reads short names and kinds", () => {
+    const tree = parseOutline(
+      [
+        "State of Delaware [Government]",
+        "  - Department of Education (DOE) [Department]",
+        "      Office of Early Learning (OEL)",
+        "          Early Childhood Assessment [Unit]",
+        "      [Office] Office of Child Care Licensing (OCCL)",
+        "  Department of Health and Social Services [Department] (DHSS)",
+        "",
+        "Harrington Data",
+      ].join("\n"),
+      ["", "", "Office"],
+    );
+    expect(tree.map((n) => n.name)).toEqual(["State of Delaware", "Harrington Data"]);
+    const doe = tree[0].children[0];
+    expect(doe).toMatchObject({ name: "Department of Education", short_name: "DOE", kind: "Department" });
+    expect(doe.children.map((n) => [n.name, n.short_name, n.kind])).toEqual([
+      ["Office of Early Learning", "OEL", "Office"],
+      ["[Office] Office of Child Care Licensing", "OCCL", "Office"],
+    ]);
+    expect(doe.children[0].children[0]).toMatchObject({ name: "Early Childhood Assessment", kind: "Unit" });
+    expect(tree[0].children[1]).toMatchObject({ name: "Department of Health and Social Services", short_name: "DHSS", kind: "Department" });
+    expect(outlineSize(tree)).toEqual({ count: 7, depth: 4 });
+  });
+});
+
+
+describe("grouping by organization kind", () => {
+  const orgs = withPaths([
+    { id: "sod", name: "State of Delaware", parent_id: null, kind: "Government" },
+    { id: "doe", name: "Department of Education", parent_id: "sod", short_name: "DOE", kind: "Department" },
+    { id: "oel", name: "Office of Early Learning", parent_id: "doe", kind: "Office" },
+    { id: "eca", name: "Early Childhood Assessment", parent_id: "oel", kind: "Unit" },
+    { id: "dhss", name: "Department of Health and Social Services", parent_id: "sod", short_name: "DHSS", kind: "Department" },
+    { id: "hdc", name: "Harrington Data", parent_id: null },
+  ]);
+  const rows = [
+    { id: "a", orgs: ["eca"] },
+    { id: "b", orgs: ["oel"] },
+    { id: "c", orgs: ["dhss"] },
+    { id: "d", orgs: ["hdc"] },
+    { id: "e", orgs: ["eca", "dhss"] },
+  ];
+  const cols = kindColumns<(typeof rows)[number]>(orgs, (r) => r.orgs);
+  it("adds a column per kind, outermost first, and groups under the nearest one", () => {
+    expect(cols.map((c) => c.name)).toEqual(["Government", "Department", "Office", "Unit"]);
+    const byDept = applyView(rows, cols, { ...EMPTY_VIEW, group: "kind:department" });
+    expect(byDept.map((g) => [g.label, g.rows.map((r) => r.id)])).toEqual([
+      ["Department of Education (DOE)", ["a", "b"]],
+      ["Department of Education (DOE), Department of Health and Social Services (DHSS)", ["e"]],
+      ["Department of Health and Social Services (DHSS)", ["c"]],
+      ["No department", ["d"]],
+    ]);
   });
 });

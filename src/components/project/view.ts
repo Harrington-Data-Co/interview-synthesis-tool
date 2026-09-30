@@ -24,6 +24,8 @@ export type InterviewRow = {
   participants: string[];
   /** Organization paths of the participants. */
   organizations: string[];
+  /** The same organizations, by id (for grouping by kind). */
+  organizationIds?: string[];
   recordedOn: string | null;
   durationMins: number | null;
   source: string;

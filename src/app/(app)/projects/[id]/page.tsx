@@ -93,6 +93,7 @@ export default async function ProjectPage({
     organizations: participantOrgIds(t)
       .map((o) => orgPath.get(o))
       .filter((p): p is string => !!p),
+    organizationIds: participantOrgIds(t),
     recordedOn: t.recorded_on,
     durationMins: t.duration_mins,
     source: SOURCE_LABEL[t.source] ?? t.source,
@@ -185,7 +186,7 @@ export default async function ProjectPage({
 
       {view === "interviews" && (
         <>
-          <ProjectInterviews projectId={id} editor={editor} axes={axes} labels={labels} rows={interviews} />
+          <ProjectInterviews projectId={id} editor={editor} axes={axes} labels={labels} rows={interviews} organizations={directory.organizations} />
           <p className="meta" style={{ margin: 0 }}>
             Open an interview to review its codes and notes.
           </p>
