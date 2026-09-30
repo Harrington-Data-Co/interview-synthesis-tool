@@ -101,7 +101,19 @@ export default async function ProjectPage({
   ];
 
   return (
-    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: view === "chain" ? undefined : 1400 }}>
+    <div
+      style={{
+        padding: "var(--space-6)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+        // Centred, so spare width falls evenly on both sides; the chain board
+        // uses the full width.
+        maxWidth: view === "chain" ? undefined : 1400,
+        width: "100%",
+        margin: "0 auto",
+      }}
+    >
       <Link href="/sources" className="meta">
         ← Transcript library
       </Link>

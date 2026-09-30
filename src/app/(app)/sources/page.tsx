@@ -20,7 +20,7 @@ export default async function SourcesPage() {
   for (const t of rows) if (t.project_id) byProject.set(t.project_id, [...(byProject.get(t.project_id) ?? []), t]);
 
   return (
-    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: 1400 }}>
+    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: 1400, width: "100%", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span className="kicker">00 · Sources</span>

@@ -41,7 +41,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
   }));
 
   return (
-    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)", maxWidth: 1400 }}>
+    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)", maxWidth: 1400, width: "100%", margin: "0 auto" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <span className="kicker">Templates</span>
         <div className="seg" style={{ alignSelf: "flex-start", marginTop: 4 }}>
