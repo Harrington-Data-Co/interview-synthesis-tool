@@ -1,67 +1,35 @@
 # Handoff — where things stand
 
-Updated 2026-09-30, end of the overnight Phase 6 session. Read this
-first, then `docs/PLAN.md`.
+Updated 2026-09-30, after Phase 6 merged. Read this first, then
+`docs/PLAN.md` and `docs/BACKLOG.md`.
 
 ## State
 
-- `main` holds Phases 0–5. **Phase 6 is on branch `phase-6`** (pushed, not
-  merged), built overnight while Ryan slept; he asked to review it before
-  anything merges.
-- **Migrations:** `20260929e_google_connector` and `20260929f_swimlanes`
-  are applied (Ryan, 2026-09-29 night). **`20260929g_decks` and
-  `20260929h_architecture` are not applied yet**: the Deck and
-  Architecture tabs need them.
+- `main` holds Phases 0–6 (Phase 6 squash-merged 2026-09-30). All
+  migrations through `20260929h_architecture` are applied.
 - **Google Drive is connected** (Ryan's harringtondata.com account,
   read-only scope). Meet transcripts live across his drives, mostly the
   shared drive, not in "Meet Recordings".
-- **Every Phase 6 deliverable in scope is built**: Google Drive
-  connection, Meet import, swimlanes (process maps), slide decks with
-  .pptx download, and current-state architecture maps. Client access moved
-  to the backlog.
-- **Claude spend tonight: about $1.25** of the $5 Ryan allowed (swimlane
-  prompt once, $0.13; deck prompt twice, $0.38 and $0.36; architecture
-  prompt once, $0.38), all on real project data, read-only; nothing was
-  written to the database by these tests.
+- Since the overnight session: one evidence drawer
+  (`src/components/evidence/EvidenceDrawer.tsx`) now serves the corpus,
+  memo (paragraph or theme tag), interview notes (item) and themes page
+  (theme card; the source ledger and inline quote list are gone). Action
+  buttons say "Draw"/"Write", not "… with Claude".
 - Prompts: `coding-v1`, `note-v2`, `themes-v1`, `memo-v1`, `flow-v1`,
   `deck-v1`, `arch-v1`. Model `claude-opus-5-5`, effort `high`.
-
-## For Ryan in the morning
-
-1. Apply `supabase/migrations/20260929g_decks.sql`, then
-   `20260929h_architecture.sql`.
-2. Try, on a real project: **Swimlanes** (Draw), **Deck** (add the
-   "Findings readout" template from Templates → Deck templates, Write,
-   Download .pptx), **Architecture** (Draw), and **Sources → Import from
-   Google Meet**. None has been clicked through signed in; each was checked
-   with sample data in a browser and its Claude/Drive side run for real.
-3. Decisions made without you, easy to reverse:
-   - Deck quotes are attributed by role ("— Program officer"), never by
-     name; the deck prompt also refers to people by role.
-   - The .pptx uses Arial (Inter isn't on every presenter's machine).
-   - New project tabs: Deck, Swimlanes and Architecture, after Memo.
-   - Swimlane and architecture pain points are derived (an item citing a
-     Pain or Constraint code), not a separate field.
-   - The Meet import marks a Doc "uploaded before" when a transcript has
-     the same file name as Drive's .docx download, since export bytes
-     differ every time and the checksum can't catch it.
-   - **Architecture edits have no undo** (swimlanes and deck slides do).
-     Cut for time; edits are still logged to `edit`.
-   - Action buttons now say "Draw"/"Redraw" and "Write"/"Rewrite", not
-     "… with Claude", per your earlier wording preference.
+- Deliberate gaps: architecture edits have no undo; big architecture maps
+  are crowded (see backlog).
 
 ## Likely next steps
 
-1. Ryan's review of the above, and follow-ups.
-2. Architecture layout on big maps: the real test drew 25 systems and 29
-   flows. Systems no flow touches now sit in a strip below, and columns
-   over 8 split in two, but a busy map still scrolls sideways and a hub
-   like Foundant has many crossing lines. Worth a look with real use.
-3. Undo for architecture edits, if missed.
-4. The header's **Study** link still goes to a placeholder page; remove it
-   or make it a project picker.
-5. `docs/BACKLOG.md`: invitation-only access with project roles and client
-   access (designed together), soft locks, mobile-friendly layout.
+1. **The person model** (backlog R2 + R4 + R5), decided 2026-09-30 to come
+   before everything else. A proposal went to Ryan on 2026-09-30; build once
+   he's answered its open questions.
+2. Then the backlog's *Suggested order*: optional client short codes and
+   "new client/project" in the upload dialog, the upload dialog redesign,
+   meaningful URLs with the new top navigation, and the quick wins.
+3. Try Swimlanes, Deck and Architecture on a real project; none has been
+   clicked through signed in yet.
 
 ## How Phase 6 is put together
 
