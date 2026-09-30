@@ -1,35 +1,56 @@
 # Handoff — where things stand
 
-Updated 2026-09-29, Phase 5 session. Read this first, then `docs/PLAN.md`.
+Updated 2026-09-30, overnight Phase 6 session (in progress). Read this
+first, then `docs/PLAN.md`.
 
 ## State
 
-- `main` holds Phases 0–5 (Phase 5 merged 2026-09-29, commit `9eff229`
-  plus the "mark done" commit). Phase 5 needs migration
-  `supabase/migrations/20260929d_corpus.sql` applied (one read-only
-  function, `corpus_matrix`); the Corpus tab shows an error naming the
-  migration until it is. Confirm with Ryan that it's applied.
-- Checked so far: `corpus_matrix` in PGlite (confirmed vs proposed, merged
-  codes dropped, other projects excluded, no seat → no rows), unit tests
-  for the derivations and the chain's reachability, `tsc`, `eslint`, build.
-  Not yet seen rendering against real data.
-- Prompts in use: `coding-v1`, `note-v2`, `themes-v1`, `memo-v1`. Model
-  `claude-opus-5-5`, effort `high` (`src/lib/claude/call.ts`). Phase 5 makes
-  no Claude calls.
+- `main` holds Phases 0–5. **Phase 6 is on branch `phase-6`** (pushed, not
+  merged), built overnight while Ryan slept; he asked to review it before
+  anything merges.
+- **Migrations:** `20260929e_google_connector` and `20260929f_swimlanes`
+  are applied (Ryan, 2026-09-29 night). **`20260929g_decks` is not applied
+  yet**: the Deck tab needs it.
+- **Google Drive is connected** (Ryan's harringtondata.com account,
+  read-only scope). Meet transcripts live across his drives, mostly the
+  shared drive, not in "Meet Recordings".
+- **Built and tested tonight** (details under "How Phase 6 is put
+  together"): Google Drive connection; Meet import; swimlanes (process
+  maps); slide decks with .pptx download. Still to build: the current-state
+  architecture diagram.
+- **Claude spend tonight: $0.87** of the $5 Ryan allowed (swimlane prompt
+  once, $0.13; deck prompt twice, $0.38 and $0.36), all on real project
+  data, read-only; nothing was written to the database by these tests.
+- Prompts: `coding-v1`, `note-v2`, `themes-v1`, `memo-v1`, `flow-v1`,
+  `deck-v1`. Model `claude-opus-5-5`, effort `high`.
+
+## For Ryan in the morning
+
+1. Apply `supabase/migrations/20260929g_decks.sql`.
+2. Try, on a real project: **Swimlanes** (Draw with Claude), **Deck**
+   (add the "Findings readout" template from Templates → Deck templates,
+   Write with Claude, Download .pptx), and **Sources → Import from Google
+   Meet**. None has been clicked through signed in; each was checked with
+   sample data in a browser and its Claude/Drive side run for real.
+3. Decisions made without you, easy to reverse:
+   - Deck quotes are attributed by role ("— Program officer"), never by
+     name; the deck prompt also refers to people by role.
+   - The .pptx uses Arial (Inter isn't on every presenter's machine).
+   - New project tabs: Deck and Swimlanes, after Memo.
+   - Swimlane pain points are derived (a step citing a Pain or Constraint
+     code), not a separate field.
+   - The Meet import marks a Doc "uploaded before" when a transcript has
+     the same file name as Drive's .docx download, since export bytes
+     differ every time and the checksum can't catch it.
 
 ## Likely next steps
 
-1. Any Phase 5 follow-ups once Ryan uses the Chain and Corpus tabs on a
-   real project (so far they've only been seen with sample data).
-2. The header's **Study** link still goes to a Phase 0 placeholder page
-   (`src/app/(app)/study/page.tsx`); the study views now live as project
-   tabs. Decide whether to remove it or make it a project picker.
-3. Open items in `docs/BACKLOG.md`, including the invitation model with
-   project roles (why the sign-up hook was deliberately left off), soft
-   locks, and a mobile-friendly layout (the chain board and corpus views
-   are the problem areas).
-4. Phase 6: connectors, remaining product shapes, multi-tenancy
-   (`docs/PLAN.md`).
+1. Ryan's review of the above, and follow-ups.
+2. The current-state architecture diagram (the last Phase 6 deliverable).
+3. The header's **Study** link still goes to a placeholder page; remove it
+   or make it a project picker.
+4. `docs/BACKLOG.md`: invitation-only access with project roles and client
+   access (designed together), soft locks, mobile-friendly layout.
 
 ## How Phase 5 is put together
 
