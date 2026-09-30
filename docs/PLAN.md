@@ -150,6 +150,8 @@ Cost is not a constraint here: a 40-minute transcript is roughly 10k input token
 ### Phase 5 — The chain board and corpus views
 Saturation, the code × interview matrix, and coverage-by-label are pure derivations of tables that now hold real data — mostly SQL plus the SVG edge-drawing already written in `measure()` / `edges()` / `chain()`. Cheap at this point, and the most persuasive thing in the product.
 
+*Decided 2026-09-29:* a code belongs to one transcript, so the thing that recurs across interviews is the **theme**. The matrix is theme × interview (cell = that interview's codes in the theme), with a foot row of codes in no theme; saturation counts new themes per interview in recording order. Confirmed themes by default, with a toggle to include proposals. The counting lives in `corpus_matrix()`; grouping, saturation and coverage are pure functions in `src/lib/corpus/`. The chain board is per interview and ends in memo paragraphs (themes → paragraph, and codes → paragraph for direct citations); theme edges come from codes, not from the note.
+
 ### Phase 6 — Deferred
 Meet / Zoom / Otter connectors (the `source` column and connector table exist from Phase 1, so this is an insert path, not a migration), remaining product shapes, `.pptx` export, multi-tenant client access.
 

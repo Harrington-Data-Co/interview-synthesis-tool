@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChainStage } from "@/components/chain/ChainStage";
+import { CorpusStage } from "@/components/corpus/CorpusStage";
 import { CodeAllButton, GenerateNotesButton } from "@/components/project/BatchButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
 import type { LabelAxis, LabelMap } from "@/components/project/labels";
@@ -17,17 +19,28 @@ const VIEWS = [
   ["interviews", "Interviews"],
   ["themes", "Themes"],
   ["memo", "Memo"],
+  ["chain", "Chain"],
+  ["corpus", "Corpus"],
 ] as const;
 type ViewKey = (typeof VIEWS)[number][0];
 
 /** One project: its interviews (with labels, notes and coding), the themes
- *  across them, and the findings memo written from those themes. */
+ *  across them, the findings memo written from those themes, one interview's
+ *  chain from line to memo, and the corpus views across all of them. */
 export default async function ProjectPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string; template?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    template?: string;
+    interview?: string;
+    note?: string;
+    memo?: string;
+    facet?: string;
+    proposed?: string;
+  }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -88,7 +101,7 @@ export default async function ProjectPage({
   ];
 
   return (
-    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: 1400 }}>
+    <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: view === "chain" ? undefined : 1400 }}>
       <Link href="/sources" className="meta">
         ← Transcript library
       </Link>
@@ -161,6 +174,16 @@ export default async function ProjectPage({
       )}
       {view === "themes" && <ThemesStage projectId={id} editor={editor} />}
       {view === "memo" && <MemoStage projectId={id} templateId={query.template} editor={editor} />}
+      {view === "chain" && (
+        <ChainStage
+          projectId={id}
+          interviewId={query.interview}
+          noteTemplateId={query.note}
+          memoTemplateId={query.memo}
+          withProposed={query.proposed === "1"}
+        />
+      )}
+      {view === "corpus" && <CorpusStage projectId={id} facetId={query.facet} withProposed={query.proposed === "1"} />}
     </div>
   );
 }
