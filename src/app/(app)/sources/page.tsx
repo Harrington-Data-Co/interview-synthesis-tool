@@ -56,7 +56,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
         )}
       </div>
 
-      <GoogleConnection state={googleState} email={google?.account_email ?? null} editor={editor} notice={googleNotice} />
+      <GoogleConnection state={googleState} email={google?.account_email ?? null} editor={editor} notice={googleNotice} directory={directory} />
 
       {error && (
         <div className="panel" style={{ padding: "var(--space-4)" }}>

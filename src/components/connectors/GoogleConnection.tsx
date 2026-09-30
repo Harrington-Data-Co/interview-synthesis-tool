@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Directory } from "@/lib/directory";
+import { MeetImport } from "./MeetImport";
 
 /** Connect or disconnect Google Drive, where Google Meet saves transcripts. */
 export function GoogleConnection({
@@ -9,15 +11,18 @@ export function GoogleConnection({
   email,
   editor,
   notice,
+  directory,
 }: {
   state: "unconfigured" | "needs-migration" | "disconnected" | "connected";
   email: string | null;
   editor: boolean;
   notice: { tone: "info" | "error"; text: string } | null;
+  directory: Directory;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   async function disconnect() {
     setBusy(true);
@@ -53,13 +58,19 @@ export function GoogleConnection({
               </a>
             )}
             {state === "connected" && (
-              <button className="btn btn-secondary" onClick={disconnect} disabled={busy} style={{ fontSize: 12.5 }}>
-                {busy ? "Disconnecting…" : "Disconnect"}
-              </button>
+              <>
+                <button className="btn btn-primary" onClick={() => setImporting(true)} style={{ fontSize: 12.5 }}>
+                  Import from Google Meet
+                </button>
+                <button className="btn btn-ghost" onClick={disconnect} disabled={busy} style={{ fontSize: 12.5 }}>
+                  {busy ? "Disconnecting…" : "Disconnect"}
+                </button>
+              </>
             )}
           </div>
         )}
       </div>
+      {importing && <MeetImport directory={directory} onClose={() => setImporting(false)} />}
       {(notice || error) && (
         <p style={{ margin: 0, fontSize: 12.5, color: error || notice?.tone === "error" ? "var(--color-danger, #b3261e)" : "var(--color-accent-800)" }}>
           {error ?? notice?.text}
