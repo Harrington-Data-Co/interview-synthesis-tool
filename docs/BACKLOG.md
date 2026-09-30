@@ -121,9 +121,11 @@ project.
 
 ## Under consideration
 
-### Invitation-only access, with project roles
+### Invitation-only access, project roles, and client access
 Only invited people can use the tool, whatever their email domain, so clients
 and partners can be let in too. Not yet designed; considered 2026-09-28.
+Multi-tenant client access (clients seeing their own projects) moved here
+from Phase 6 on 2026-09-29, to be designed alongside this.
 
 - **Accounts by invitation only**: turn off public sign-ups in Supabase and
   invite from the app (server-side, via Supabase's invite API). This replaces
@@ -165,12 +167,120 @@ reasonably well; **the chain board and the corpus views are the concern.**
 - The rest of the app mostly works; a pass over the tables on Sources and
   the project's Interviews tab is worth doing alongside.
 
+## From the 2026-09-30 review
+
+Raised by Ryan after Phase 6. Numbered as he raised them; the order to
+build them in is under *Suggested order* below.
+
+### R1. Meaningful URLs
+`/projects/443f9438-…?view=swimlanes` becomes something like
+`/projects/longwood-foundation/ai-and-automation-opportunity-assessment?view=swimlanes`.
+
+- Needs a stored slug per project (unique within its client) and a client
+  slug. Store them rather than derive them from names, so renaming a
+  project doesn't break links; keep old UUID links working with a redirect.
+- **Decided 2026-09-30:** the client part is the client's *name* slug,
+  not its short code. Short codes are optional (R7), so they can't anchor
+  a URL.
+- Touches every link and route under `/projects/[id]`. The API routes that
+  take a project id stay as they are (URLs are for people; APIs can keep
+  ids).
+
+### R2. Remove participant name and role from the upload dialog
+They duplicate *Who's speaking*, and don't fit interviews that aren't 1:1.
+
+- **Not just a form change.** `transcript.participant` and
+  `participant_role` are read by the coding prompt, the deck's quote
+  attribution ("— Program officer"), the swimlane and architecture routes,
+  the source record editor, and the evidence lists everywhere
+  (`participant`). They'd become derived from the speakers marked
+  *participant*, with a role (job title) per speaker instead of per
+  transcript. The existing `speaker_role` enum (interviewer / participant /
+  other) is the speaker's part in the call, not their job, so a job title
+  needs its own field.
+- Coding prompt input changes, so its version bumps.
+- Do with R4 and R5: all three need a *person* behind a speaker.
+
+### R3. Create a client or project from the upload dialog's dropdowns
+"New client…" / "New project…" at the foot of each dropdown, created in
+place. Small. A new client can take a short code (R7), optionally.
+
+### R4. Remember each person's organization and role
+When a known person turns up in *Who's speaking*, fill in their most recent
+organization and role; both stay editable per transcript.
+
+- Today a speaker exists only per transcript (`transcript_speaker`, keyed
+  by transcript and export name), so there is no "person" to remember
+  anything about. Needs a workspace-wide `person` (name, current
+  organization, current role) and `transcript_speaker.person_id`, matched
+  by name on upload and confirmed in the dialog.
+- The transcript keeps its own organization and role for that call, so a
+  person changing jobs doesn't rewrite old interviews.
+
+### R5. Merge speakers
+Someone joins by phone, then by computer, and appears as two speakers.
+
+- `display_name` already lets two export names show as one name, but they
+  stay two speakers. With R4's `person`, merging is pointing both speakers
+  at the same person; views that count or list speakers count people.
+- The lines stay immutable: each keeps the name the export wrote.
+
+### R6. Rework the upload dialog; new Meet transcripts show up by themselves
+- A design pass on the dialog, best done after R2–R5 change what's in it.
+- New Meet transcripts appear on Sources without clicking *Import from
+  Google Meet*: a "Waiting in Drive" list of Docs not yet imported, checked
+  when Sources loads (no background job needed to start).
+- With R7, a Doc's Drive folder can suggest the client.
+
+### R7. Client short codes
+Use the same short codes for clients as Ryan's Google Drive.
+
+- **Decided 2026-09-30: optional.** A quality-of-life aid for matching,
+  not core data. Ryan means the codes as a through-line key matching the
+  same client across every tool he uses, so they should be exactly what
+  he uses elsewhere.
+- A nullable `code` column on `client` (unique when set), shown beside
+  client names and editable wherever a client is.
+- Feeds R6 (matching Drive folders to clients). Not used in URLs (R1).
+
+### R8. Rethink the top navigation
+Replace *Study* with **Sources**, **Clients** (a menu of clients, each with
+its projects) and **Templates** (Note, Memo and Deck templates directly).
+
+- Removes the placeholder `/study` page.
+- Clients menu links use R1's URLs, so build it with or after R1.
+- Worth designing with the mobile layout in mind (see *Mobile-friendly
+  layout*).
+
+### R9. Separate process from outputs in a project's tabs
+Process: **Interviews → Themes → Memo → Chain**, shown as steps with arrows.
+Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
+
+- The project page's `VIEWS` list and tab bar only. Independent of the
+  rest.
+- **Decided 2026-09-30:** Chain is not a fourth step. It traces a finding
+  back through every step, so it sits beside the arrows as a check on the
+  whole process: **Interviews → Themes → Memo**, then Chain set apart.
+
+### R10. Swimlane whitespace
+Short process maps leave a wide empty area on the right. Size the grid to
+its steps (or spread steps to fill) in `Swimlane.tsx`. Small.
+
+### R11. Favicon
+Use the Harrington Data Co website's favicon (`src/app/icon.*` /
+`favicon.ico`). Small; needs the file from harringtondata.com.
+
 ## Suggested order
 
-1. **Items 3, 3a, then 4.** The client → project picker and organizations
-   first, since editing (4) reuses both; then source-record editing. One
-   migration covers it: `organization`, and `display_name` +
-   `organization_id` on `transcript_speaker`.
-2. **Item 5.** The project view. Labels slot in here.
-3. **Item 2**, a small change to the existing dialog.
-4. **Item 1**, the largest; it reuses 2 and 3.
+Earlier items are all done. For the 2026-09-30 review (R1–R11):
+
+1. **The person model first: R4 + R5 + R2** (decided 2026-09-30: it's
+   foundational, so it goes before anything else). One migration adding
+   `person` and a per-speaker role, then moving everything that reads
+   `participant` / `participant_role` over to the speakers.
+2. **R7 then R3.** One small migration (optional client short code).
+3. **R6.** The upload dialog redesign, once 1–2 have settled what's in it.
+4. **R1 + R8 together.** Both reshape routes and links; do them in one
+   pass, before client access (clients will see these URLs).
+5. **Quick wins whenever: R11, R10, R9.**
+6. Then *Invitation-only access…* and *Mobile-friendly layout* above.

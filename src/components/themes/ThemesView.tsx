@@ -1,18 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EvidenceDrawer } from "@/components/evidence/EvidenceDrawer";
 import { Notice } from "@/components/ui";
 import { ThemeEditor, type ThemeSeed } from "./ThemeEditor";
-import {
-  themeAction,
-  type EvidenceCode,
-  type EvidenceInterview,
-  type ThemeRejectionView,
-  type ThemeRunView,
-  type ThemeView,
-} from "./types";
+import { themeAction, type EvidenceCode, type EvidenceInterview, type ThemeRejectionView, type ThemeRunView, type ThemeView } from "./types";
 
 const PREVIEW = 10;
 
@@ -38,7 +31,8 @@ export function ThemesView({
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"" | "proposed" | "confirmed">("");
-  const [open, setOpen] = useState<Set<string>>(new Set());
+  // The theme whose quotes are open in the drawer.
+  const [open, setOpen] = useState<string | null>(null);
   const [seed, setSeed] = useState<ThemeSeed | null>(null);
   const [merging, setMerging] = useState<{ keepId: string; ids: Set<string> } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -54,10 +48,22 @@ export function ThemesView({
   const lastRun = runs[0];
   const small = { fontSize: 11.5, padding: "2px 8px" } as const;
 
+  const order = new Map(interviews.map((iv, i) => [iv.id, i]));
   const weight = (t: ThemeView) => {
-    const cs = t.codeIds.map((id) => byId.get(id)).filter((c): c is EvidenceCode => !!c);
+    const cs = t.codeIds
+      .map((id) => byId.get(id))
+      .filter((c): c is EvidenceCode => !!c)
+      .sort((a, b) => (order.get(a.transcriptId) ?? 0) - (order.get(b.transcriptId) ?? 0) || a.line_start - b.line_start);
     return { codes: cs, ivs: new Set(cs.map((c) => c.transcriptId)).size };
   };
+  const openTheme = themes.find((t) => t.id === open);
+
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [open]);
 
   async function act(body: Record<string, unknown>, done?: string) {
     setBusy(true);
@@ -98,7 +104,10 @@ export function ThemesView({
         fontWeight: filter === value ? 700 : 500,
       }}
     >
-      {text} <span className="mono" style={{ opacity: 0.7 }}>{n}</span>
+      {text}{" "}
+      <span className="mono" style={{ opacity: 0.7 }}>
+        {n}
+      </span>
     </button>
   );
 
@@ -140,7 +149,10 @@ export function ThemesView({
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       {merging && (
-        <div className="panel" style={{ padding: "var(--space-2) var(--space-3)", display: "flex", gap: "var(--space-2)", alignItems: "center", background: "var(--color-navy)", color: "#FFFFFF" }}>
+        <div
+          className="panel"
+          style={{ padding: "var(--space-2) var(--space-3)", display: "flex", gap: "var(--space-2)", alignItems: "center", background: "var(--color-navy)", color: "#FFFFFF" }}
+        >
           <span style={{ fontSize: 12.5 }}>
             Tick the themes to fold into <strong>{themes.find((t) => t.id === merging.keepId)?.ref}</strong>
           </span>
@@ -173,9 +185,21 @@ export function ThemesView({
           )}
           {shown.map((t) => {
             const w = weight(t);
-            const expanded = open.has(t.id);
+            const picked = open === t.id;
             return (
-              <div key={t.id} className="card" style={{ gap: 8, borderLeft: `3px solid ${t.status === "confirmed" ? "var(--color-accent)" : "var(--line-3)"}` }}>
+              <div
+                key={t.id}
+                className="card"
+                title="Show this theme's quotes"
+                // The card's own buttons and inputs do their own thing.
+                onClick={(e) => !(e.target as Element).closest("button, a, input, label") && setOpen(picked ? null : t.id)}
+                style={{
+                  gap: 8,
+                  cursor: "pointer",
+                  borderLeft: `3px solid ${t.status === "confirmed" ? "var(--color-accent)" : "var(--line-3)"}`,
+                  boxShadow: picked ? "0 0 0 2px var(--color-accent-400)" : undefined,
+                }}
+              >
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   {merging && merging.keepId !== t.id && (
                     <input
@@ -206,30 +230,20 @@ export function ThemesView({
                 <strong style={{ fontSize: 15, lineHeight: 1.35 }}>{t.title}</strong>
                 {t.description && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>{t.description}</p>}
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-                  {(expanded ? w.codes : w.codes.slice(0, PREVIEW)).map((c) => (
+                  {w.codes.slice(0, PREVIEW).map((c) => (
                     <span key={c.id} className="tag tag-neutral" title={c.label} style={{ fontSize: 10.5 }}>
                       {c.key}
                     </span>
                   ))}
-                  <button type="button" className="meta" onClick={() => setOpen((o) => { const n = new Set(o); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n; })} style={{ border: 0, background: "none", cursor: "pointer", fontSize: 11.5 }}>
-                    {expanded ? "Hide quotes" : w.codes.length > PREVIEW ? `+${w.codes.length - PREVIEW} more · show quotes` : "Show quotes"}
+                  {w.codes.length > PREVIEW && (
+                    <span className="meta" style={{ fontSize: 11.5 }}>
+                      +{w.codes.length - PREVIEW} more
+                    </span>
+                  )}
+                  <button type="button" className="meta" onClick={() => setOpen(picked ? null : t.id)} style={{ border: 0, background: "none", cursor: "pointer", fontSize: 11.5 }}>
+                    {picked ? "Hide quotes" : "Show quotes"}
                   </button>
                 </div>
-                {expanded && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, borderTop: "1px solid var(--line-1)", paddingTop: 6 }}>
-                    {w.codes.map((c) => (
-                      <div key={c.id} style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-                        <Link href={`/transcripts/${c.transcriptId}?stage=coding`} className="mono" style={{ fontSize: 11, fontWeight: 700 }}>
-                          {c.key}
-                        </Link>{" "}
-                        <span className="meta" style={{ fontSize: 11 }}>
-                          {ivById.get(c.transcriptId)?.participant ?? ""}
-                        </span>{" "}
-                        <em>“{c.verbatim}”</em>
-                      </div>
-                    ))}
-                  </div>
-                )}
                 {t.lastEdit && (
                   <span className="meta" style={{ fontSize: 11 }}>
                     Edited by {t.lastEdit.by} · {t.lastEdit.text}
@@ -237,13 +251,27 @@ export function ThemesView({
                 )}
                 {editor && !merging && (
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    <button className={t.status === "confirmed" ? "btn btn-ghost" : "btn btn-secondary"} style={small} disabled={busy} onClick={() => act({ action: "confirm", themeId: t.id, confirmed: t.status !== "confirmed" })}>
+                    <button
+                      className={t.status === "confirmed" ? "btn btn-ghost" : "btn btn-secondary"}
+                      style={small}
+                      disabled={busy}
+                      onClick={() => act({ action: "confirm", themeId: t.id, confirmed: t.status !== "confirmed" })}
+                    >
                       {t.status === "confirmed" ? "Un-confirm" : "Confirm"}
                     </button>
-                    <button className="btn btn-ghost" style={small} onClick={() => setSeed({ mode: "edit", themeId: t.id, title: t.title, description: t.description ?? "", codeIds: t.codeIds })}>
+                    <button
+                      className="btn btn-ghost"
+                      style={small}
+                      onClick={() => setSeed({ mode: "edit", themeId: t.id, title: t.title, description: t.description ?? "", codeIds: t.codeIds })}
+                    >
                       Edit
                     </button>
-                    <button className="btn btn-ghost" style={small} disabled={t.codeIds.length < 2} onClick={() => setSeed({ mode: "split", themeId: t.id, title: t.ref, codeIds: t.codeIds })}>
+                    <button
+                      className="btn btn-ghost"
+                      style={small}
+                      disabled={t.codeIds.length < 2}
+                      onClick={() => setSeed({ mode: "split", themeId: t.id, title: t.ref, codeIds: t.codeIds })}
+                    >
                       Split
                     </button>
                     <button className="btn btn-ghost" style={small} onClick={() => setMerging({ keepId: t.id, ids: new Set() })}>
@@ -270,75 +298,73 @@ export function ThemesView({
           })}
         </section>
 
-        <aside style={{ flex: "1 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <div className="card" style={{ gap: 6 }}>
-            <span className="card-kicker">Source ledger · {interviews.length} coded interview{interviews.length === 1 ? "" : "s"}</span>
-            {interviews.map((iv) => (
-              <div key={iv.id} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 8, alignItems: "baseline", fontSize: 12.5 }}>
-                <span className="mono meta">{iv.key}</span>
-                <Link href={`/transcripts/${iv.id}?stage=coding`} style={{ minWidth: 0 }}>
-                  {iv.participant ?? iv.title}
-                  {iv.organization && (
-                    <span className="meta" style={{ display: "block", fontSize: 11 }}>
-                      {iv.organization}
+        {rejections.length > 0 && (
+          <aside style={{ flex: "1 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            {rejections.length > 0 && (
+              <div className="panel" style={{ padding: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-2)", background: "var(--color-accent-100)" }}>
+                <strong style={{ fontSize: 13 }}>Needs review · {rejections.length}</strong>
+                {rejections.map((r) => (
+                  <div key={r.id} style={{ borderTop: "1px solid var(--line-1)", paddingTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+                    {r.proposal.title && <span style={{ fontSize: 12.5, fontWeight: 600 }}>{r.proposal.title}</span>}
+                    <span className="meta" style={{ fontSize: 11.5 }}>
+                      {r.reason}
                     </span>
-                  )}
-                </Link>
-                <span className="mono meta" style={{ fontSize: 11 }}>
-                  {iv.codeCount}
-                </span>
+                    {editor && (
+                      <span style={{ display: "flex", gap: 6 }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={small}
+                          onClick={() =>
+                            setSeed({
+                              mode: "create",
+                              rejectionId: r.id,
+                              title: r.proposal.title ?? "",
+                              description: r.proposal.description ?? "",
+                              codeIds: (r.proposal.code_ids ?? codes.filter((c) => (r.proposal.codes ?? []).includes(c.key)).map((c) => c.id)).filter((id) => byId.has(id)),
+                            })
+                          }
+                        >
+                          Fix
+                        </button>
+                        <button className="btn btn-ghost" style={small} disabled={busy} onClick={() => act({ action: "dismiss", rejectionId: r.id })}>
+                          Dismiss
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          {rejections.length > 0 && (
-            <div className="panel" style={{ padding: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-2)", background: "var(--color-accent-100)" }}>
-              <strong style={{ fontSize: 13 }}>Needs review · {rejections.length}</strong>
-              {rejections.map((r) => (
-                <div key={r.id} style={{ borderTop: "1px solid var(--line-1)", paddingTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
-                  {r.proposal.title && <span style={{ fontSize: 12.5, fontWeight: 600 }}>{r.proposal.title}</span>}
-                  <span className="meta" style={{ fontSize: 11.5 }}>
-                    {r.reason}
-                  </span>
-                  {editor && (
-                    <span style={{ display: "flex", gap: 6 }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={small}
-                        onClick={() =>
-                          setSeed({
-                            mode: "create",
-                            rejectionId: r.id,
-                            title: r.proposal.title ?? "",
-                            description: r.proposal.description ?? "",
-                            codeIds: (r.proposal.code_ids ?? codes.filter((c) => (r.proposal.codes ?? []).includes(c.key)).map((c) => c.id)).filter((id) => byId.has(id)),
-                          })
-                        }
-                      >
-                        Fix
-                      </button>
-                      <button className="btn btn-ghost" style={small} disabled={busy} onClick={() => act({ action: "dismiss", rejectionId: r.id })}>
-                        Dismiss
-                      </button>
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </aside>
+            )}
+          </aside>
+        )}
       </div>
 
-      {seed && (
-        <ThemeEditor
-          seed={seed}
-          projectId={projectId}
-          interviews={interviews}
-          codes={codes}
-          onClose={() => setSeed(null)}
-          onSaved={() => router.refresh()}
+      {openTheme && (
+        <EvidenceDrawer
+          kicker={`${openTheme.ref} · ${openTheme.status === "confirmed" ? "Confirmed" : "Proposed"} theme`}
+          title={openTheme.title}
+          description={openTheme.description}
+          sections={[
+            {
+              key: openTheme.id,
+              quotes: weight(openTheme).codes.map((c) => ({
+                id: c.id,
+                transcriptId: c.transcriptId,
+                ref: c.ref,
+                type: c.type,
+                label: c.label,
+                verbatim: c.verbatim,
+                start: c.line_start,
+                end: c.line_end,
+              })),
+            },
+          ]}
+          interviews={ivById}
+          onClose={() => setOpen(null)}
         />
       )}
+
+      {seed && <ThemeEditor seed={seed} projectId={projectId} interviews={interviews} codes={codes} onClose={() => setSeed(null)} onSaved={() => router.refresh()} />}
     </div>
   );
 }

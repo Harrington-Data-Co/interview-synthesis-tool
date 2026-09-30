@@ -99,6 +99,31 @@ anyone else relies on signing in, send from Harrington's own domain:
 5. **Test it**: sign out, request a link, and check it arrives from the new
    address and isn't in spam.
 
+## Connecting Google Meet
+
+Meet saves each transcript as a Google Doc in the organizer's Google Drive.
+The app reads them from there, read-only. Set this up once, signed in to
+Google with your Workspace (harringtondata.com) account:
+
+1. In the [Google Cloud console](https://console.cloud.google.com), create a
+   project (for example *Interview Synthesis*) under the harringtondata.com
+   organization.
+2. **APIs & Services → Library**: enable the **Google Drive API**.
+3. **Google Auth Platform → Get started** (the OAuth consent screen): app
+   name, support email, audience **Internal**.
+4. **Data Access**: add the scope
+   `https://www.googleapis.com/auth/drive.readonly`.
+5. **Clients → Create client**, type **Web application**, with the
+   authorized redirect URI
+   `http://localhost:3000/api/connectors/google/callback` (add the deployed
+   URL's `/api/connectors/google/callback` too when there is one).
+6. Add to `.env.local`: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from
+   the client, and `CONNECTOR_TOKEN_KEY` (32 random bytes, base64:
+   `openssl rand -base64 32`), which encrypts the stored refresh token.
+   Changing that key disconnects everyone.
+7. Apply migration `20260929e_google_connector.sql`, restart the dev
+   server, and use **Connect Google Drive** on the Sources page.
+
 ## Updating an existing database
 
 `supabase/schema.sql` always describes the whole current database, so a new

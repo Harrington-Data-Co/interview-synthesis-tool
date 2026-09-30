@@ -1,35 +1,102 @@
 # Handoff — where things stand
 
-Updated 2026-09-29, Phase 5 session. Read this first, then `docs/PLAN.md`.
+Updated 2026-09-30, end of the overnight Phase 6 session. Read this
+first, then `docs/PLAN.md`.
 
 ## State
 
-- `main` holds Phases 0–5 (Phase 5 merged 2026-09-29, commit `9eff229`
-  plus the "mark done" commit). Phase 5 needs migration
-  `supabase/migrations/20260929d_corpus.sql` applied (one read-only
-  function, `corpus_matrix`); the Corpus tab shows an error naming the
-  migration until it is. Confirm with Ryan that it's applied.
-- Checked so far: `corpus_matrix` in PGlite (confirmed vs proposed, merged
-  codes dropped, other projects excluded, no seat → no rows), unit tests
-  for the derivations and the chain's reachability, `tsc`, `eslint`, build.
-  Not yet seen rendering against real data.
-- Prompts in use: `coding-v1`, `note-v2`, `themes-v1`, `memo-v1`. Model
-  `claude-opus-5-5`, effort `high` (`src/lib/claude/call.ts`). Phase 5 makes
-  no Claude calls.
+- `main` holds Phases 0–5. **Phase 6 is on branch `phase-6`** (pushed, not
+  merged), built overnight while Ryan slept; he asked to review it before
+  anything merges.
+- **Migrations:** `20260929e_google_connector` and `20260929f_swimlanes`
+  are applied (Ryan, 2026-09-29 night). **`20260929g_decks` and
+  `20260929h_architecture` are not applied yet**: the Deck and
+  Architecture tabs need them.
+- **Google Drive is connected** (Ryan's harringtondata.com account,
+  read-only scope). Meet transcripts live across his drives, mostly the
+  shared drive, not in "Meet Recordings".
+- **Every Phase 6 deliverable in scope is built**: Google Drive
+  connection, Meet import, swimlanes (process maps), slide decks with
+  .pptx download, and current-state architecture maps. Client access moved
+  to the backlog.
+- **Claude spend tonight: about $1.25** of the $5 Ryan allowed (swimlane
+  prompt once, $0.13; deck prompt twice, $0.38 and $0.36; architecture
+  prompt once, $0.38), all on real project data, read-only; nothing was
+  written to the database by these tests.
+- Prompts: `coding-v1`, `note-v2`, `themes-v1`, `memo-v1`, `flow-v1`,
+  `deck-v1`, `arch-v1`. Model `claude-opus-5-5`, effort `high`.
+
+## For Ryan in the morning
+
+1. Apply `supabase/migrations/20260929g_decks.sql`, then
+   `20260929h_architecture.sql`.
+2. Try, on a real project: **Swimlanes** (Draw), **Deck** (add the
+   "Findings readout" template from Templates → Deck templates, Write,
+   Download .pptx), **Architecture** (Draw), and **Sources → Import from
+   Google Meet**. None has been clicked through signed in; each was checked
+   with sample data in a browser and its Claude/Drive side run for real.
+3. Decisions made without you, easy to reverse:
+   - Deck quotes are attributed by role ("— Program officer"), never by
+     name; the deck prompt also refers to people by role.
+   - The .pptx uses Arial (Inter isn't on every presenter's machine).
+   - New project tabs: Deck, Swimlanes and Architecture, after Memo.
+   - Swimlane and architecture pain points are derived (an item citing a
+     Pain or Constraint code), not a separate field.
+   - The Meet import marks a Doc "uploaded before" when a transcript has
+     the same file name as Drive's .docx download, since export bytes
+     differ every time and the checksum can't catch it.
+   - **Architecture edits have no undo** (swimlanes and deck slides do).
+     Cut for time; edits are still logged to `edit`.
+   - Action buttons now say "Draw"/"Redraw" and "Write"/"Rewrite", not
+     "… with Claude", per your earlier wording preference.
 
 ## Likely next steps
 
-1. Any Phase 5 follow-ups once Ryan uses the Chain and Corpus tabs on a
-   real project (so far they've only been seen with sample data).
-2. The header's **Study** link still goes to a Phase 0 placeholder page
-   (`src/app/(app)/study/page.tsx`); the study views now live as project
-   tabs. Decide whether to remove it or make it a project picker.
-3. Open items in `docs/BACKLOG.md`, including the invitation model with
-   project roles (why the sign-up hook was deliberately left off), soft
-   locks, and a mobile-friendly layout (the chain board and corpus views
-   are the problem areas).
-4. Phase 6: connectors, remaining product shapes, multi-tenancy
-   (`docs/PLAN.md`).
+1. Ryan's review of the above, and follow-ups.
+2. Architecture layout on big maps: the real test drew 25 systems and 29
+   flows. Systems no flow touches now sit in a strip below, and columns
+   over 8 split in two, but a busy map still scrolls sideways and a hub
+   like Foundant has many crossing lines. Worth a look with real use.
+3. Undo for architecture edits, if missed.
+4. The header's **Study** link still goes to a placeholder page; remove it
+   or make it a project picker.
+5. `docs/BACKLOG.md`: invitation-only access with project roles and client
+   access (designed together), soft locks, mobile-friendly layout.
+
+## How Phase 6 is put together
+
+- **Google connection** (`src/lib/connectors/google.ts`,
+  `/api/connectors/google/{start,callback}`, `connector_account`): per-user
+  OAuth, `drive.readonly`, offline access. The refresh token is sealed with
+  AES-256-GCM under `CONNECTOR_TOKEN_KEY` before it's stored; RLS lets a
+  user see only their own row. Sources page shows the connection.
+- **Meet import** (`src/lib/connectors/{meet,names}.ts`,
+  `/api/connectors/google/meet[/file]`, `MeetImport.tsx`): lists Meet
+  transcript Docs across all drives (Gemini notes excluded), newest first;
+  search is Drive full-text and is sorted in the app, since Drive refuses
+  `orderBy` with full-text. Picked Docs are exported as .docx and handed to
+  the usual `UploadDialog` review; `connector_import` records Drive file →
+  transcript so imported Docs show as such.
+- **Swimlanes** (`src/lib/flow/`, `src/components/flow/`): Claude draws
+  process maps (`flow`, lanes, ordered steps of kind task/wait/decision)
+  from Step, Tool, Stakeholder, Pain and Constraint codes; every step cites
+  codes. People can add, edit, move and delete lanes and steps, and undo
+  the last step edit.
+- **Deck** (`src/lib/deck/`, `src/components/deck/`): deck templates are
+  `product_template` kind `deck`; Claude writes `deck_slide` rows per
+  section (finding, quote or statement layouts, ≤6 bullets), citing themes
+  and codes under the memo's rules; a quote slide's quote must be a cited
+  code. Rewrite keeps slides people edited. `/api/projects/[id]/deck/pptx`
+  builds the .pptx with pptxgenjs (`src/lib/deck/pptx.ts`).
+- **Architecture** (`src/lib/arch/`, `src/components/arch/`): Claude draws
+  `arch_map`s of systems (`arch_node`: kind, official or workaround),
+  flows between them (`arch_flow`: what moves, by hand or automatic) and
+  gaps (`arch_gap`), each citing codes. Items that fail the checks land in
+  `arch_rejection` ("Needs review"). `layers()` places systems in columns
+  by longest path so data reads left to right (cycles broken);
+  `ArchDiagram` measures the cards and draws flows as SVG. Picking a system
+  lights its flows; picking a gap lights everything sharing its codes.
+  All writes go through `save_arch_item` / `delete_arch_item`.
 
 ## How Phase 5 is put together
 

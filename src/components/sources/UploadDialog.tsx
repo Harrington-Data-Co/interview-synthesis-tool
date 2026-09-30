@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { IngestPreview, SourceKind } from "@/lib/ingest/preview";
 import { withPaths, type Directory, type OrgOption } from "@/lib/directory";
@@ -40,6 +40,8 @@ type Details = {
 type Item = {
   key: string;
   file: File | null;
+  /** Where the file came from, when a connector fetched it. */
+  external: External | null;
   pasted: { text: string; name: string; source: SourceKind } | null;
   state: "reading" | "ready" | "unreadable" | "saving" | "saved" | "failed";
   error: string;
@@ -53,6 +55,10 @@ type Item = {
   savedId: string | null;
   open: boolean;
 };
+
+/** A file a connector fetched: its outside id, and what its name told us. */
+export type External = { provider: "google"; id: string; title: string; recordedOn: string | null };
+export type Incoming = { file: File; external: External };
 
 const label = (i: Item) => i.file?.name ?? (i.pasted?.name || "Pasted transcript");
 const skipped = (i: Item) => i.state === "unreadable" || !!i.preview?.duplicateOf || !!i.sameAs;
@@ -82,10 +88,13 @@ async function inBatches<T>(items: T[], size: number, run: (t: T) => Promise<voi
 export function UploadDialog({
   directory,
   defaultProjectId = "",
+  incoming,
   onClose,
 }: {
   directory: Directory;
   defaultProjectId?: string;
+  /** Files a connector already fetched: read them straight away. */
+  incoming?: Incoming[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -107,11 +116,14 @@ export function UploadDialog({
       all.map((i) => (i.key === key ? { ...i, ...(typeof patch === "function" ? patch(i) : patch) } : i)),
     );
 
-  async function read() {
+  async function read(from?: Incoming[]) {
     setLastSaved(null);
-    const fresh: Item[] = (mode === "file" ? files : [null]).map((file, n) => ({
+    const picked: (Incoming | { file: File | null; external: null })[] =
+      from ?? (mode === "file" ? files : [null]).map((file) => ({ file, external: null }));
+    const fresh: Item[] = picked.map(({ file, external }, n) => ({
       key: `${Date.now()}-${n}`,
       file,
+      external,
       pasted: file ? null : { text: pasted, name: pastedName.trim(), source: pastedSource },
       state: "reading",
       error: "",
@@ -121,7 +133,7 @@ export function UploadDialog({
       speakers: {},
       projectId: undefined,
       savedId: null,
-      open: opensExpanded(mode, files),
+      open: from ? from.length === 1 : opensExpanded(mode, files),
     }));
     setItems(fresh);
     setStage("review");
@@ -138,11 +150,12 @@ export function UploadDialog({
           preview,
           sameAs: first ?? null,
           details: {
-            title: item.pasted?.name || preview.title,
+            // A connector's name for the meeting beats one guessed from the file name.
+            title: item.external?.title || item.pasted?.name || preview.title,
             participant: preview.participant ?? "",
             participantRole: "",
-            recordedOn: preview.recordedOn ?? "",
-            source: item.pasted?.source ?? preview.source,
+            recordedOn: preview.recordedOn ?? item.external?.recordedOn ?? "",
+            source: item.external ? "meet" : (item.pasted?.source ?? preview.source),
           },
           speakers: Object.fromEntries(
             preview.speakers.map((s) => [
@@ -172,6 +185,15 @@ export function UploadDialog({
       form.append("speakers", JSON.stringify(Object.entries(item.speakers).map(([name, v]) => ({ name, ...v }))));
       const { id } = await post("/api/ingest", form);
       update(item.key, { state: "saved", savedId: id });
+      if (item.external) {
+        // Best effort: the transcript is in either way; this only marks the
+        // Drive file as imported.
+        await fetch("/api/connectors/google/meet", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ fileId: item.external.id, transcriptId: id }),
+        }).catch(() => {});
+      }
       return id;
     } catch (e) {
       update(item.key, { state: "failed", error: (e as Error).message, open: true });
@@ -209,6 +231,15 @@ export function UploadDialog({
       setStage("done");
     }
   }
+
+  // Files a connector fetched are read as soon as the dialog opens.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!incoming?.length || started.current) return;
+    started.current = true;
+    void read(incoming);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming]);
 
   const reading = items.some((i) => i.state === "reading");
   const saveable = items.filter((i) => !skipped(i) && i.state !== "saved");
@@ -301,7 +332,7 @@ export function UploadDialog({
             <button className="btn btn-ghost" onClick={onClose}>
               {lastSaved ? "Done" : "Cancel"}
             </button>
-            <button className="btn btn-primary" onClick={read} disabled={!canRead}>
+            <button className="btn btn-primary" onClick={() => read()} disabled={!canRead}>
               {mode === "file" && files.length > 1 ? `Read ${files.length} transcripts` : "Read transcript"}
             </button>
           </div>
