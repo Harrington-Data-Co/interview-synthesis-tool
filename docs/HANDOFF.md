@@ -4,13 +4,11 @@ Updated 2026-09-29, Phase 5 session. Read this first, then `docs/PLAN.md`.
 
 ## State
 
-- `main` holds Phases 0–4 (Phase 4 merged at `3caad1c`).
-- **Branch `phase-5-corpus`**: Phase 5 (the chain board and corpus views) is
-  committed and pushed, **not merged into `main`**, and not yet tested
-  against Supabase (only with sample data in a browser). It
-  needs migration `supabase/migrations/20260929d_corpus.sql` applied (one
-  read-only function, `corpus_matrix`). The Chain tab works without it; the
-  Corpus tab shows an error naming the migration until it's applied.
+- `main` holds Phases 0–5 (Phase 5 merged 2026-09-29, commit `9eff229`
+  plus the "mark done" commit). Phase 5 needs migration
+  `supabase/migrations/20260929d_corpus.sql` applied (one read-only
+  function, `corpus_matrix`); the Corpus tab shows an error naming the
+  migration until it is. Confirm with Ryan that it's applied.
 - Checked so far: `corpus_matrix` in PGlite (confirmed vs proposed, merged
   codes dropped, other projects excluded, no seat → no rows), unit tests
   for the derivations and the chain's reachability, `tsc`, `eslint`, build.
@@ -21,15 +19,16 @@ Updated 2026-09-29, Phase 5 session. Read this first, then `docs/PLAN.md`.
 
 ## Likely next steps
 
-1. Ryan applies `20260929d`, tries the Chain and Corpus tabs on a real
-   project, and raises follow-ups. Merge when he says so, and mark Phase 5
-   done in the README.
+1. Any Phase 5 follow-ups once Ryan uses the Chain and Corpus tabs on a
+   real project (so far they've only been seen with sample data).
 2. The header's **Study** link still goes to a Phase 0 placeholder page
    (`src/app/(app)/study/page.tsx`); the study views now live as project
    tabs. Decide whether to remove it or make it a project picker.
 3. Open items in `docs/BACKLOG.md`, including the invitation model with
    project roles (why the sign-up hook was deliberately left off) and soft
-   locks. Then Phase 6 (`docs/PLAN.md`).
+   locks.
+4. Phase 6: connectors, remaining product shapes, multi-tenancy
+   (`docs/PLAN.md`).
 
 ## How Phase 5 is put together
 

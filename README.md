@@ -149,7 +149,7 @@ the prototype's `harrington/tools.css`. Add to it; don't restyle it.
 | 2 | Coding — Claude first pass, then the human layer | **done** (prompt `coding-v1`) |
 | 3 | Interview notes from templates | **done** (prompt `note-v2`) |
 | 4 | Themes and the findings memo | **done** (prompts `themes-v1`, `memo-v1`) |
-| 5 | The chain board and corpus views | built, in testing (migration `20260929d`) |
+| 5 | The chain board and corpus views | **done** (migration `20260929d`) |
 | 6 | Connectors, remaining product shapes, multi-tenancy | |
 
 The full plan is at `docs/PLAN.md`; follow-ups are in `docs/BACKLOG.md`.
