@@ -1,9 +1,11 @@
 import { ApiError, errorResponse, requireEditor } from "@/lib/api";
 import { createClient } from "@/lib/supabase/server";
+import { codeTaken, readCode } from "@/lib/clients";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Create a project, under an existing client or a new one. */
+/** Create a project, under an existing client or a new one (with an
+ *  optional short code). Returns the project's id and client id. */
 export async function POST(request: Request) {
   try {
     const seat = await requireEditor();
@@ -18,12 +20,13 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
     if (!clientId) {
+      const code = readCode(body.clientCode);
       const { data, error } = await supabase
         .from("client")
-        .insert({ name: clientName, created_by: seat.user_id })
+        .insert({ name: clientName, code, created_by: seat.user_id })
         .select("id")
         .single();
-      if (error) throw error;
+      if (error) throw error.code === "23505" ? codeTaken(code) : error;
       clientId = data.id;
     }
 
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
       .from("activity")
       .insert({ project_id: project.id, actor: seat.user_id, verb: "created project", object: projectName });
 
-    return Response.json({ id: project.id });
+    return Response.json({ id: project.id, clientId });
   } catch (e) {
     return errorResponse(e);
   }

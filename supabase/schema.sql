@@ -48,9 +48,13 @@ create table seat (
 create table client (
   id         uuid primary key default gen_random_uuid(),
   name       text not null,
+  -- Ryan's short code for the client (LWF), the same in every tool he uses.
+  -- Optional; unique when set. Migration 20260930d.
+  code       text check (code is null or (btrim(code) <> '' and length(code) <= 20)),
   created_by uuid not null references seat (user_id),
   created_at timestamptz not null default now()
 );
+create unique index client_code_key on client (lower(code)) where code is not null;
 
 create table project (
   id         uuid primary key default gen_random_uuid(),

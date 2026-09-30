@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GoogleConnection } from "@/components/connectors/GoogleConnection";
 import { AssignProject } from "@/components/sources/AssignProject";
+import { ClientCode } from "@/components/sources/ClientCode";
 import { SourcesActions } from "@/components/sources/SourcesActions";
 import { loadDirectory } from "@/lib/directory";
 import { loadTranscripts, participantsOf, SOURCE_LABEL, type TranscriptRow } from "@/lib/library";
@@ -128,7 +129,10 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
           const projects = directory.projects.filter((p) => p.clientId === c.id);
           return (
             <div key={c.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <span className="kicker">{c.name}</span>
+              <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span className="kicker">{c.name}</span>
+                <ClientCode clientId={c.id} code={c.code} editor={editor} />
+              </span>
               {!projects.length ? (
                 <p className="meta" style={{ margin: 0 }}>No projects yet.</p>
               ) : (

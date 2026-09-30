@@ -11,7 +11,7 @@ import type { LabelAxis, LabelMap } from "@/components/project/labels";
 import { MemoStage } from "@/components/memo/MemoStage";
 import { SourcesActions } from "@/components/sources/SourcesActions";
 import { ThemesStage } from "@/components/themes/ThemesStage";
-import { loadDirectory } from "@/lib/directory";
+import { loadDirectory, clientLabel } from "@/lib/directory";
 import { loadTranscripts, participantNames, participantOrgIds, SOURCE_LABEL } from "@/lib/library";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
@@ -127,7 +127,7 @@ export default async function ProjectPage({
       </Link>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span className="kicker">{client?.name ?? "Client"}</span>
+          <span className="kicker">{client ? clientLabel(client) : "Client"}</span>
           <h2 style={{ fontSize: 26, margin: 0 }}>{project.name}</h2>
         </div>
         {editor && (

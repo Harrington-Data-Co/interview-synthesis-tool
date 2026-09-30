@@ -2,12 +2,15 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Field } from "@/components/ui";
-import type { Directory, OrgOption, PersonOption } from "@/lib/directory";
-import { addOrg, orgChain, orgLabel } from "@/lib/directory";
+import { useRouter } from "next/navigation";
+import type { ClientOption, Directory, OrgOption, PersonOption, ProjectOption } from "@/lib/directory";
+import { addOrg, clientLabel, orgChain, orgLabel } from "@/lib/directory";
 import type { SpeakerRole } from "@/lib/ingest/preview";
 
 /** Client, then only that client's projects. The transcript stores the
- *  project; the client is implied by it. */
+ *  project; the client is implied by it. "New client…" and "New project…"
+ *  create one in place (a new client goes straight on to its first project),
+ *  so nothing has to be set up before an upload. */
 export function ClientProjectPicker({
   directory,
   projectId,
@@ -19,38 +22,139 @@ export function ClientProjectPicker({
   onChange: (projectId: string) => void;
   noneLabel?: string;
 }) {
-  const implied = directory.projects.find((p) => p.id === projectId)?.clientId ?? "";
+  const router = useRouter();
+  // Made here, before the page's own lists catch up.
+  const [madeClients, setMadeClients] = useState<ClientOption[]>([]);
+  const [madeProjects, setMadeProjects] = useState<ProjectOption[]>([]);
+  const clients = [...directory.clients, ...madeClients.filter((c) => !directory.clients.some((d) => d.id === c.id))].sort((a, b) => a.name.localeCompare(b.name));
+  const allProjects = [...directory.projects, ...madeProjects.filter((p) => !directory.projects.some((d) => d.id === p.id))];
+  const implied = allProjects.find((p) => p.id === projectId)?.clientId ?? "";
   const [clientId, setClientId] = useState(implied);
-  const projects = directory.projects.filter((p) => p.clientId === clientId);
+  const projects = allProjects.filter((p) => p.clientId === clientId).sort((a, b) => a.name.localeCompare(b.name));
+  const [making, setMaking] = useState<"client" | "project" | null>(null);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const start = (what: "client" | "project") => {
+    setMaking(what);
+    setName("");
+    setCode("");
+    setError("");
+  };
+
+  async function create() {
+    setBusy(true);
+    setError("");
+    const client = making === "client";
+    const res = await fetch(client ? "/api/clients" : "/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(client ? { name, code } : { clientId, projectName: name }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) return setError(body.error ?? `Couldn't create it (${res.status}).`);
+    if (client) {
+      setMadeClients((c) => [...c, { id: body.id, name: body.name, code: body.code ?? null }]);
+      setClientId(body.id);
+      onChange("");
+      start("project"); // a client needs a project before anything goes in it
+    } else {
+      setMadeProjects((p) => [...p, { id: body.id, name: name.trim(), clientId }]);
+      onChange(body.id);
+      setMaking(null);
+    }
+    router.refresh();
+  }
+
+  const form = (what: "client" | "project") => (
+    <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={{ display: "flex", gap: 4 }}>
+        <input
+          className="input"
+          autoFocus
+          placeholder={what === "client" ? "Client name" : `New project for ${clients.find((c) => c.id === clientId)?.name ?? "this client"}`}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && name.trim()) {
+              e.preventDefault();
+              create();
+            }
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              setMaking(null);
+            }
+          }}
+          style={{ fontSize: 12.5 }}
+          aria-label={what === "client" ? "New client's name" : "New project's name"}
+        />
+        {what === "client" && (
+          <input
+            className="input"
+            placeholder="Code (optional)"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            style={{ fontSize: 12.5, width: 130, flex: "none" }}
+            aria-label="Client code"
+            title="Your short code for this client, as in Google Drive (optional)"
+          />
+        )}
+      </span>
+      <span style={{ display: "flex", gap: 4 }}>
+        <button type="button" className="btn btn-primary" style={{ fontSize: 11.5 }} disabled={busy || !name.trim()} onClick={create}>
+          {busy ? "Adding…" : what === "client" ? "Add client" : "Add project"}
+        </button>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: 11.5 }} disabled={busy} onClick={() => setMaking(null)}>
+          Cancel
+        </button>
+      </span>
+      {error && <span style={{ fontSize: 11, color: "var(--color-accent-800)" }}>{error}</span>}
+    </span>
+  );
 
   return (
     <>
       <Field label="Client" hint="Who the project is for.">
-        <select
-          className="input"
-          value={clientId}
-          onChange={(e) => {
-            setClientId(e.target.value);
-            onChange("");
-          }}
-        >
-          <option value="">{noneLabel}</option>
-          {directory.clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        {making === "client" ? (
+          form("client")
+        ) : (
+          <select
+            className="input"
+            value={clientId}
+            onChange={(e) => {
+              if (e.target.value === NEW) return start("client");
+              setClientId(e.target.value);
+              onChange("");
+              setMaking(null);
+            }}
+          >
+            <option value="">{noneLabel}</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {clientLabel(c)}
+              </option>
+            ))}
+            <option value={NEW}>New client…</option>
+          </select>
+        )}
       </Field>
       <Field label="Project">
-        <select className="input" value={projectId} disabled={!clientId} onChange={(e) => onChange(e.target.value)}>
-          <option value="">{clientId ? "Choose a project…" : "—"}</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        {making === "project" ? (
+          form("project")
+        ) : (
+          <select className="input" value={projectId} disabled={!clientId || making === "client"} onChange={(e) => (e.target.value === NEW ? start("project") : onChange(e.target.value))}>
+            <option value="">{clientId ? "Choose a project…" : "—"}</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+            {clientId && <option value={NEW}>New project…</option>}
+          </select>
+        )}
       </Field>
     </>
   );

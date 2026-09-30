@@ -204,6 +204,9 @@ They duplicate *Who's speaking*, and don't fit interviews that aren't 1:1.
 - Do with R4 and R5: all three need a *person* behind a speaker.
 
 ### R3. Create a client or project from the upload dialog's dropdowns
+*Built 2026-09-30 (branch `evening`), no migration: the shared client and
+project picker (upload dialog, Edit record) offers "New client…" (name and
+optional code, then straight on to its first project) and "New project…".*
 "New client…" / "New project…" at the foot of each dropdown, created in
 place. Small. A new client can take a short code (R7), optionally.
 
@@ -292,6 +295,10 @@ page; visibility is designed for client access.
 - With R7, a Doc's Drive folder can suggest the client.
 
 ### R7. Client short codes
+*Built 2026-09-30 (branch `evening`) — migration `20260930d_client_codes`:
+an optional `client.code`, unique ignoring case, shown beside the client's
+name (pickers, library, project page) and set or changed in place from the
+library. Not in URLs.*
 Use the same short codes for clients as Ryan's Google Drive.
 
 - **Decided 2026-09-30: optional.** A quality-of-life aid for matching,
