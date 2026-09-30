@@ -39,17 +39,17 @@ export function TemplatesEditor({
   directory,
   editor,
 }: {
-  kind?: "note" | "memo";
+  kind?: "note" | "memo" | "deck";
   templates: TemplateRow[];
   selectedId: string | null;
   directory: Pick<Directory, "clients" | "projects">;
   editor: boolean;
 }) {
-  const memo = kind === "memo";
-  // Memo sections can also fill from confirmed themes.
+  // Memo and deck sections can also fill from confirmed themes.
+  const memo = kind === "memo" || kind === "deck";
   const TYPES = memo ? ["themes", ...CODE_TYPES] : CODE_TYPES;
-  const starterName = memo ? "Findings memo" : "Discovery interview";
-  const uses = memo ? "memo" : "note";
+  const starterName = kind === "deck" ? "Findings readout" : memo ? "Findings memo" : "Discovery interview";
+  const uses = kind === "deck" ? "deck" : memo ? "memo" : "note";
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -79,7 +79,7 @@ export function TemplatesEditor({
     then?.(id);
     router.refresh();
   }
-  const base = memo ? "/templates?kind=memo&" : "/templates?";
+  const base = memo ? `/templates?kind=${kind}&` : "/templates?";
   const go = (id?: string) => id && router.push(`${base}t=${id}`);
 
   const listItem = (t: TemplateRow) => (
@@ -191,7 +191,7 @@ export function TemplatesEditor({
                   title={selected.notes ? `A ${uses} uses this template` : undefined}
                   onClick={() =>
                     confirming === "delete"
-                      ? run({ action: "delete", templateId: selected.id }, () => router.push(memo ? "/templates?kind=memo" : "/templates"))
+                      ? run({ action: "delete", templateId: selected.id }, () => router.push(memo ? `/templates?kind=${kind}` : "/templates"))
                       : setConfirming("delete")
                   }
                 >
@@ -221,7 +221,7 @@ export function TemplatesEditor({
             <p className="meta" style={{ margin: 0, fontSize: 12 }}>
               {selected.notes} {uses}
               {selected.notes === 1 ? " uses" : "s use"} this template. Section changes apply the next time it&apos;s
-              generated; existing {memo ? "paragraphs" : "items"} stay where they are.
+              generated; existing {kind === "deck" ? "slides" : memo ? "paragraphs" : "items"} stay where they are.
             </p>
           )}
 

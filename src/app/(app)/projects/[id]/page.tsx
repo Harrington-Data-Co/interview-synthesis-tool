@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChainStage } from "@/components/chain/ChainStage";
 import { CorpusStage } from "@/components/corpus/CorpusStage";
+import { DeckStage } from "@/components/deck/DeckStage";
 import { FlowStage } from "@/components/flow/FlowStage";
 import { CodeAllButton, GenerateNotesButton } from "@/components/project/BatchButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
@@ -20,6 +21,7 @@ const VIEWS = [
   ["interviews", "Interviews"],
   ["themes", "Themes"],
   ["memo", "Memo"],
+  ["deck", "Deck"],
   ["swimlanes", "Swimlanes"],
   ["chain", "Chain"],
   ["corpus", "Corpus"],
@@ -189,6 +191,7 @@ export default async function ProjectPage({
       )}
       {view === "themes" && <ThemesStage projectId={id} editor={editor} />}
       {view === "memo" && <MemoStage projectId={id} templateId={query.template} editor={editor} />}
+      {view === "deck" && <DeckStage projectId={id} templateId={query.template} editor={editor} />}
       {view === "swimlanes" && <FlowStage projectId={id} mapId={query.map} editor={editor} />}
       {view === "chain" && (
         <ChainStage

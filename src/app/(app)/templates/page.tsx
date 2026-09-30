@@ -4,24 +4,25 @@ import { loadDirectory } from "@/lib/directory";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
-/** Templates: note templates (an interview's note) and memo templates (a
- *  project's findings memo) — each a library plus project copies. */
+/** Templates: note templates (an interview's note), memo templates (a
+ *  project's findings memo) and deck templates (its slide deck), each a
+ *  library plus project copies. */
 export default async function TemplatesPage({ searchParams }: { searchParams: Promise<{ t?: string; kind?: string }> }) {
   const { t: selectedId, kind: kindParam } = await searchParams;
-  const kind = kindParam === "memo" ? "memo" : "note";
+  const kind = kindParam === "memo" || kindParam === "deck" ? kindParam : "note";
   const supabase = await createClient();
   const [{ data: templates, error }, { data: uses }, directory, seat] = await Promise.all([
-    kind === "memo"
+    kind !== "note"
       ? supabase
           .from("product_template")
           .select("id,name,scope,project_id,copied_from_id,sections:product_section(id,ordinal,name,requires,note)")
-          .eq("kind", "report")
+          .eq("kind", kind === "deck" ? "deck" : "report")
           .order("name")
       : supabase
           .from("note_template")
           .select("id,name,scope,project_id,copied_from_id,sections:note_section(id,ordinal,name,requires,note)")
           .order("name"),
-    kind === "memo" ? supabase.from("product").select("template_id") : supabase.from("note").select("template_id"),
+    kind !== "note" ? supabase.from("product").select("template_id") : supabase.from("note").select("template_id"),
     loadDirectory(supabase),
     currentSeat(),
   ]);
@@ -49,6 +50,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
             [
               ["note", "Note templates", "/templates"],
               ["memo", "Memo templates", "/templates?kind=memo"],
+              ["deck", "Deck templates", "/templates?kind=deck"],
             ] as const
           ).map(([k, text, href]) => (
             <Link key={k} href={href} className="seg-opt" aria-current={kind === k ? "page" : undefined} style={{ textDecoration: "none" }}>
@@ -59,7 +61,9 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
           ))}
         </div>
         <p className="meta" style={{ maxWidth: "74ch" }}>
-          {kind === "memo"
+          {kind === "deck"
+            ? "A deck template decides the slide deck's sections, and whether each is filled from confirmed themes or from codes of particular types."
+            : kind === "memo"
             ? "A memo template decides the findings memo's sections, and whether each is filled from confirmed themes or from codes of particular types."
             : "A note template decides an interview note's sections and which kinds of codes fill each."}{" "}
           The library holds the originals; adding one to a project gives the project its own copy, so a project&apos;s

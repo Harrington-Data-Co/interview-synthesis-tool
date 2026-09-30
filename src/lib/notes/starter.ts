@@ -67,3 +67,33 @@ export const STARTER_MEMO_TEMPLATE = {
     },
   ],
 };
+
+/** The deck template offered when the deck library is empty: a readout for
+ *  the client, one slide per finding with the evidence and a participant's
+ *  own words. */
+export const STARTER_DECK_TEMPLATE = {
+  name: "Findings readout",
+  scope: "A slide deck for the client readout: the headline, a slide per key finding with its evidence and a participant's words, and what's still open.",
+  sections: [
+    {
+      name: "Headline",
+      requires: ["themes"],
+      note: "One statement slide: the single most important finding, as a full sentence.",
+    },
+    {
+      name: "Findings",
+      requires: ["themes"],
+      note: "One slide per confirmed theme, most-supported first: the finding as the headline, two to four bullets on what the interviews showed, and a participant's quote where one says it best.",
+    },
+    {
+      name: "In their words",
+      requires: ["themes"],
+      note: "Two or three quote slides: participants' own words that capture the findings best.",
+    },
+    {
+      name: "Open questions",
+      requires: ["Question"],
+      note: "What the interviews couldn't answer, and who might be able to.",
+    },
+  ],
+};

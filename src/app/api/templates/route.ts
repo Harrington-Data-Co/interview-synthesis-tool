@@ -1,5 +1,5 @@
 import { ApiError, errorResponse, requireEditor } from "@/lib/api";
-import { STARTER_MEMO_TEMPLATE, STARTER_TEMPLATE } from "@/lib/notes/starter";
+import { STARTER_DECK_TEMPLATE, STARTER_MEMO_TEMPLATE, STARTER_TEMPLATE } from "@/lib/notes/starter";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,18 +14,19 @@ const name = (v: unknown, what: string) => {
   if (!s || s.length > 120) throw new ApiError(`Give the ${what} a name.`);
   return s;
 };
-const types = (v: unknown, memo: boolean) => {
-  const known = memo ? ["themes", ...TYPES] : TYPES;
+const types = (v: unknown, product: boolean) => {
+  const known = product ? ["themes", ...TYPES] : TYPES;
   if (!Array.isArray(v) || !v.every((t) => known.includes(t))) throw new ApiError("Unknown code type.");
   return [...new Set(v as string[])];
 };
 const longText = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 2000) || null : null);
 
-/** Note and memo templates: the library (no project) and project copies.
- *  Memo templates are product templates of kind "report"; their sections can
+/** Note, memo and deck templates: the library (no project) and project
+ *  copies. Memo and deck templates are product templates (of kind "report"
+ *  and "deck"); their sections can
  *  also fill from "themes".
  *
- *  Body: { kind?: "note" | "memo", action, ... }
+ *  Body: { kind?: "note" | "memo" | "deck", action, ... }
  *    starter                                  → { id }  the Discovery interview template, into the library
  *    create     { name, scope?, projectId? }  → { id }
  *    update     { templateId, name?, scope? }
@@ -41,16 +42,17 @@ export async function POST(request: Request) {
     const seat = await requireEditor();
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const supabase = await createClient();
-    const memo = body.kind === "memo";
+    const deck = body.kind === "deck";
+    const memo = body.kind === "memo" || deck; // a product template either way
     const T = memo ? "product_template" : "note_template";
     const S = memo ? "product_section" : "note_section";
-    const starter = memo ? STARTER_MEMO_TEMPLATE : STARTER_TEMPLATE;
+    const starter = deck ? STARTER_DECK_TEMPLATE : memo ? STARTER_MEMO_TEMPLATE : STARTER_TEMPLATE;
     let id: string | undefined;
 
     const insertTemplate = async (tName: string, scope: string | null, projectId: string | null) => {
       const { data, error } = await supabase
         .from(T)
-        .insert({ name: tName, scope, project_id: projectId, created_by: seat.user_id, ...(memo ? { kind: "report" } : {}) })
+        .insert({ name: tName, scope, project_id: projectId, created_by: seat.user_id, ...(memo ? { kind: deck ? "deck" : "report" } : {}) })
         .select("id")
         .single();
       if (error) throw error;
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
         const templateId = uuid(body.templateId, "template");
         const { error } = await supabase.from(T).delete().eq("id", templateId);
         if (error) {
-          if (error.code === "23503") throw new ApiError(`${memo ? "A memo uses" : "Notes use"} this template, so it can't be deleted.`, 409);
+          if (error.code === "23503") throw new ApiError(`${deck ? "A deck uses" : memo ? "A memo uses" : "Notes use"} this template, so it can't be deleted.`, 409);
           throw error;
         }
         break;
