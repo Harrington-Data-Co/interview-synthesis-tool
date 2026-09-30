@@ -16,7 +16,7 @@ const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, tr
 /** Deliverable: the slide deck. Written from a deck template and the
  *  project's confirmed themes; every slide cites what it rests on and a
  *  quote is always the participant's exact words. Downloads as .pptx. */
-export function DeckView({ projectId, editor, deck, roles }: { projectId: string; editor: boolean; deck: LoadedDeck; roles: Record<string, string | null> }) {
+export function DeckView({ projectId, editor, deck, roles }: { projectId: string; editor: boolean; deck: LoadedDeck; roles: Record<string, string> }) {
   const { templates, library, template, product, slides, themes, interviews, codes, rejections, runs } = deck;
   const router = useRouter();
   const [open, setOpen] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function DeckView({ projectId, editor, deck, roles }: { projectId: string
         slide={s}
         kicker={sectionName.get(s.sectionId) ?? ""}
         quote={q?.verbatim}
-        who={q ? attribution(roles[q.transcriptId]) : undefined}
+        who={q ? attribution(roles[q.id]) : undefined}
         evidence={evidenceLine(s, deck)}
         number={i + 2}
       />

@@ -7,6 +7,8 @@ export type EvidenceInterview = {
   title: string;
   participant: string | null;
   organization: string | null;
+  /** The participants' titles at the time ("Program officer, Controller"). */
+  role: string | null;
   codeCount: number;
 };
 
@@ -32,7 +34,7 @@ export async function loadProjectEvidence(
   const [{ data: ts }, { data: orgs }] = await Promise.all([
     supabase
       .from("transcript")
-      .select("id,title,participant,recorded_on,speakers:transcript_speaker(name,display_name,role,organization_id)")
+      .select("id,title,participant,recorded_on,speakers:transcript_speaker(name,display_name,role,organization_id,title)")
       .eq("project_id", projectId)
       .order("recorded_on", { ascending: true, nullsFirst: false })
       .order("title"),
@@ -72,6 +74,7 @@ export async function loadProjectEvidence(
         participants.map((s: { name: string; display_name: string | null }) => s.display_name ?? s.name).join(", ") ||
         t.participant,
       organization: org || null,
+      role: [...new Set(participants.map((s: { title: string | null }) => s.title).filter(Boolean))].join(", ") || null,
       codeCount: codes.filter((c) => c.transcriptId === t.id).length,
     };
   });

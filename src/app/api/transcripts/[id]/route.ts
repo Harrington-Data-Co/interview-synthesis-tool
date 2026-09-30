@@ -2,8 +2,8 @@ import { ApiError, errorResponse, requireEditor } from "@/lib/api";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const RECORD_KEYS = ["title", "participant", "participant_role", "recorded_on", "project_id"] as const;
-const SPEAKER_KEYS = ["name", "display_name", "role", "organization_id"] as const;
+const RECORD_KEYS = ["title", "recorded_on", "project_id"] as const;
+const SPEAKER_KEYS = ["name", "person_id", "new_person", "role", "organization_id", "title"] as const;
 
 function pick<K extends string>(value: unknown, keys: readonly K[]): Partial<Record<K, string | null>> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -46,7 +46,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       if (error.code === "22P02" || error.code === "22007" || error.code === "22008") {
         throw new ApiError("One of the values isn't valid — check the date and selections.");
       }
-      if (error.code === "23503") throw new ApiError("That project or organization no longer exists.");
+      if (error.code === "23503") throw new ApiError("That project, organization or person no longer exists.");
       throw error;
     }
     return Response.json({ changes });

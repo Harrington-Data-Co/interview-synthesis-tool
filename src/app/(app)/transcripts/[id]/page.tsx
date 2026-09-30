@@ -45,7 +45,7 @@ export default async function TranscriptPage({
   const { data: t } = await supabase
     .from("transcript")
     .select(
-      "id,title,participant,participant_role,source,original_name,sha256,duration_mins,recorded_on,status,ingested_at,ingested_by,project_id",
+      "id,title,source,original_name,sha256,duration_mins,recorded_on,status,ingested_at,ingested_by,project_id",
     )
     .eq("id", id)
     .maybeSingle();
@@ -65,7 +65,7 @@ export default async function TranscriptPage({
   }
 
   const [{ data: speakers }, { data: ingester }, directory, seat] = await Promise.all([
-    supabase.from("transcript_speaker").select("name,role,display_name,organization_id").eq("transcript_id", id),
+    supabase.from("transcript_speaker").select("name,role,display_name,organization_id,title,person_id").eq("transcript_id", id),
     supabase.from("seat").select("name").eq("user_id", t.ingested_by).maybeSingle(),
     loadDirectory(supabase),
     currentSeat(),
@@ -78,6 +78,17 @@ export default async function TranscriptPage({
   );
   const orgPath = new Map(directory.organizations.map((o) => [o.id, o.path]));
   const speakerOrg = new Map((speakers ?? []).map((s) => [s.name, s.organization_id as string | null]));
+  const speakerTitle = new Map((speakers ?? []).map((s) => [s.name, s.title as string | null]));
+  const speakerPerson = new Map((speakers ?? []).map((s) => [s.name, s.person_id as string | null]));
+  // Who was interviewed: participant speakers, one entry per person (someone
+  // on the phone and then a laptop is still one participant), with title.
+  const participants = [
+    ...new Map(
+      (speakers ?? [])
+        .filter((s) => s.role === "participant")
+        .map((s) => [s.person_id ?? s.name, [s.display_name ?? s.name, s.title].filter(Boolean).join(" — ")]),
+    ).values(),
+  ].join("; ");
   const turns = new Map<string, number>();
   lines.forEach((l) => turns.set(l.speaker, (turns.get(l.speaker) ?? 0) + 1));
 
@@ -170,7 +181,7 @@ export default async function TranscriptPage({
   const record: [string, React.ReactNode][] = [
     ["File", <span key="f" className="mono" style={{ fontSize: 12 }}>{t.original_name ?? "—"}</span>],
     ["Source", SOURCE_LABEL[t.source] ?? t.source],
-    ["Participant", [t.participant, t.participant_role].filter(Boolean).join(" — ") || "—"],
+    ["Participant", participants || "—"],
     ["Organization", participantOrgs || "—"],
     ["Recorded", t.recorded_on ?? "—"],
     ["Length", `${t.duration_mins ? `${t.duration_mins} min · ` : ""}${lines.length} turns`],
@@ -216,16 +227,15 @@ export default async function TranscriptPage({
               record={{
                 id: t.id,
                 title: t.title,
-                participant: t.participant,
-                participantRole: t.participant_role,
                 recordedOn: t.recorded_on,
                 projectId: t.project_id,
               }}
               speakers={[...turns].map(([name, n]) => ({
                 name,
-                displayName: names[name] ?? null,
+                personId: speakerPerson.get(name) ?? null,
                 role: roles[name] ?? "other",
                 organizationId: speakerOrg.get(name) ?? null,
+                title: speakerTitle.get(name) ?? null,
                 turns: n,
               }))}
               directory={directory}
@@ -240,9 +250,10 @@ export default async function TranscriptPage({
               <div key={name} style={{ display: "contents" }}>
                 <dt>
                   {names[name] ?? name}
-                  {(names[name] || speakerOrg.get(name)) && (
+                  {(names[name] || speakerOrg.get(name) || speakerTitle.get(name)) && (
                     <span style={{ display: "block", fontSize: 11.5, ...muted }}>
                       {[
+                        speakerTitle.get(name),
                         speakerOrg.get(name) && orgPath.get(speakerOrg.get(name) as string),
                         names[name] && `written as “${name}”`,
                       ]

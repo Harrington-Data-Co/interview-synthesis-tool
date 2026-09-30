@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { EvidenceDrawer, type DrawerSection } from "@/components/evidence/EvidenceDrawer";
+import { SelectionBar as Pill, pillButton, useClickOff } from "@/components/SelectionBar";
 
 export type CorpusQuote = {
   id: string;
@@ -51,11 +52,8 @@ export function useCorpus(): Corpus {
   return c;
 }
 
-/** Marks an element whose clicks are its own business (a row, a dot, a
- *  ribbon, the quotes panel), so a click there doesn't count as clicking off
- *  the selection. Buttons, links and form controls count already. */
-export const KEEP = { "data-keep-selection": "" } as const;
-const KEEPERS = "[data-keep-selection], button, a, input, label, select, textarea, [role=button], [role=dialog]";
+// Shared with other selections (the People table): see SelectionBar.
+export { KEEP } from "@/components/SelectionBar";
 
 /** The corpus views' shared data (themes, interviews, each theme's quotes),
  *  the selection they share, and the one quotes panel every chart opens.
@@ -101,16 +99,8 @@ export function CorpusProvider({
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, [panel]);
-  useEffect(() => {
-    if (!selected.length) return;
-    // Runs after React's own handlers, so a click that selects has already
-    // done so; anything that isn't a chart element or a control clears.
-    const off = (e: MouseEvent) => {
-      if (!(e.target instanceof Element) || !e.target.closest(KEEPERS)) setSelected([]);
-    };
-    document.addEventListener("click", off);
-    return () => document.removeEventListener("click", off);
-  }, [selected.length]);
+  const clearSelection = useCallback(() => setSelected([]), []);
+  useClickOff(selected.length > 0, clearSelection);
   return (
     <Ctx.Provider value={value}>
       {children}
@@ -144,28 +134,7 @@ function SelectionBar() {
     );
   if (!picked.length) return null;
   return (
-    <div
-      role="status"
-      {...KEEP}
-      style={{
-        position: "fixed",
-        left: "50%",
-        bottom: 20,
-        transform: "translateX(-50%)",
-        zIndex: 55,
-        maxWidth: "min(760px, calc(100vw - 32px))",
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-3)",
-        padding: "8px 8px 8px 16px",
-        background: "var(--color-navy)",
-        color: "#FFFFFF",
-        borderRadius: "var(--radius-pill)",
-        boxShadow: "var(--shadow-lg)",
-        fontSize: 12.5,
-      }}
-    >
-      <span style={{ fontSize: 10, letterSpacing: "0.12em", color: "var(--color-navy-muted)", fontWeight: 700, flex: "none" }}>SELECTED</span>
+    <Pill>
       <span style={{ display: "flex", gap: 10, minWidth: 0 }}>
         {picked.map((t, i) => (
           <span key={t.id} style={{ display: "flex", gap: 6, minWidth: 0, alignItems: "baseline" }}>
@@ -177,18 +146,13 @@ function SelectionBar() {
           </span>
         ))}
       </span>
-      <button className="btn" onClick={view} style={{ fontSize: 11.5, padding: "3px 12px", color: "var(--color-navy)", background: "#FFFFFF", borderColor: "#FFFFFF", borderRadius: "var(--radius-pill)", flex: "none" }}>
+      <button className="btn" onClick={view} style={pillButton(true)}>
         View quotes
       </button>
-      <button
-        className="btn"
-        onClick={() => select([])}
-        aria-label="Clear selection"
-        style={{ fontSize: 11.5, padding: "3px 10px", color: "#FFFFFF", borderColor: "rgba(255,255,255,0.35)", borderRadius: "var(--radius-pill)", flex: "none" }}
-      >
+      <button className="btn" onClick={() => select([])} aria-label="Clear selection" style={{ ...pillButton(false), padding: "3px 10px" }}>
         Clear
       </button>
-    </div>
+    </Pill>
   );
 }
 
