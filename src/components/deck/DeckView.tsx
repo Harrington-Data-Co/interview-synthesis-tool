@@ -162,7 +162,7 @@ export function DeckView({ projectId, editor, deck, roles }: { projectId: string
           )}
           {editor && (
             <button className="btn btn-primary" disabled={running || busy} onClick={() => (confirming === "rewrite" ? write(true) : write(false))}>
-              {running ? "Writing…" : confirming === "rewrite" ? "Rewrite, keeping edited slides" : claudeSlides ? "Rewrite with Claude" : "Write with Claude"}
+              {running ? "Writing…" : confirming === "rewrite" ? "Rewrite, keeping edited slides" : claudeSlides ? "Rewrite" : "Write"}
             </button>
           )}
         </span>

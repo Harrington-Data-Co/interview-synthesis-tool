@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArchStage } from "@/components/arch/ArchStage";
 import { ChainStage } from "@/components/chain/ChainStage";
 import { CorpusStage } from "@/components/corpus/CorpusStage";
 import { DeckStage } from "@/components/deck/DeckStage";
@@ -23,6 +24,7 @@ const VIEWS = [
   ["memo", "Memo"],
   ["deck", "Deck"],
   ["swimlanes", "Swimlanes"],
+  ["architecture", "Architecture"],
   ["chain", "Chain"],
   ["corpus", "Corpus"],
 ] as const;
@@ -193,6 +195,7 @@ export default async function ProjectPage({
       {view === "memo" && <MemoStage projectId={id} templateId={query.template} editor={editor} />}
       {view === "deck" && <DeckStage projectId={id} templateId={query.template} editor={editor} />}
       {view === "swimlanes" && <FlowStage projectId={id} mapId={query.map} editor={editor} />}
+      {view === "architecture" && <ArchStage projectId={id} mapId={query.map} editor={editor} />}
       {view === "chain" && (
         <ChainStage
           projectId={id}

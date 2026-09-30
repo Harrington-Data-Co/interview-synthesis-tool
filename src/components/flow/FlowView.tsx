@@ -91,7 +91,7 @@ export function FlowView({ projectId, editor, data, mapId }: { projectId: string
               New map
             </button>
             <button className="btn btn-primary" onClick={() => draw(false)} disabled={busy}>
-              {busy ? "Working…" : flows.some((f) => f.origin === "claude") ? "Redraw with Claude" : "Draw with Claude"}
+              {busy ? "Working…" : flows.some((f) => f.origin === "claude") ? "Redraw" : "Draw"}
             </button>
           </div>
         )}
