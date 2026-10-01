@@ -398,6 +398,8 @@ Short process maps leave a wide empty area on the right. Size the grid to
 its steps (or spread steps to fill) in `Swimlane.tsx`. Small.
 
 ### R11. Favicon
+*Done 2026-09-30 (branch `favicon`): Ryan replaced `src/app/favicon.ico`
+with the Harrington Data Co icon (16 and 32 px).*
 Use the Harrington Data Co website's favicon (`src/app/icon.*` /
 `favicon.ico`). Small; needs the file from harringtondata.com.
 
@@ -431,5 +433,5 @@ Earlier items are all done. For the 2026-09-30 review (R1–R11):
 4. **R1 + R8 together.** *Built 2026-09-30 (branch `urls-and-nav`).* Both
    reshape routes and links; done in one pass, before client access
    (clients will see these URLs).
-5. **Quick wins whenever: R11, R10, R9.**
+5. **Quick wins whenever: R11, R10, R9.** *All done 2026-09-30.*
 6. Then *Invitation-only access…* and *Mobile-friendly layout* above.
