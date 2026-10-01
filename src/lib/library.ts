@@ -25,11 +25,12 @@ const COLUMNS =
 /** Transcripts with their speakers, newest recording first (undated last). */
 export async function loadTranscripts(
   supabase: SupabaseClient,
-  filter?: { projectId?: string | null },
+  filter?: { projectId?: string | null; projectIds?: string[] },
 ): Promise<{ rows: TranscriptRow[]; error: string | null }> {
   let q = supabase.from("transcript").select(COLUMNS);
   if (filter?.projectId) q = q.eq("project_id", filter.projectId);
   if (filter?.projectId === null) q = q.is("project_id", null);
+  if (filter?.projectIds) q = q.in("project_id", filter.projectIds);
   const { data, error } = await q
     .order("recorded_on", { ascending: false, nullsFirst: false })
     .order("ingested_at", { ascending: false });

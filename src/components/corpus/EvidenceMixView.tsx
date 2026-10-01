@@ -20,7 +20,7 @@ const LEAN: Record<EvidenceKind, string> = { problems: "Mostly problems", goals:
  *  theme and open those quotes. Counts sit beside each bar, so colour is
  *  never the only cue. */
 export function EvidenceMixView({ themes }: { themes: MixTheme[] }) {
-  const { projectId, quotes, openPanel, selected, isSelected, select, toggleSelect } = useCorpus();
+  const { projectPath, quotes, openPanel, selected, isSelected, select, toggleSelect } = useCorpus();
   const { open, toggle, all, toggleAll } = useExpanded(themes.map((t) => t.id));
   const [sort, setSort] = useState<Sort>("matrix");
   const [scale, setScale] = useState<Scale>("count");
@@ -108,7 +108,7 @@ export function EvidenceMixView({ themes }: { themes: MixTheme[] }) {
                 }}
               >
                 <ThemeRef text={t.ref} proposed={t.proposed} />
-                <ThemeName projectId={projectId} title={t.title} description={t.description} proposed={t.proposed} expanded={expanded} onToggle={() => expandTheme(t.id, select, toggle)} />
+                <ThemeName projectPath={projectPath} title={t.title} description={t.description} proposed={t.proposed} expanded={expanded} onToggle={() => expandTheme(t.id, select, toggle)} />
                 <div style={{ height: LINE, display: "flex", alignItems: "center", opacity: selected.length && !picked ? 0.35 : 1, transition: "opacity .15s" }}>
                   <div
                     style={{ display: "flex", gap: 2, height: 13, width: scale === "count" ? `${(mix.total / most) * 100}%` : "100%", minWidth: mix.total ? 6 : 0 }}

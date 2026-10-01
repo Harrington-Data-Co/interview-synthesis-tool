@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { projectHref } from "@/lib/urls";
 
 export const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 export const LINE = 21; // one collapsed row in the corpus charts
@@ -11,14 +12,14 @@ export const LINE = 21; // one collapsed row in the corpus charts
  *  anywhere in this cell expands or collapses it (the button is there for
  *  the keyboard); it doesn't reach the row, whose own click only selects. */
 export function ThemeName({
-  projectId,
+  projectPath,
   title,
   description,
   proposed,
   expanded,
   onToggle,
 }: {
-  projectId: string;
+  projectPath: string;
   title: string;
   description: string | null;
   proposed: boolean;
@@ -69,7 +70,7 @@ export function ThemeName({
       {expanded && (
         <span style={{ fontSize: 11.5, lineHeight: 1.45, color: muted(65), paddingLeft: 14, paddingBottom: 4 }}>
           {description || (proposed ? "Proposed, not yet confirmed." : "No description.")}{" "}
-          <Link href={`/projects/${projectId}?view=themes`} onClick={(e) => e.stopPropagation()} style={{ whiteSpace: "nowrap" }}>
+          <Link href={projectHref(projectPath, "themes")} onClick={(e) => e.stopPropagation()} style={{ whiteSpace: "nowrap" }}>
             Open in Themes →
           </Link>
         </span>

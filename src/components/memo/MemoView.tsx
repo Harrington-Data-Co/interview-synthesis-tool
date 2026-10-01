@@ -9,12 +9,13 @@ import { Notice } from "@/components/ui";
 import type { LoadedMemo } from "@/lib/memo/load";
 import { ParagraphEditor, type ParagraphSeed } from "./ParagraphEditor";
 import { memoAction } from "./types";
+import { projectHref } from "@/lib/urls";
 
 /** Stage 05: the findings memo. Written from a memo template and the
  *  project's confirmed themes — every paragraph cites the themes and codes it
  *  rests on, confirmed themes the memo leaves out are listed as the check,
  *  and paragraphs that broke the citation rules wait in Needs review. */
-export function MemoView({ projectId, editor, memo }: { projectId: string; editor: boolean; memo: LoadedMemo }) {
+export function MemoView({ projectId, projectPath, editor, memo }: { projectId: string; projectPath: string; editor: boolean; memo: LoadedMemo }) {
   const { templates, library, template, product, paragraphs, themes, interviews, codes, rejections, runs } = memo;
   const router = useRouter();
   // The paragraph whose evidence is open in the drawer, and optionally the
@@ -33,7 +34,7 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
   const themeById = new Map(themes.map((t) => [t.id, t]));
   const codeById = new Map(codes.map((c) => [c.id, c]));
   const interviewById = new Map(interviews.map((i) => [i.id, i]));
-  const stageHref = (tid: string) => `/projects/${projectId}?view=memo&template=${tid}`;
+  const stageHref = (tid: string) => projectHref(projectPath, "memo", { template: tid });
   const confirmed = themes.filter((t) => t.status === "confirmed");
   const citedThemes = new Set(paragraphs.flatMap((p) => p.themeIds));
   const leftOut = confirmed.filter((t) => !citedThemes.has(t.id));
@@ -189,7 +190,7 @@ export function MemoView({ projectId, editor, memo }: { projectId: string; edito
             <a href={`/api/memos/${product.id}/markdown`} className="meta" style={{ fontSize: 12 }} download>
               Markdown
             </a>
-            <Link href={`/projects/${projectId}/memo/print?template=${template.id}`} className="meta" style={{ fontSize: 12 }} target="_blank">
+            <Link href={`${projectHref(projectPath, "memo")}/print?template=${template.id}`} className="meta" style={{ fontSize: 12 }} target="_blank">
               Print / PDF
             </Link>
           </>

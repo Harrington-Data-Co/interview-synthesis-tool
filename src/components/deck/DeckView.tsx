@@ -10,13 +10,14 @@ import type { LoadedDeck, SlideView } from "@/lib/deck/load";
 import { deckAction } from "./actions";
 import { SlideEditor, type SlideSeed } from "./SlideEditor";
 import { SlideFrame } from "./SlideFrame";
+import { projectHref } from "@/lib/urls";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 
 /** Deliverable: the slide deck. Written from a deck template and the
  *  project's confirmed themes; every slide cites what it rests on and a
  *  quote is always the participant's exact words. Downloads as .pptx. */
-export function DeckView({ projectId, editor, deck, roles }: { projectId: string; editor: boolean; deck: LoadedDeck; roles: Record<string, string> }) {
+export function DeckView({ projectId, projectPath, editor, deck, roles }: { projectId: string; projectPath: string; editor: boolean; deck: LoadedDeck; roles: Record<string, string> }) {
   const { templates, library, template, product, slides, themes, interviews, codes, rejections, runs } = deck;
   const router = useRouter();
   const [open, setOpen] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export function DeckView({ projectId, editor, deck, roles }: { projectId: string
   const codeOf = new Map(codes.map((c) => [c.id, c]));
   const themeOf = new Map(themes.map((t) => [t.id, t]));
   const sectionName = new Map((template?.sections ?? []).map((s) => [s.id, s.name]));
-  const stageHref = (tid: string) => `/projects/${projectId}?view=deck&template=${tid}`;
+  const stageHref = (tid: string) => projectHref(projectPath, "deck", { template: tid });
   const confirmed = themes.filter((t) => t.status === "confirmed");
   const cited = new Set(slides.flatMap((s) => s.themeIds));
   const leftOut = confirmed.filter((t) => !cited.has(t.id));

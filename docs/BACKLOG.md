@@ -142,6 +142,20 @@ from Phase 6 on 2026-09-29, to be designed alongside this.
   who sees workspace-wide things (the Unassigned queue, the organization
   list); whether invitations expire.
 
+### Active and archived projects
+Raised by Ryan 2026-09-30, once the Clients menu existed: it lists every
+project, and will get long. Mark a project **archived** (finished work)
+so the Clients menu, the home page and pickers show only **active**
+projects, with archived ones found some other way (a "Show archived"
+toggle on the home page or client page, say).
+
+- `project.state` (`project_state` enum, default `Coding`) already exists
+  and nothing reads it; an archived state could live there or in its own
+  `archived_at` column. Decide which.
+- Archived projects stay readable and their URLs keep working.
+- Open questions: can transcripts still be added to an archived project;
+  does a client with only archived projects drop out of the menu?
+
 ### Mobile-friendly layout
 Make the tool usable on a phone. Raised 2026-09-29. Most pages already work
 reasonably well; **the chain board and the corpus views are the concern.**
@@ -173,6 +187,18 @@ Raised by Ryan after Phase 6. Numbered as he raised them; the order to
 build them in is under *Suggested order* below.
 
 ### R1. Meaningful URLs
+*Built 2026-09-30 with R8 (branch `urls-and-nav`) — migration
+`20260930f_slugs`. A project is `/clients/<client>/<project>`, each tab
+after Interviews a segment named for its label
+(`/clients/longwood-foundation/ai-and-automation-opportunity-assessment/process-flows?map=…`);
+what a tab keeps (map, template, interview, facet) stays in the query.
+`client.slug` and `project.slug` (unique within the client) are set from
+the name on insert by a trigger, -2, -3… when taken, and never change with
+a rename. Old `/projects/<uuid>?view=…` links, print links included,
+redirect permanently. Links are built in one place, `src/lib/urls.ts`.
+Each client has a page (`/clients/<client>`): its code and project cards.
+Decided with Ryan: URLs under `/clients`, the tab in the path, and a client
+page behind each client's name.*
 `/projects/443f9438-…?view=swimlanes` becomes something like
 `/projects/longwood-foundation/ai-and-automation-opportunity-assessment?view=swimlanes`.
 
@@ -318,6 +344,23 @@ Use the same short codes for clients as Ryan's Google Drive.
 - Feeds R6 (matching Drive folders to clients). Not used in URLs (R1).
 
 ### R8. Rethink the top navigation
+*Built 2026-09-30 with R1 (branch `urls-and-nav`): Sources · Clients ·
+People · Templates. Clients opens a menu of every client (to its page) with
+its projects under it; Templates opens Note, Memo and Deck templates. Menus
+open on click (so they work on touch), close on Escape, a click elsewhere or
+navigating. `/study` is gone.*
+
+*Follow-ups (Ryan, 2026-09-30):* "Harrington Tools" no longer links into
+the tool; it will link to the suite hub, tools.harringtondata.com, once
+that exists (`TOOLS_HOME_URL` in `src/lib/config.ts`, null until then).
+"Interview Synthesis" goes to a new **home page** (`/`): every project by
+client, as cards showing each process step (coded and noted interviews,
+confirmed and to-review themes, memo drafted) and which outputs exist
+(Corpus, Process Flows, Architecture, Deck), plus a pointer to anything
+in Unassigned. The same cards are on each client's page
+(`src/lib/progress.ts`). Sources is now intake only (new Meet transcripts
+and Unassigned); its "Clients and projects" list moved to home, and its
+"00 ·" eyebrow is gone.
 Replace *Study* with **Sources**, **Clients** (a menu of clients, each with
 its projects) and **Templates** (Note, Memo and Deck templates directly).
 
@@ -385,7 +428,8 @@ Earlier items are all done. For the 2026-09-30 review (R1–R11):
    `participant` / `participant_role` over to the speakers.
 2. **R7 then R3.** One small migration (optional client short code).
 3. **R6.** The upload dialog redesign, once 1–2 have settled what's in it.
-4. **R1 + R8 together.** Both reshape routes and links; do them in one
-   pass, before client access (clients will see these URLs).
+4. **R1 + R8 together.** *Built 2026-09-30 (branch `urls-and-nav`).* Both
+   reshape routes and links; done in one pass, before client access
+   (clients will see these URLs).
 5. **Quick wins whenever: R11, R10, R9.**
 6. Then *Invitation-only access…* and *Mobile-friendly layout* above.

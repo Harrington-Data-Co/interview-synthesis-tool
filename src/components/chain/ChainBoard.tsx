@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reach, type Edge } from "@/lib/corpus/chain";
+import { projectHref } from "@/lib/urls";
 
 type Line =
   | { kind: "gap"; from: number; to: number }
@@ -81,7 +82,7 @@ const skips = (e: { a: string; b: string }) => e.a.startsWith("cd-") && (e.b.sta
  *  codes → themes → memo. Each column scrolls on its own and the edges
  *  follow. Click any node to light only what it derives from and what
  *  derives from it; the other columns scroll to bring that chain into view. */
-export function ChainBoard({ projectId, withProposed, data }: { projectId: string; withProposed: boolean; data: ChainData }) {
+export function ChainBoard({ projectPath, withProposed, data }: { projectPath: string; withProposed: boolean; data: ChainData }) {
   const router = useRouter();
   const board = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -213,7 +214,7 @@ export function ChainBoard({ projectId, withProposed, data }: { projectId: strin
   }, [node, lit]);
 
   const go = (changes: Record<string, string | null>) => {
-    const q = new URLSearchParams({ view: "chain", interview: data.interview.id });
+    const q = new URLSearchParams({ interview: data.interview.id });
     if (data.noteTemplateId) q.set("note", data.noteTemplateId);
     if (data.memoTemplateId) q.set("memo", data.memoTemplateId);
     if (withProposed) q.set("proposed", "1");
@@ -222,7 +223,7 @@ export function ChainBoard({ projectId, withProposed, data }: { projectId: strin
       else q.delete(k);
     }
     setNode(null);
-    router.push(`/projects/${projectId}?${q}`, { scroll: false });
+    router.push(projectHref(projectPath, "chain", Object.fromEntries(q)), { scroll: false });
   };
 
   const jump = (i: number) => {
@@ -715,7 +716,7 @@ export function ChainBoard({ projectId, withProposed, data }: { projectId: strin
                 )}
                 {data.memos.length > 0 && (
                   <Link
-                    href={`/projects/${projectId}?view=memo${data.memoTemplateId ? `&template=${data.memoTemplateId}` : ""}`}
+                    href={projectHref(projectPath, "memo", { template: data.memoTemplateId })}
                     className="meta"
                     style={{ fontSize: 12, marginTop: "var(--space-2)" }}
                   >

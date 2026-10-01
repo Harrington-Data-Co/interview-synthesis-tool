@@ -8,6 +8,7 @@ import type { LoadedFlows } from "@/lib/flow/load";
 import { flowAction, projectFlows } from "./actions";
 import { StepEditor, type StepSeed } from "./StepEditor";
 import { PAIN, Swimlane, isPain } from "./Swimlane";
+import { projectHref } from "@/lib/urls";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 const money = (n: number | null) => (n === null ? "cost unknown" : `$${n.toFixed(2)}`);
@@ -15,7 +16,7 @@ const money = (n: number | null) => (n === null ? "cost unknown" : `$${n.toFixed
 /** Deliverable: current-state process maps, one swimlane each. Claude drafts
  *  them from the project's codes; people edit steps and lanes; every step
  *  opens onto the quotes it rests on. */
-export function FlowView({ projectId, editor, data, mapId }: { projectId: string; editor: boolean; data: LoadedFlows; mapId: string | undefined }) {
+export function FlowView({ projectId, projectPath, editor, data, mapId }: { projectId: string; projectPath: string; editor: boolean; data: LoadedFlows; mapId: string | undefined }) {
   const router = useRouter();
   const { flows, codes, interviews, rejections, runs } = data;
   const flow = flows.find((f) => f.id === mapId) ?? flows[0] ?? null;
@@ -57,7 +58,7 @@ export function FlowView({ projectId, editor, data, mapId }: { projectId: string
       tone: "info",
       text: `Drew ${r.maps} map${r.maps === 1 ? "" : "s"} with ${r.accepted} steps${r.rejected ? `; ${r.rejected} need review` : ""} (${money(r.costUsd)}).`,
     });
-    router.replace(`/projects/${projectId}?view=swimlanes`, { scroll: false });
+    router.replace(projectHref(projectPath, "swimlanes"), { scroll: false });
     refresh();
   }
 
@@ -71,7 +72,7 @@ export function FlowView({ projectId, editor, data, mapId }: { projectId: string
     if (res.error) return setNotice({ tone: "error", text: res.error });
     const newId = !mapForm.id ? (res.result as { id: string }).id : null;
     setMapForm(null);
-    if (newId) router.replace(`/projects/${projectId}?view=swimlanes&map=${newId}`, { scroll: false });
+    if (newId) router.replace(projectHref(projectPath, "swimlanes", { map: newId }), { scroll: false });
     refresh();
   }
 
@@ -121,7 +122,7 @@ export function FlowView({ projectId, editor, data, mapId }: { projectId: string
       {flows.length > 1 && (
         <div className="seg" style={{ alignSelf: "flex-start", flexWrap: "wrap" }}>
           {flows.map((f) => (
-            <Link key={f.id} href={`/projects/${projectId}?view=swimlanes&map=${f.id}`} scroll={false} className="seg-opt" style={{ textDecoration: "none" }}>
+            <Link key={f.id} href={projectHref(projectPath, "swimlanes", { map: f.id })} scroll={false} className="seg-opt" style={{ textDecoration: "none" }}>
               <span style={f.id === flow?.id ? { background: "var(--color-accent-tint)", color: "var(--color-accent-800)", fontWeight: 700 } : undefined}>
                 <span className="mono" style={{ fontSize: 10.5, marginRight: 5 }}>
                   {f.ref}
@@ -160,7 +161,7 @@ export function FlowView({ projectId, editor, data, mapId }: { projectId: string
                 <button
                   className="btn btn-ghost"
                   style={small}
-                  onClick={() => setConfirm({ text: `Delete ${flow.ref} · ${flow.title}? Its steps go with it.`, go: () => { setConfirm(null); act({ action: "delete" }); router.replace(`/projects/${projectId}?view=swimlanes`, { scroll: false }); } })}
+                  onClick={() => setConfirm({ text: `Delete ${flow.ref} · ${flow.title}? Its steps go with it.`, go: () => { setConfirm(null); act({ action: "delete" }); router.replace(projectHref(projectPath, "swimlanes"), { scroll: false }); } })}
                 >
                   Delete map
                 </button>

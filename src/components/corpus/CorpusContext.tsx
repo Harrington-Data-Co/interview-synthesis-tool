@@ -26,7 +26,7 @@ export type PanelSpec = {
 };
 
 type Corpus = {
-  projectId: string;
+  projectPath: string;
   themes: Map<string, CorpusThemeInfo>;
   interviews: Map<string, CorpusInterviewInfo>;
   quotes: Record<string, CorpusQuote[]>; // by theme, in interview then line order
@@ -60,13 +60,13 @@ export { KEEP } from "@/components/SelectionBar";
  *  Escape closes the panel, or clears the selection when no panel is open;
  *  a click on nothing in particular clears the selection too. */
 export function CorpusProvider({
-  projectId,
+  projectPath,
   themes,
   interviews,
   quotes,
   children,
 }: {
-  projectId: string;
+  projectPath: string;
   themes: CorpusThemeInfo[];
   interviews: CorpusInterviewInfo[];
   quotes: Record<string, CorpusQuote[]>;
@@ -76,7 +76,7 @@ export function CorpusProvider({
   const [selected, setSelected] = useState<string[]>([]);
   const value = useMemo<Corpus>(
     () => ({
-      projectId,
+      projectPath,
       themes: new Map(themes.map((t) => [t.id, t])),
       interviews: new Map(interviews.map((i) => [i.id, i])),
       quotes,
@@ -87,7 +87,7 @@ export function CorpusProvider({
       toggleSelect: (ids) => setSelected((cur) => (same(cur, ids) ? [] : ids)),
       select: setSelected,
     }),
-    [projectId, themes, interviews, quotes, panel, selected],
+    [projectPath, themes, interviews, quotes, panel, selected],
   );
   const close = useCallback(() => setPanel(null), []);
   useEffect(() => {

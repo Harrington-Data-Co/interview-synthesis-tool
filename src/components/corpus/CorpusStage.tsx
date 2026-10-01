@@ -10,10 +10,12 @@ import { CorpusView, type CorpusTheme, type FacetData } from "./CorpusView";
  *  then organization), and which themes the project's memos cite. */
 export async function CorpusStage({
   projectId,
+  projectPath,
   facetId,
   withProposed,
 }: {
   projectId: string;
+  projectPath: string;
   facetId: string | undefined;
   withProposed: boolean;
 }) {
@@ -119,7 +121,7 @@ export async function CorpusStage({
 
   return (
     <CorpusView
-      projectId={projectId}
+      projectPath={projectPath}
       interviews={evidence.interviews}
       codes={evidence.codes}
       themes={themes}

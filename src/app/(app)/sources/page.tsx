@@ -1,17 +1,16 @@
 import Link from "next/link";
 import { GoogleConnection } from "@/components/connectors/GoogleConnection";
 import { AssignProject } from "@/components/sources/AssignProject";
-import { ClientCode } from "@/components/sources/ClientCode";
 import { SourcesActions } from "@/components/sources/SourcesActions";
 import { loadDirectory } from "@/lib/directory";
-import { loadTranscripts, participantsOf, SOURCE_LABEL, type TranscriptRow } from "@/lib/library";
+import { loadTranscripts, participantsOf, SOURCE_LABEL} from "@/lib/library";
 import { googleConfigured } from "@/lib/connectors/google";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
-/** The library: an Unassigned queue of transcripts not yet in a project,
- *  then every client with its projects. A transcript lives under its project
- *  once assigned; its page is one click from there. */
+/** Intake: new Meet transcripts waiting in Drive, and the Unassigned queue
+ *  of transcripts not yet in a project. Once assigned, a transcript lives
+ *  under its project (the home page and the Clients menu). */
 export default async function SourcesPage({ searchParams }: { searchParams: Promise<{ google?: string; reason?: string }> }) {
   const query = await searchParams;
   const seat = await currentSeat();
@@ -39,14 +38,12 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
           : null;
 
   const unassigned = rows.filter((t) => !t.project_id);
-  const byProject = new Map<string, TranscriptRow[]>();
-  for (const t of rows) if (t.project_id) byProject.set(t.project_id, [...(byProject.get(t.project_id) ?? []), t]);
 
   return (
     <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: 1400, width: "100%", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span className="kicker">00 · Sources</span>
+          <span className="kicker">Sources</span>
           <h2 style={{ fontSize: 20 }}>Transcript library</h2>
           <p className="meta">New transcripts wait in Unassigned until they&apos;re placed in a client&apos;s project.</p>
         </div>
@@ -118,58 +115,6 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
         )}
       </section>
 
-      <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <h3 style={{ fontSize: 16, margin: 0 }}>Clients and projects</h3>
-        {!directory.clients.length && (
-          <div className="panel" style={{ padding: "var(--space-4)" }}>
-            <p className="meta" style={{ margin: 0 }}>No clients yet. Start one with New project.</p>
-          </div>
-        )}
-        {directory.clients.map((c) => {
-          const projects = directory.projects.filter((p) => p.clientId === c.id);
-          return (
-            <div key={c.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span className="kicker">{c.name}</span>
-                <ClientCode clientId={c.id} code={c.code} editor={editor} />
-              </span>
-              {!projects.length ? (
-                <p className="meta" style={{ margin: 0 }}>No projects yet.</p>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "var(--space-3)" }}>
-                  {projects.map((p) => (
-                    <ProjectCard key={p.id} id={p.id} name={p.name} transcripts={byProject.get(p.id) ?? []} />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </section>
     </div>
-  );
-}
-
-function ProjectCard({ id, name, transcripts }: { id: string; name: string; transcripts: TranscriptRow[] }) {
-  const minutes = transcripts.reduce((sum, t) => sum + (t.duration_mins ?? 0), 0);
-  const coded = transcripts.filter((t) => t.status === "coded").length;
-  const latest = transcripts.find((t) => t.recorded_on)?.recorded_on;
-  return (
-    <Link
-      href={`/projects/${id}`}
-      className="card"
-      style={{ gap: "var(--space-2)", textDecoration: "none", color: "inherit" }}
-    >
-      <span style={{ fontWeight: 700, fontSize: 15 }}>{name}</span>
-      <span className="meta" style={{ fontSize: 12.5 }}>
-        {transcripts.length} interview{transcripts.length === 1 ? "" : "s"}
-        {minutes ? ` · ${minutes} min` : ""}
-        {latest ? ` · latest ${latest}` : ""}
-      </span>
-      <span style={{ display: "flex", gap: 6 }}>
-        <span className="tag tag-neutral">{transcripts.length - coded} to code</span>
-        <span className={`tag ${coded ? "tag-accent" : "tag-neutral"}`}>{coded} coded</span>
-      </span>
-    </Link>
   );
 }

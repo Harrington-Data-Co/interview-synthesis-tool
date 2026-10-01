@@ -109,7 +109,7 @@ export default async function TranscriptPage({
   ]);
 
   const backLink = (
-    <Link href={project ? `/projects/${project.id}` : "/sources"} className="meta">
+    <Link href={project ? project.path : "/sources"} className="meta">
       ← {project ? `${client?.name ? `${client.name} · ` : ""}${project.name}` : "Transcript library"}
     </Link>
   );

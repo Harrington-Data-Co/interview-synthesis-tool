@@ -2,25 +2,65 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { clientLabel, type ClientOption, type ProjectOption } from "@/lib/directory";
+import { TOOLS_HOME_URL } from "@/lib/config";
 import { createClient } from "@/lib/supabase/client";
 import type { Seat } from "@/lib/seat";
+import { clientPath } from "@/lib/urls";
 
-const VIEWS = [
-  // Projects and transcripts are reached through the library, so they light it up.
-  { key: "sources", label: "Sources", href: "/sources", also: ["/projects", "/transcripts"] },
-  { key: "people", label: "People", href: "/people", also: ["/organizations"] },
-  { key: "templates", label: "Templates", href: "/templates", also: [] },
-  { key: "study", label: "Study", href: "/study", also: [] },
+// Top navigation (backlog R8): Sources, then Clients and Templates as menus
+// that go straight to a project or a kind of template, then People.
+// Transcripts are reached through the library, so they light Sources up;
+// old /projects links redirect to /clients.
+type Menu = "clients" | "templates" | "account";
+
+const TEMPLATE_KINDS = [
+  ["Note templates", "/templates"],
+  ["Memo templates", "/templates?kind=memo"],
+  ["Deck templates", "/templates?kind=deck"],
 ] as const;
 
 const roleTag = (r: string) =>
   r === "owner" ? "tag-accent" : r === "editor" ? "tag-outline" : "tag-neutral";
 
-export function AppHeader({ seat }: { seat: Seat }) {
+export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: ClientOption[]; projects: ProjectOption[] }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [acctOpen, setAcctOpen] = useState(false);
+  const [open, setOpen] = useState<Menu | null>(null);
+  const header = useRef<HTMLElement>(null);
+  const toggle = (m: Menu) => setOpen((cur) => (cur === m ? null : m));
+  const acctOpen = open === "account";
+
+  // Close on navigation, a click elsewhere, or Escape. A click works on
+  // touch too, where a hover menu wouldn't.
+  const [shownFor, setShownFor] = useState(pathname);
+  if (shownFor !== pathname) {
+    setShownFor(pathname);
+    setOpen(null);
+  }
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!header.current?.contains(e.target as Node)) setOpen(null);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+    };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+
+  const on = (...prefixes: string[]) => prefixes.some((h) => pathname.startsWith(h));
+  const navStyle = (lit: boolean, expanded = false) => ({
+    background: lit || expanded ? "var(--color-accent-tint)" : "transparent",
+    color: lit ? "var(--color-accent-800)" : "var(--color-text)",
+    fontWeight: lit ? 700 : 500,
+  });
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -30,6 +70,7 @@ export function AppHeader({ seat }: { seat: Seat }) {
 
   return (
     <header
+      ref={header}
       className="no-print"
       style={{
         borderBottom: "1px solid var(--line-3)",
@@ -49,35 +90,96 @@ export function AppHeader({ seat }: { seat: Seat }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Link href="/sources" className="hdc-brand" style={{ fontSize: 18 }}>
-            Harrington <span>Tools</span>
-          </Link>
+          {/* The brand belongs to the suite; this tool's name goes to its home. */}
+          {TOOLS_HOME_URL ? (
+            <a href={TOOLS_HOME_URL} className="hdc-brand" style={{ fontSize: 18 }}>
+              Harrington <span>Tools</span>
+            </a>
+          ) : (
+            <span className="hdc-brand" style={{ fontSize: 18 }}>
+              Harrington <span>Tools</span>
+            </span>
+          )}
           <span style={{ width: 1, height: 22, background: "var(--line-6)" }} />
-          <span
-            style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.01em" }}
+          <Link
+            href="/"
+            aria-current={pathname === "/" ? "page" : undefined}
+            style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--color-text)", textDecoration: "none" }}
           >
             Interview Synthesis
-          </span>
+          </Link>
         </div>
 
-        <nav style={{ display: "flex", gap: 2 }}>
-          {VIEWS.map((v) => {
-            const on = [v.href, ...v.also].some((h) => pathname.startsWith(h));
-            return (
-              <Link
-                key={v.key}
-                href={v.href}
-                className="btn"
-                style={{
-                  background: on ? "var(--color-accent-tint)" : "transparent",
-                  color: on ? "var(--color-accent-800)" : "var(--color-text)",
-                  fontWeight: on ? 700 : 500,
-                }}
-              >
-                {v.label}
-              </Link>
-            );
-          })}
+        <nav style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <Link href="/sources" className="btn" style={navStyle(on("/sources", "/transcripts"))}>
+            Sources
+          </Link>
+
+          <div style={{ position: "relative" }}>
+            <button
+              className="btn"
+              aria-expanded={open === "clients"}
+              aria-controls="clients-menu"
+              onClick={() => toggle("clients")}
+              style={navStyle(on("/clients", "/projects"), open === "clients")}
+            >
+              Clients <Caret />
+            </button>
+            {open === "clients" && (
+              <div id="clients-menu" className="panel" style={{ ...menuStyle, width: "min(380px, calc(100vw - 32px))" }}>
+                {!clients.length && (
+                  <p className="meta" style={{ margin: 0, padding: "var(--space-2)" }}>
+                    No clients yet. Start one with New project on Sources.
+                  </p>
+                )}
+                {clients.map((c) => {
+                  const theirs = projects.filter((p) => p.clientId === c.id);
+                  return (
+                    <div key={c.id} style={{ display: "flex", flexDirection: "column" }}>
+                      <MenuLink href={clientPath(c.slug)} current={pathname === clientPath(c.slug)} strong>
+                        {clientLabel(c)}
+                      </MenuLink>
+                      {theirs.map((p) => (
+                        <MenuLink key={p.id} href={p.path} current={pathname === p.path || pathname.startsWith(`${p.path}/`)} indent>
+                          {p.name}
+                        </MenuLink>
+                      ))}
+                      {!theirs.length && (
+                        <span className="meta" style={{ fontSize: 12, padding: "2px 10px 6px 22px" }}>
+                          No projects yet
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <Link href="/people" className="btn" style={navStyle(on("/people", "/organizations"))}>
+            People
+          </Link>
+
+          <div style={{ position: "relative" }}>
+            <button
+              className="btn"
+              aria-expanded={open === "templates"}
+              aria-controls="templates-menu"
+              onClick={() => toggle("templates")}
+              style={navStyle(on("/templates"), open === "templates")}
+            >
+              Templates <Caret />
+            </button>
+            {open === "templates" && (
+              <div id="templates-menu" className="panel" style={{ ...menuStyle, width: 220 }}>
+                {TEMPLATE_KINDS.map(([text, href]) => (
+                  <MenuLink key={href} href={href}>
+                    {text}
+                  </MenuLink>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div
@@ -93,7 +195,7 @@ export function AppHeader({ seat }: { seat: Seat }) {
             <span className="tag tag-neutral">Read-only session</span>
           )}
           <button
-            onClick={() => setAcctOpen((v) => !v)}
+            onClick={() => toggle("account")}
             className="btn"
             style={{
               gap: 8,
@@ -151,5 +253,62 @@ export function AppHeader({ seat }: { seat: Seat }) {
         </div>
       </div>
     </header>
+  );
+}
+
+const menuStyle = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  maxHeight: "70vh",
+  overflowY: "auto",
+  padding: "var(--space-2)",
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+  zIndex: 45,
+  boxShadow: "var(--shadow-lg)",
+} as const;
+
+function Caret() {
+  return (
+    <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" style={{ marginLeft: 2 }}>
+      <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** One line in a header menu: a client (strong), a project under it
+ *  (indented), or a kind of template. */
+function MenuLink({
+  href,
+  current = false,
+  strong = false,
+  indent = false,
+  children,
+}: {
+  href: string;
+  current?: boolean;
+  strong?: boolean;
+  indent?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={current ? "page" : undefined}
+      className="menu-link"
+      style={{
+        padding: `6px 10px 6px ${indent ? 22 : 10}px`,
+        borderRadius: "var(--radius)",
+        fontSize: 13.5,
+        fontWeight: strong || current ? 700 : 500,
+        color: current ? "var(--color-accent-800)" : strong ? "var(--color-navy)" : "var(--color-text)",
+        background: current ? "var(--color-accent-tint)" : undefined,
+        textDecoration: "none",
+      }}
+    >
+      {children}
+    </Link>
   );
 }

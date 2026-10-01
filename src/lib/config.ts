@@ -6,6 +6,10 @@ export function isAllowedEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 }
 
+/** The Harrington Tools hub, where the header's "Harrington Tools" links.
+ *  Not built yet (2026-09-30): until it is, the brand isn't a link. */
+export const TOOLS_HOME_URL: string | null = null;
+
 /** Present so the UI can say "not configured yet" instead of throwing a wall of
  *  Supabase errors at someone who has just cloned the repo. */
 export const supabaseConfigured =

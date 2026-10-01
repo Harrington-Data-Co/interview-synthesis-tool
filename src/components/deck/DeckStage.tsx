@@ -6,10 +6,10 @@ import { DeckView } from "./DeckView";
 /** Loads the Deck view: the project's deck templates, the chosen one's deck
  *  and slides, what they can cite, and the title of whoever said each quote
  *  (quotes are attributed by role, never by name). */
-export async function DeckStage({ projectId, templateId, editor }: { projectId: string; templateId: string | undefined; editor: boolean }) {
+export async function DeckStage({ projectId, projectPath, templateId, editor }: { projectId: string; projectPath: string; templateId: string | undefined; editor: boolean }) {
   const supabase = await createClient();
   const [deck, roleOf] = await Promise.all([loadDeck(supabase, projectId, templateId), quoteRoles(supabase, projectId)]);
   if (!deck) return null;
   const roles = Object.fromEntries(roleOf);
-  return <DeckView projectId={projectId} editor={editor} deck={deck} roles={roles} />;
+  return <DeckView projectId={projectId} projectPath={projectPath} editor={editor} deck={deck} roles={roles} />;
 }

@@ -20,6 +20,7 @@ import { EvidenceMixView } from "./EvidenceMixView";
 import { MemoMap } from "./MemoMap";
 import { ThemeChord } from "./ThemeChord";
 import { ThemeMatrix } from "./ThemeMatrix";
+import { projectHref } from "@/lib/urls";
 
 export type CorpusTheme = {
   id: string;
@@ -45,7 +46,7 @@ const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, tr
  *  rather than one person or one group. Themes are the rows because a code
  *  belongs to one transcript; the theme is what recurs. */
 export function CorpusView({
-  projectId,
+  projectPath,
   interviews,
   codes,
   themes,
@@ -57,7 +58,7 @@ export function CorpusView({
   proposedCount,
   error,
 }: {
-  projectId: string;
+  projectPath: string;
   interviews: EvidenceInterview[];
   codes: EvidenceCode[];
   themes: CorpusTheme[];
@@ -70,11 +71,8 @@ export function CorpusView({
   error: string | null;
 }) {
   const href = (changes: { facet?: string; proposed?: boolean }) => {
-    const q = new URLSearchParams({ view: "corpus" });
-    const f = changes.facet ?? facetId;
-    if (f) q.set("facet", f);
-    if (changes.proposed ?? withProposed) q.set("proposed", "1");
-    return `/projects/${projectId}?${q}`;
+    const proposed = changes.proposed ?? withProposed;
+    return projectHref(projectPath, "corpus", { facet: changes.facet ?? facetId, proposed: proposed ? "1" : null });
   };
 
   if (error)
@@ -167,7 +165,7 @@ export function CorpusView({
 
   return (
     <CorpusProvider
-      projectId={projectId}
+      projectPath={projectPath}
       themes={themes.map((t) => ({
         id: t.id,
         ref: t.ref,
@@ -387,7 +385,7 @@ export function CorpusView({
         </section>
 
         <ThemeMatrix
-          projectId={projectId}
+          projectPath={projectPath}
           facetName={facet?.name ?? null}
           bands={bands.map((b) => ({
             name: b.name,

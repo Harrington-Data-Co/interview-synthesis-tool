@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import Link from "next/link";
 import { LINE, ThemeName, ThemeRef, TipBody, expandTheme, muted, selectedRow, useExpanded, useTip } from "./bits";
 import { KEEP, useCorpus } from "./CorpusContext";
+import { projectHref } from "@/lib/urls";
 
 export type MatrixBand = { name: string; span: number; labelled: boolean };
 export type MatrixColumn = { id: string; key: string; title: string; participant: string | null; organization: string | null; codes: number };
@@ -39,7 +40,7 @@ type Slot = { kind: "cell"; i: number } | { kind: "sep" };
  *  bands when a facet is on; a row's name expands in place on click, growing
  *  only that row; a cell opens the quotes behind it. */
 export function ThemeMatrix({
-  projectId,
+  projectPath,
   facetName,
   bands,
   columns,
@@ -47,7 +48,7 @@ export function ThemeMatrix({
   loose,
   withProposed,
 }: {
-  projectId: string;
+  projectPath: string;
   facetName: string | null;
   bands: MatrixBand[];
   columns: MatrixColumn[];
@@ -267,7 +268,7 @@ export function ThemeMatrix({
           {!rows.length && (
             <p className="meta" style={{ margin: "var(--space-2) 0" }}>
               {withProposed ? "No themes yet." : "No confirmed themes yet."} Propose or confirm them on the{" "}
-              <Link href={`/projects/${projectId}?view=themes`}>Themes tab</Link>.
+              <Link href={projectHref(projectPath, "themes")}>Themes tab</Link>.
             </p>
           )}
           {rows.map((r) => {
@@ -287,7 +288,7 @@ export function ThemeMatrix({
               >
                 <ThemeRef text={r.ref} proposed={r.proposed} />
                 <ThemeName
-                  projectId={projectId}
+                  projectPath={projectPath}
                   title={r.title}
                   description={r.description}
                   proposed={r.proposed}

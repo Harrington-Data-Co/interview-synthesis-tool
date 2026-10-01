@@ -7,14 +7,17 @@ import { clientLabel, type ClientOption, type Directory } from "@/lib/directory"
 import { UploadDialog } from "./UploadDialog";
 
 /** Editor actions: add transcripts (into a given project, when on one) and,
- *  from the library, start a project. */
+ *  from the library or a client's page, start a project (for that client,
+ *  when on one). */
 export function SourcesActions({
   directory,
   projectId,
+  clientId,
   newProject = true,
 }: {
   directory: Directory;
   projectId?: string;
+  clientId?: string;
   newProject?: boolean;
 }) {
   const [open, setOpen] = useState<"upload" | "project" | null>(null);
@@ -32,14 +35,14 @@ export function SourcesActions({
       {open === "upload" && (
         <UploadDialog directory={directory} defaultProjectId={projectId} onClose={() => setOpen(null)} />
       )}
-      {open === "project" && <NewProjectDialog clients={directory.clients} onClose={() => setOpen(null)} />}
+      {open === "project" && <NewProjectDialog clients={directory.clients} defaultClientId={clientId} onClose={() => setOpen(null)} />}
     </div>
   );
 }
 
-function NewProjectDialog({ clients, onClose }: { clients: ClientOption[]; onClose: () => void }) {
+function NewProjectDialog({ clients, defaultClientId, onClose }: { clients: ClientOption[]; defaultClientId?: string; onClose: () => void }) {
   const router = useRouter();
-  const [clientId, setClientId] = useState(clients[0]?.id ?? "");
+  const [clientId, setClientId] = useState(defaultClientId ?? clients[0]?.id ?? "");
   const [clientName, setClientName] = useState("");
   const [clientCode, setClientCode] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -58,7 +61,7 @@ function NewProjectDialog({ clients, onClose }: { clients: ClientOption[]; onClo
     const body = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(body.error ?? `Request failed (${res.status}).`);
-    router.push(`/projects/${body.id}`);
+    router.push(body.path);
     router.refresh();
     onClose();
   }

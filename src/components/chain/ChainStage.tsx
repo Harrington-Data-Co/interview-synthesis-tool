@@ -12,12 +12,14 @@ const byOrdinal = (a: { ordinal: number }, b: { ordinal: number }) => a.ordinal 
  *  are drawn to the code it was merged into. */
 export async function ChainStage({
   projectId,
+  projectPath,
   interviewId,
   noteTemplateId,
   memoTemplateId,
   withProposed,
 }: {
   projectId: string;
+  projectPath: string;
   interviewId: string | undefined;
   noteTemplateId: string | undefined;
   memoTemplateId: string | undefined;
@@ -167,5 +169,5 @@ export async function ChainStage({
     edges,
   };
 
-  return <ChainBoard projectId={projectId} withProposed={withProposed} data={data} />;
+  return <ChainBoard projectPath={projectPath} withProposed={withProposed} data={data} />;
 }

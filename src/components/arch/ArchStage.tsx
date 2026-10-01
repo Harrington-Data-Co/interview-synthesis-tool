@@ -4,9 +4,9 @@ import { ArchView } from "./ArchView";
 
 /** Loads the Architecture view: the project's maps and the evidence their
  *  systems, flows and gaps can cite. */
-export async function ArchStage({ projectId, mapId, editor }: { projectId: string; mapId: string | undefined; editor: boolean }) {
+export async function ArchStage({ projectId, projectPath, mapId, editor }: { projectId: string; projectPath: string; mapId: string | undefined; editor: boolean }) {
   const supabase = await createClient();
   const data = await loadArch(supabase, projectId);
   if (!data) return null;
-  return <ArchView projectId={projectId} editor={editor} data={data} mapId={mapId} />;
+  return <ArchView projectId={projectId} projectPath={projectPath} editor={editor} data={data} mapId={mapId} />;
 }

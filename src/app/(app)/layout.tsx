@@ -1,6 +1,8 @@
 import { AppHeader } from "@/components/AppHeader";
 import { currentSeat } from "@/lib/seat";
 import { supabaseConfigured } from "@/lib/config";
+import { loadClients } from "@/lib/directory";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
   children,
@@ -11,6 +13,7 @@ export default async function AppLayout({
 
   const seat = await currentSeat();
   if (!seat) return <NoSeat />;
+  const { clients, projects } = await loadClients(await createClient());
 
   return (
     <div
@@ -21,7 +24,7 @@ export default async function AppLayout({
         background: "var(--color-bg)",
       }}
     >
-      <AppHeader seat={seat} />
+      <AppHeader seat={seat} clients={clients} projects={projects} />
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {children}
       </main>

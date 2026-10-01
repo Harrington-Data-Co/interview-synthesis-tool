@@ -57,12 +57,12 @@ export function ClientProjectPicker({
     setBusy(false);
     if (!res.ok) return setError(body.error ?? `Couldn't create it (${res.status}).`);
     if (client) {
-      setMadeClients((c) => [...c, { id: body.id, name: body.name, code: body.code ?? null }]);
+      setMadeClients((c) => [...c, { id: body.id, name: body.name, code: body.code ?? null, slug: body.slug }]);
       setClientId(body.id);
       onChange("");
       start("project"); // a client needs a project before anything goes in it
     } else {
-      setMadeProjects((p) => [...p, { id: body.id, name: name.trim(), clientId }]);
+      setMadeProjects((p) => [...p, { id: body.id, name: name.trim(), clientId, path: body.path }]);
       onChange(body.id);
       setMaking(null);
     }

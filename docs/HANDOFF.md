@@ -232,7 +232,7 @@ migrations go in `supabase/migrations/` for Ryan to apply.
   Tables: `product_template` (kind `report`) and `product_section`.
 - **The memo** (`src/lib/memo/`, `src/components/memo/`,
   `/api/projects/[id]/memo`, `/api/memos/[id]/items`,
-  `/api/memos/[id]/markdown`, `/projects/[id]/memo/print`): paragraphs are
+  `/api/memos/[id]/markdown`, `/clients/<client>/<project>/memo/print`): paragraphs are
   `product_item` rows citing themes and/or codes. Claude is held to stricter
   rules than people (confirmed themes only; themes only in sections that fill
   from themes; codes of the section's types or within a cited theme). The

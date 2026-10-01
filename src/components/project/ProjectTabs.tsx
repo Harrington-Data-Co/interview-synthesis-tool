@@ -1,17 +1,5 @@
 import Link from "next/link";
-
-export const VIEWS = [
-  ["interviews", "Interviews"],
-  ["themes", "Themes"],
-  ["memo", "Memo"],
-  ["deck", "Deck"],
-  // Named Process Flows (Ryan, 2026-09-30); the view key stays "swimlanes".
-  ["swimlanes", "Process Flows"],
-  ["architecture", "Architecture"],
-  ["chain", "Chain"],
-  ["corpus", "Corpus"],
-] as const;
-export type ViewKey = (typeof VIEWS)[number][0];
+import { projectHref, VIEWS, type ViewKey } from "@/lib/urls";
 
 // The tabs in three groups (decided 2026-09-30): the process, which flows
 // Interviews → Themes → Memo; Chain, a check that traces a finding back
@@ -24,8 +12,7 @@ const TAB_GROUPS: { label: string; keys: ViewKey[]; flow?: boolean; hint: string
 
 /** A project's tabs, grouped: the process (with arrows, since each step
  *  builds on the last), the check, and the outputs. */
-export function ProjectTabs({ projectId, view }: { projectId: string; view: ViewKey }) {
-  const id = projectId;
+export function ProjectTabs({ path, view }: { path: string; view: ViewKey }) {
   return (
     <nav aria-label="Project views" style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-end", flexWrap: "wrap" }}>
       {TAB_GROUPS.map((g, gi) => (
@@ -46,7 +33,7 @@ export function ProjectTabs({ projectId, view }: { projectId: string; view: View
                       </span>
                     )}
                     <Link
-                      href={key === "interviews" ? `/projects/${id}` : `/projects/${id}?view=${key}`}
+                      href={projectHref(path, key)}
                       className="seg-opt"
                       aria-current={view === key ? "page" : undefined}
                       style={{

@@ -51,20 +51,64 @@ create table client (
   -- Ryan's short code for the client (LWF), the same in every tool he uses.
   -- Optional; unique when set. Migration 20260930d.
   code       text check (code is null or (btrim(code) <> '' and length(code) <= 20)),
+  -- In URLs (/clients/<slug>). Set from the name on insert and then kept,
+  -- so renaming never breaks a link. Migration 20260930f.
+  slug       text not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   created_by uuid not null references seat (user_id),
   created_at timestamptz not null default now()
 );
 create unique index client_code_key on client (lower(code)) where code is not null;
+create unique index client_slug_key on client (slug);
 
 create table project (
   id         uuid primary key default gen_random_uuid(),
   client_id  uuid not null references client (id) on delete cascade,
   name       text not null,
+  -- In URLs (/clients/<client slug>/<slug>); unique within the client.
+  slug       text not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   state      project_state not null default 'Coding',
   created_by uuid not null references seat (user_id),
   created_at timestamptz not null default now()
 );
 create index on project (client_id);
+create unique index project_slug_key on project (client_id, slug);
+
+create or replace function slugify(p_text text)
+returns text language sql immutable as $$
+  -- "Département & Co." → "departement-and-co": accents dropped, anything
+  -- else between words becomes one dash, at most 80 characters.
+  select coalesce(nullif(btrim(left(btrim(regexp_replace(
+    regexp_replace(lower(normalize(replace(p_text, '&', ' and '), NFKD)), '[\u0300-\u036f]', '', 'g'),
+    '[^a-z0-9]+', '-', 'g'), '-'), 80), '-'), ''), 'untitled')
+$$;
+
+-- A slug from the name on insert, unless one is given; -2, -3… when taken.
+create or replace function set_slug()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  base text := rtrim(left(slugify(new.name), 76), '-');
+  candidate text;
+  n int := 1;
+  taken boolean;
+begin
+  if new.slug is not null then return new; end if;
+  loop
+    candidate := base || case when n = 1 then '' else '-' || n end;
+    -- Separate statements: a project's client_id isn't a field of a client row.
+    if tg_table_name = 'client' then
+      taken := exists (select 1 from client where slug = candidate);
+    else
+      taken := exists (select 1 from project where client_id = new.client_id and slug = candidate);
+    end if;
+    exit when not taken;
+    n := n + 1;
+  end loop;
+  new.slug := candidate;
+  return new;
+end $$;
+
+create trigger client_set_slug before insert on client for each row execute function set_slug();
+create trigger project_set_slug before insert on project for each row execute function set_slug();
 
 -- Who a speaker represents, nested (Delaware DOE › Office of Early Learning).
 -- Not the client: the client is who a project is for; an organization is who

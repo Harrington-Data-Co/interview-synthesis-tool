@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { MemoFlag } from "@/lib/corpus/views";
 import { TipBody, muted, selectedRow, useTip } from "./bits";
 import { KEEP, useCorpus } from "./CorpusContext";
+import { projectHref } from "@/lib/urls";
 
 export type MemoPoint = {
   id: string;
@@ -37,7 +38,7 @@ const REGION: Record<Region, { label: string; hint: string }> = {
  *  when it doesn't. A hollow dot in the strong corner is a finding the memo
  *  leaves out; a filled dot in the shaded edge is a claim resting on little. */
 export function MemoMap({ points, total, labelled, memoNames }: { points: MemoPoint[]; total: number; labelled: number; memoNames: string[] }) {
-  const { projectId, selected, isSelected, toggleSelect } = useCorpus();
+  const { projectPath, selected, isSelected, toggleSelect } = useCorpus();
   const tip = useTip();
   const [hover, setHover] = useState<string | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
@@ -79,7 +80,7 @@ export function MemoMap({ points, total, labelled, memoNames }: { points: MemoPo
         <span className="card-kicker">Memo check</span>
         <p className="meta" style={{ margin: 0, fontSize: 12.5 }}>
           No memo yet. Once there is one, this maps every theme by how much evidence it rests on and shows which ones the
-          memo cites. <Link href={`/projects/${projectId}?view=memo`}>Open the Memo tab →</Link>
+          memo cites. <Link href={projectHref(projectPath, "memo")}>Open the Memo tab →</Link>
         </p>
       </div>
     );

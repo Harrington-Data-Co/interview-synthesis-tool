@@ -9,6 +9,7 @@ import type { NodeKind } from "@/lib/arch/prompt";
 import { archAction, projectArch } from "./actions";
 import { ArchDiagram, PAIN, type Selection } from "./ArchDiagram";
 import { ArchItemEditor, type ItemSeed } from "./ArchItemEditor";
+import { projectHref } from "@/lib/urls";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 const money = (n: number | null) => (n === null ? "cost unknown" : `$${Number(n).toFixed(2)}`);
@@ -16,7 +17,7 @@ const money = (n: number | null) => (n === null ? "cost unknown" : `$${Number(n)
 /** Deliverable: the current-state architecture. The systems as participants
  *  described them, how data moves between them (mostly by hand, usually),
  *  and the numbered gaps; every item opens onto the quotes it rests on. */
-export function ArchView({ projectId, editor, data, mapId }: { projectId: string; editor: boolean; data: LoadedArch; mapId: string | undefined }) {
+export function ArchView({ projectId, projectPath, editor, data, mapId }: { projectId: string; projectPath: string; editor: boolean; data: LoadedArch; mapId: string | undefined }) {
   const router = useRouter();
   const { maps, codes, interviews, rejections, runs } = data;
   const map = maps.find((m) => m.id === mapId) ?? maps[0] ?? null;
@@ -32,7 +33,7 @@ export function ArchView({ projectId, editor, data, mapId }: { projectId: string
   const nodeOf = new Map((map?.nodes ?? []).map((n) => [n.id, n]));
   const lastRun = runs[0];
   const small = { fontSize: 11.5, padding: "2px 8px" } as const;
-  const href = (id?: string) => `/projects/${projectId}?view=architecture${id ? `&map=${id}` : ""}`;
+  const href = (id?: string) => projectHref(projectPath, "architecture", { map: id });
 
   const item =
     !map || !selected
