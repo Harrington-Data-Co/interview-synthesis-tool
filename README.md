@@ -35,22 +35,28 @@ can see the sign-in screen before there is a database.
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Take the `service_role` key into
    `SUPABASE_SERVICE_ROLE_KEY` — it is server-only and must never reach the
    browser.
-3. **Allow the magic-link redirect.** In Authentication → URL Configuration,
+3. **Allow the sign-in redirects.** In Authentication → URL Configuration,
    set the Site URL to `http://localhost:3000` and add
-   `http://localhost:3000/auth/callback` to the Redirect URLs.
+   `http://localhost:3000/auth/callback` and
+   `http://localhost:3000/auth/confirm` (where invitation links land) to the
+   Redirect URLs.
 4. **Apply the schema.** Paste `supabase/schema.sql` into the Supabase SQL
    editor and run it. It creates every table, the append-only trigger on
    `transcript_line`, and the row-level security policies. Every policy keys
    on a seat row, not on being signed in, and every row's author must be the
    person writing it.
-5. **Restrict sign-ups to the domain.** In Authentication → Hooks, add a
+5. **Only invited people can sign up.** In Authentication → Hooks, add a
    *Before User Created* hook of type Postgres and choose
-   `public.hook_restrict_signup_domain`. Supabase then refuses to create any
-   account outside `@harringtondata.com` — without it, the sign-in form's
-   check is the only one, and anyone holding the public anon key can create
-   an (empty, seatless) account straight against the Auth API.
+   `public.hook_require_invitation`. Supabase then refuses to create an
+   account for any address without an open invitation (or a seat), whatever
+   its domain — without it, anyone holding the public anon key can create an
+   (empty, seatless) account straight against the Auth API. Leave the
+   project's own sign-ups switched on: the hook is what decides, and invited
+   people can then also sign in from `/sign-in` if the email goes astray.
+   On a brand-new project, turn this on *after* step 6: your own first
+   sign-in has no invitation to let it through.
 6. **Give yourself a seat.** Sign in once at `/sign-in` with your
-   `@harringtondata.com` address to create the auth user, then insert the
+   own address to create the auth user, then insert the
    matching seat:
 
    ```sql
@@ -60,8 +66,9 @@ can see the sign-in screen before there is a database.
    ```
 
    Authentication and membership are deliberately separate: a valid sign-in with
-   no seat row gets told it has no seat, not let in. This first seat has to be
-   inserted from the SQL editor; after that, only owners can add seats.
+   no seat row gets told it has no invitation, not let in. This first seat has
+   to be inserted from the SQL editor; after that, everyone comes in by
+   invitation — see *Who can get in* below.
 7. **Check the access rules.** In the SQL editor, run as a single statement
    (the editor only shows the last result, so keep the checks in one row):
 
@@ -78,6 +85,37 @@ can see the sign-in screen before there is a database.
    every seat. With a made-up id such as
    `00000000-0000-0000-0000-000000000000`, `has_seat` is false and `seats` is 0.
 8. **Add your Anthropic key** to `ANTHROPIC_API_KEY`. Needed from phase 2 on.
+
+## Who can get in
+
+Only invited people, whatever their email address. Decided 2026-09-30;
+the rules live in migration `20260930g_invitations.sql`.
+
+- **Everyone sees only the projects they're on.** A workspace owner sees
+  and manages every project without being on it.
+- **Project roles**: *owner* (also manages members and invitations),
+  *editor*, *viewer*, *client*. A client sees the memo, deck, process flows
+  and architecture, the confirmed themes, and the quotes those cite —
+  attributed by title, never by name — and no transcripts, notes or people.
+  A project owner can switch one client to *everything, read-only*.
+- **Workspace roles** (owner, editor, viewer) are for Harrington's own
+  people. They add Sources, People, Organizations and the template library;
+  an editor can also start clients and projects (and owns what they start).
+  Someone from outside has no workspace role.
+- **Inviting**: workspace owners from **Members** in the header (Harrington
+  colleagues, with a workspace role); project owners from a project's
+  **Members** tab (anyone, to that project). An address that already has a
+  seat is added at once; anyone else gets an email whose link lands on
+  `/auth/confirm` and is accepted on arrival. Invitations last 14 days and
+  can be sent again, withdrawn, or handed over as a link (**Copy link**).
+- **Removing**: from a project's Members tab, or from the workspace on
+  Members (every project at once). What they made stays, under their name.
+
+Invitation emails need `SUPABASE_SERVICE_ROLE_KEY` (server only), and go
+through Supabase's sender until the next section is done — a few emails an
+hour, from a Supabase address. **Copy link** works without either. Set
+`SITE_URL` to the deployed address once there is one, so links in emails
+point there rather than at whichever host sent them.
 
 ## Before adding teammates: your own email sender
 
@@ -155,7 +193,9 @@ src/lib/notes/          note generation: prompt, citation check, starter templat
 src/lib/themes/         theme proposals: prompt, gate, project evidence
 src/lib/memo/           the findings memo: prompt, citation gate, loader, Markdown export
 src/lib/supabase/       browser, server and session-refresh clients
-src/lib/seat.ts         who is signed in, and what they may change
+src/lib/seat.ts         who is signed in, and what they may see and change
+src/lib/invite.ts       invitation emails and copyable links
+src/app/(app)/members/  the workspace's people and invitations (owners)
 supabase/schema.sql     the data model; migrations/ updates an existing one
 docs/                   the build plan, backlog, and session handoff
 fixtures/private/       real transcripts for local checks — never committed
