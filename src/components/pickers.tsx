@@ -17,17 +17,21 @@ export function ClientProjectPicker({
   onChange,
   noneLabel = "Unassigned",
 }: {
-  directory: Pick<Directory, "clients" | "projects">;
+  directory: Pick<Directory, "clients" | "projects"> & Partial<Pick<Directory, "workspaceEditor" | "editableProjectIds">>;
   projectId: string;
   onChange: (projectId: string) => void;
   noneLabel?: string;
 }) {
+  // Someone from outside Harrington adds only to projects they edit: no
+  // unassigned, no new clients or projects.
+  const workspace = directory.workspaceEditor ?? true;
+  const editable = directory.editableProjectIds ? new Set(directory.editableProjectIds) : null;
   const router = useRouter();
   // Made here, before the page's own lists catch up.
   const [madeClients, setMadeClients] = useState<ClientOption[]>([]);
   const [madeProjects, setMadeProjects] = useState<ProjectOption[]>([]);
-  const clients = [...directory.clients, ...madeClients.filter((c) => !directory.clients.some((d) => d.id === c.id))].sort((a, b) => a.name.localeCompare(b.name));
-  const allProjects = [...directory.projects, ...madeProjects.filter((p) => !directory.projects.some((d) => d.id === p.id))];
+  const clients = [...directory.clients.filter((c) => workspace || directory.projects.some((p) => p.clientId === c.id && (!editable || editable.has(p.id)))), ...madeClients.filter((c) => !directory.clients.some((d) => d.id === c.id))].sort((a, b) => a.name.localeCompare(b.name));
+  const allProjects = [...directory.projects.filter((p) => !editable || editable.has(p.id)), ...madeProjects.filter((p) => !directory.projects.some((d) => d.id === p.id))];
   const implied = allProjects.find((p) => p.id === projectId)?.clientId ?? "";
   const [clientId, setClientId] = useState(implied);
   const projects = allProjects.filter((p) => p.clientId === clientId).sort((a, b) => a.name.localeCompare(b.name));
@@ -131,13 +135,13 @@ export function ClientProjectPicker({
               setMaking(null);
             }}
           >
-            <option value="">{noneLabel}</option>
+            <option value="">{workspace ? noneLabel : "Choose a client…"}</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {clientLabel(c)}
               </option>
             ))}
-            <option value={NEW}>New client…</option>
+            {workspace && <option value={NEW}>New client…</option>}
           </select>
         )}
       </Field>
@@ -152,7 +156,7 @@ export function ClientProjectPicker({
                 {p.name}
               </option>
             ))}
-            {clientId && <option value={NEW}>New project…</option>}
+            {clientId && workspace && <option value={NEW}>New project…</option>}
           </select>
         )}
       </Field>

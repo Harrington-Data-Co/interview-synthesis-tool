@@ -4,7 +4,7 @@ import { SourcesActions } from "@/components/sources/SourcesActions";
 import { clientLabel, loadDirectory } from "@/lib/directory";
 import { loadTranscripts } from "@/lib/library";
 import { loadProgress } from "@/lib/progress";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { canEditWorkspace, currentSeat, deliverablesOnlyProjects } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 import { clientPath } from "@/lib/urls";
 
@@ -13,7 +13,9 @@ import { clientPath } from "@/lib/urls";
 export default async function HomePage() {
   const supabase = await createClient();
   const [directory, seat, { rows, error }] = await Promise.all([loadDirectory(supabase), currentSeat(), loadTranscripts(supabase)]);
-  const editor = canEdit(seat);
+  // New projects and unassigned uploads are workspace things.
+  const editor = canEditWorkspace(seat);
+  const clientOnly = await deliverablesOnlyProjects();
   const progress = await loadProgress(
     supabase,
     directory.projects.map((p) => p.id),
@@ -55,11 +57,16 @@ export default async function HomePage() {
 
       {!directory.clients.length && (
         <div className="panel" style={{ padding: "var(--space-4)" }}>
-          <p className="meta" style={{ margin: 0 }}>No clients yet. Start one with New project.</p>
+          <p className="meta" style={{ margin: 0 }}>
+            {seat?.role ? "No clients yet. Start one with New project." : "You haven\u2019t been added to a project yet. Ask whoever invited you."}
+          </p>
         </div>
       )}
       {directory.clients.map((c) => {
         const projects = directory.projects.filter((p) => p.clientId === c.id);
+        // Projects are by membership: a client with none of yours is only
+        // worth listing to an owner, who can start one.
+        if (!projects.length && seat?.role !== "owner") return null;
         return (
           <section key={c.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             <Link href={clientPath(c.slug)} className="kicker" style={{ alignSelf: "flex-start" }}>
@@ -70,7 +77,7 @@ export default async function HomePage() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "var(--space-3)" }}>
                 {projects.map((p) => (
-                  <ProjectCard key={p.id} path={p.path} name={p.name} progress={progress.get(p.id)!} />
+                  <ProjectCard key={p.id} path={p.path} name={p.name} progress={progress.get(p.id)!} deliverablesOnly={clientOnly.has(p.id)} />
                 ))}
               </div>
             )}

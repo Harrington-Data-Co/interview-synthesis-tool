@@ -11,7 +11,7 @@ import {
 } from "@/components/transcript/TranscriptLines";
 import { VerifyButton } from "@/components/transcript/VerifyButton";
 import { loadDirectory } from "@/lib/directory";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { canEditWorkspace, currentSeat, projectAccess } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -49,7 +49,9 @@ export default async function TranscriptPage({
     )
     .eq("id", id)
     .maybeSingle();
-  if (!t) notFound();
+  // A client following a quote's link: the quote is shared with them, the
+  // interview isn't.
+  if (!t) return <NotShared />;
 
   // Lines in pages: a long interview can pass PostgREST's 1000-row cap.
   const lines: LineView[] = [];
@@ -64,12 +66,15 @@ export default async function TranscriptPage({
     if (!data || data.length < PAGE) break;
   }
 
-  const [{ data: speakers }, { data: ingester }, directory, seat] = await Promise.all([
+  const [{ data: speakers }, { data: ingester }, directory, seat, access] = await Promise.all([
     supabase.from("transcript_speaker").select("name,role,display_name,organization_id,title,person_id").eq("transcript_id", id),
     supabase.from("seat").select("name").eq("user_id", t.ingested_by).maybeSingle(),
     loadDirectory(supabase),
     currentSeat(),
+    t.project_id ? projectAccess(t.project_id) : Promise.resolve(null),
   ]);
+  // In a project, its editors; unassigned, Harrington's editors.
+  const editor = t.project_id ? !!access?.edit : canEditWorkspace(seat);
   const roles: Record<string, SpeakerRole> = Object.fromEntries(
     (speakers ?? []).map((s) => [s.name, s.role as SpeakerRole]),
   );
@@ -151,7 +156,7 @@ export default async function TranscriptPage({
           <h2 style={{ fontSize: 24, margin: 0 }}>{t.title}</h2>
           {stageTabs}
         </div>
-        <NotesStage transcriptId={id} projectId={t.project_id} templateId={query.template} editor={canEdit(seat)} />
+        <NotesStage transcriptId={id} projectId={t.project_id} templateId={query.template} editor={editor} />
       </main>
     );
   }
@@ -166,7 +171,7 @@ export default async function TranscriptPage({
         </div>
         <CodingStage
           transcriptId={id}
-          editor={canEdit(seat)}
+          editor={editor}
           lines={lines.map((l) => ({
             n: l.n,
             speaker: names[l.speaker] ?? l.speaker,
@@ -222,7 +227,7 @@ export default async function TranscriptPage({
               </div>
             ))}
           </dl>
-          {canEdit(seat) && (
+          {editor && (
             <EditRecordButton
               record={{
                 id: t.id,
@@ -310,5 +315,19 @@ export default async function TranscriptPage({
 
       <TranscriptLines lines={lines} roles={roles} names={names} checksum={t.sha256} />
     </main>
+  );
+}
+
+function NotShared() {
+  return (
+    <div style={{ padding: "var(--space-6)", maxWidth: 640, width: "100%", margin: "0 auto" }}>
+      <div className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+        <h2 style={{ fontSize: 22, margin: 0 }}>This interview isn&apos;t shared with you</h2>
+        <p className="meta" style={{ margin: 0 }}>
+          The quotes the findings cite are yours to read; the full interviews aren&apos;t. If you need them, ask the
+          project&apos;s owner.
+        </p>
+      </div>
+    </div>
   );
 }

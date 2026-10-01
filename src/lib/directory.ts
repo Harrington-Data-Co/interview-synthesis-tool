@@ -32,6 +32,11 @@ export type Directory = {
   projects: ProjectOption[];
   organizations: OrgOption[];
   people: PersonOption[];
+  /** May start clients and projects and keep transcripts unassigned: a
+   *  Harrington editor. Others add only to projects they edit. */
+  workspaceEditor: boolean;
+  /** Projects the signed-in person may add to. */
+  editableProjectIds: string[];
 };
 
 export const PATH_SEP = " › ";
@@ -127,15 +132,19 @@ export async function loadClients(supabase: SupabaseClient): Promise<Pick<Direct
 }
 
 export async function loadDirectory(supabase: SupabaseClient): Promise<Directory> {
-  const [{ clients, projects }, { data: orgs }, { data: people }] = await Promise.all([
+  const [{ clients, projects }, { data: orgs }, { data: people }, { data: workspaceEditor }, { data: editable }] = await Promise.all([
     loadClients(supabase),
     supabase.from("organization").select("id,name,parent_id,short_name,kind"),
     supabase.from("person").select("id,name,organization_id,title").order("name"),
+    supabase.rpc("can_edit_workspace"),
+    supabase.rpc("my_editable_projects"),
   ]);
   return {
     clients,
     projects,
     organizations: withPaths(orgs ?? []),
     people: (people ?? []).map((p) => ({ id: p.id, name: p.name, organizationId: p.organization_id, title: p.title })),
+    workspaceEditor: !!workspaceEditor,
+    editableProjectIds: ((editable ?? []) as unknown[]).map((r) => (typeof r === "string" ? r : Object.values(r as object)[0] as string)),
   };
 }

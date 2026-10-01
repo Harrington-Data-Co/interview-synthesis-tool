@@ -1,4 +1,4 @@
-import { ApiError, errorResponse, requireEditor } from "@/lib/api";
+import { ApiError, dbError, errorResponse, requireEditor } from "@/lib/api";
 import { createClient } from "@/lib/supabase/server";
 import { codeTaken, readCode } from "@/lib/clients";
 import { projectPath } from "@/lib/urls";
@@ -32,16 +32,15 @@ export async function POST(request: Request) {
       clientId = data.id;
     }
 
-    const { data: project, error } = await supabase
+    // create_project makes the creator the project's owner in the same step.
+    const { data: id, error } = await supabase.rpc("create_project", { p_client_id: clientId, p_name: projectName });
+    if (error) dbError(error);
+    const { data: project, error: readError } = await supabase
       .from("project")
-      .insert({ client_id: clientId, name: projectName, created_by: seat.user_id })
       .select("id,slug,client:client_id(slug)")
+      .eq("id", id as string)
       .single();
-    if (error) throw error;
-
-    await supabase
-      .from("activity")
-      .insert({ project_id: project.id, actor: seat.user_id, verb: "created project", object: projectName });
+    if (readError) throw readError;
 
     const path = projectPath((project.client as unknown as { slug: string }).slug, project.slug);
     return Response.json({ id: project.id, clientId, path });

@@ -747,6 +747,33 @@ $$;
 revoke execute on function code_speakers from public, anon;
 grant execute on function code_speakers to authenticated;
 
+-- The quotes a client may see, with what the app shows alongside them: the
+-- interview's key (I1, I2… in recording order among coded interviews, as
+-- the app numbers them for everyone) and its participants' titles. No
+-- transcript titles, names or organizations: those can say who it was.
+create or replace function client_evidence(p_project_id uuid)
+returns table (transcript_id uuid, interview_key text, titles text, code_id uuid, ref text, type code_type,
+               label text, verbatim text, line_start integer, line_end integer)
+language sql stable security definer set search_path = public as $$
+  with coded as (
+    select t.id, row_number() over (order by t.recorded_on asc nulls last, t.title) as n
+    from transcript t
+    where t.project_id = p_project_id
+      and exists (select 1 from code c where c.transcript_id = t.id and c.merged_into_id is null)
+  )
+  select k.id, 'I' || k.n,
+         (select string_agg(distinct s.title, ', ') from transcript_speaker s
+          where s.transcript_id = k.id and s.role = 'participant' and s.title is not null),
+         c.id, c.ref, c.type, c.label, c.verbatim, c.line_start, c.line_end
+  from coded k
+  join code c on c.transcript_id = k.id and c.merged_into_id is null
+  where can_read_project(p_project_id)
+    and c.id in (select my_evidence_codes())
+  order by k.n, c.line_start;
+$$;
+revoke execute on function client_evidence from public, anon;
+grant execute on function client_evidence to authenticated;
+
 -- Copying a template reads the source: it must be one the caller can see.
 create or replace function copy_note_template(p_template_id uuid, p_project_id uuid)
 returns uuid language plpgsql security definer set search_path = public as $$
@@ -1243,6 +1270,14 @@ returns jsonb language sql stable security definer set search_path = public as $
     'edit', can_edit_project(p_project_id),
     'manage', can_manage_project(p_project_id)
   ) end;
+$$;
+
+-- Projects the signed-in person may add to and change (for pickers).
+create or replace function my_editable_projects()
+returns setof uuid language sql stable security definer set search_path = public as $$
+  select id from project where is_owner()
+  union
+  select project_id from my_memberships() where role in ('owner', 'editor');
 $$;
 
 revoke execute on function

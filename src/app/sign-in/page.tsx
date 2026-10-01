@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail, supabaseConfigured } from "@/lib/config";
+import { supabaseConfigured } from "@/lib/config";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -16,13 +16,6 @@ export default function SignInPage() {
 
     const typed = email.trim().toLowerCase();
     if (!typed) return;
-
-    if (!isAllowedEmail(typed)) {
-      setErr(
-        `Harrington Tools is internal for now. Sign in with your @${ALLOWED_EMAIL_DOMAIN} account.`,
-      );
-      return;
-    }
 
     if (!supabaseConfigured) {
       setErr(
@@ -39,6 +32,8 @@ export default function SignInPage() {
     });
     setBusy(false);
 
+    // An address with no invitation is refused by the sign-up hook, whose
+    // message says so.
     if (error) setErr(error.message);
     else setSent(true);
   }
@@ -161,7 +156,7 @@ export default function SignInPage() {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             <span className="tag tag-accent" style={{ alignSelf: "flex-start" }}>
-              Internal access only
+              By invitation
             </span>
             <h2 style={{ fontSize: 28, margin: "4px 0 0" }}>Sign in to Harrington Tools</h2>
             <p
@@ -172,11 +167,8 @@ export default function SignInPage() {
                 color: "var(--color-muted)",
               }}
             >
-              For{" "}
-              <strong style={{ color: "var(--color-navy)" }}>
-                @{ALLOWED_EMAIL_DOMAIN}
-              </strong>{" "}
-              accounts. Client access comes later, with multi-user.
+              Use the email address your invitation went to. We&apos;ll send a link
+              that signs you in.
             </p>
           </div>
 
@@ -189,7 +181,7 @@ export default function SignInPage() {
                 color: "color-mix(in srgb, var(--color-text) 55%, transparent)",
               }}
             >
-              Work email
+              Email
             </span>
             <input
               className="input"
@@ -200,7 +192,7 @@ export default function SignInPage() {
                 setEmail(e.target.value);
                 setErr("");
               }}
-              placeholder={`you@${ALLOWED_EMAIL_DOMAIN}`}
+              placeholder="you@example.com"
             />
           </label>
 

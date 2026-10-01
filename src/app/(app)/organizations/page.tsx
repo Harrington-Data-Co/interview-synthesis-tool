@@ -1,7 +1,8 @@
 import { PeopleHeader } from "@/components/people/PeopleHeader";
 import { OrganizationsView, type OrgUsage } from "@/components/people/OrganizationsView";
 import { loadDirectory } from "@/lib/directory";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { redirect } from "next/navigation";
+import { canEditWorkspace, currentSeat, isStaff } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 /** Every organization, as a tree, with who's at each and which interviews
@@ -9,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
  *  deleted. */
 export default async function OrganizationsPage() {
   const seat = await currentSeat();
+  if (!isStaff(seat)) redirect("/");
   const supabase = await createClient();
   const [directory, { data: people, error }, { data: speakers }] = await Promise.all([
     loadDirectory(supabase),
@@ -45,7 +47,7 @@ export default async function OrganizationsPage() {
           </p>
         </div>
       ) : (
-        <OrganizationsView organizations={directory.organizations} usage={usage} editor={canEdit(seat)} />
+        <OrganizationsView organizations={directory.organizations} usage={usage} editor={canEditWorkspace(seat)} />
       )}
     </div>
   );

@@ -49,11 +49,15 @@ function SetupNeeded() {
 /** A valid sign-in with no seat row. Authentication succeeded; membership did not. */
 function NoSeat() {
   return (
-    <Centered title="No seat on this workspace">
+    <Centered title="No invitation for this address">
       <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--color-muted)" }}>
-        Your sign-in worked, but this account has no seat here yet. A workspace owner
-        can add one from Members.
+        Your sign-in worked, but there&apos;s no invitation for this address, or it has
+        expired or been withdrawn. Ask whoever invited you to send it again, to the
+        address you signed in with.
       </p>
+      <form action="/auth/signout" method="post">
+        <button className="btn btn-secondary">Sign in with another address</button>
+      </form>
     </Centered>
   );
 }

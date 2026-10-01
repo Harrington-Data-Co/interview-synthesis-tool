@@ -42,6 +42,9 @@ export async function loadProjectEvidence(
       .order("title"),
     supabase.from("organization").select("id,name,parent_id"),
   ]);
+  // A client on deliverables-only access can't read the transcripts; they
+  // get the quotes they may see, keyed and titled, from client_evidence.
+  if (!ts?.length) return clientEvidence(supabase, projectId);
   const orgPath = new Map(withPaths(orgs ?? []).map((o) => [o.id, o.path]));
   const ids = (ts ?? []).map((t) => t.id);
 
@@ -85,4 +88,52 @@ export async function loadProjectEvidence(
   const keyOf = new Map(interviews.map((i) => [i.id, i.key]));
   for (const c of codes) c.key = `${keyOf.get(c.transcriptId)}:${c.ref}`;
   return { interviews, codes: codes.filter((c) => keyOf.has(c.transcriptId)) };
+}
+
+type ClientEvidenceRow = {
+  transcript_id: string;
+  interview_key: string;
+  titles: string | null;
+  code_id: string;
+  ref: string;
+  type: string;
+  label: string;
+  verbatim: string;
+  line_start: number;
+  line_end: number;
+};
+
+/** The evidence a client may see: only cited quotes, attributed by title.
+ *  Interviews keep the keys everyone else sees (I3), with no title or names. */
+async function clientEvidence(supabase: SupabaseClient, projectId: string): Promise<{ interviews: EvidenceInterview[]; codes: EvidenceCode[] }> {
+  const { data } = await supabase.rpc("client_evidence", { p_project_id: projectId });
+  const rows = (data ?? []) as ClientEvidenceRow[];
+  const interviews = new Map<string, EvidenceInterview>();
+  const codes: EvidenceCode[] = [];
+  for (const r of rows) {
+    const i = interviews.get(r.transcript_id) ?? {
+      id: r.transcript_id,
+      key: r.interview_key,
+      title: `Interview ${r.interview_key}`,
+      participant: null,
+      organization: null,
+      organizationId: null,
+      role: r.titles,
+      codeCount: 0,
+    };
+    i.codeCount += 1;
+    interviews.set(r.transcript_id, i);
+    codes.push({
+      id: r.code_id,
+      key: `${r.interview_key}:${r.ref}`,
+      transcriptId: r.transcript_id,
+      ref: r.ref,
+      type: r.type,
+      label: r.label,
+      verbatim: r.verbatim,
+      line_start: r.line_start,
+      line_end: r.line_end,
+    });
+  }
+  return { interviews: [...interviews.values()], codes };
 }

@@ -2,7 +2,8 @@ import { PeopleHeader } from "@/components/people/PeopleHeader";
 import { PeopleView } from "@/components/people/PeopleView";
 import type { PersonInterview, PersonRow } from "@/components/people/view";
 import { loadDirectory } from "@/lib/directory";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { redirect } from "next/navigation";
+import { canEditWorkspace, currentSeat, isStaff } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 /** Everyone who speaks in an interview, with their current organization and
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ person?: string }> }) {
   const { person: openPersonId } = await searchParams;
   const seat = await currentSeat();
+  if (!isStaff(seat)) redirect("/");
   const supabase = await createClient();
   const [directory, { data, error }] = await Promise.all([
     loadDirectory(supabase),
@@ -82,7 +84,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
           </p>
         </div>
       ) : (
-        <PeopleView people={people} organizations={directory.organizations} editor={canEdit(seat)} initialOpenId={openPersonId} />
+        <PeopleView people={people} organizations={directory.organizations} editor={canEditWorkspace(seat)} initialOpenId={openPersonId} />
       )}
     </div>
   );
