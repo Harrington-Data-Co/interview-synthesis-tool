@@ -1,8 +1,55 @@
 # Handoff — where things stand
 
-Updated 2026-09-30 evening, before the people work merged and Ryan's
-one-hour away session. Read this first, then `docs/PLAN.md` and
+Updated 2026-10-01 early morning, after the overnight invitation build. Read this first, then `docs/PLAN.md` and
 `docs/BACKLOG.md`.
+
+## Morning, 2026-10-01: invitation access is built, on branch `invitations`
+
+Built overnight while Ryan slept; designed with him first (decisions in
+`docs/BACKLOG.md` → *Invitation-only access…*). **Nothing is applied or
+merged.** Checked in PGlite: 112 access checks (owner, staff editor, staff
+on nothing, partner editor, viewer, deliverables client, full client,
+stranger) and 85 checks that every writing path still works for a partner
+editor, both against the migration on the old schema and against a fresh
+`schema.sql`. Lint, 138 unit tests and `npm run build` pass. **Not tried
+signed in**: the new code needs the migration, and the live database
+wasn't touched.
+
+To turn it on, in this order:
+
+1. **Apply** `supabase/migrations/20260930g_invitations.sql` in the SQL
+   editor. Existing seats keep everything: each became a member of every
+   existing project with its old role.
+2. **Switch the hook**: Authentication → Hooks → Before User Created →
+   `public.hook_require_invitation` (replacing
+   `hook_restrict_signup_domain` if it was on). Keep sign-ups enabled.
+3. **Add the redirect** `http://localhost:3000/auth/confirm` (and the
+   deployed one, later) under Authentication → URL Configuration.
+4. **Merge** `invitations` into `main` and restart the dev server.
+5. **Try it**: invite a second address of yours to a project as a client
+   from the project's **Members** tab; open the email (or **Copy link**) in
+   a private window; check it lands on the memo and sees only cited quotes.
+   Then switch that client to *everything, read-only* and back.
+
+Until custom SMTP is set up, Supabase sends a few emails an hour; **Copy
+link** gets round that.
+
+### Where it lives
+- Database: migration `20260930g` (also appended to `schema.sql`).
+  Helpers `my_projects()`, `my_full_projects()`, `my_transcripts()`,
+  `my_evidence_codes()`; `guard_project_write()` on every project table;
+  `invite_member`, `accept_invitations`, `set_project_member`,
+  `remove_project_member`, `set_workspace_role`, `deactivate_seat`,
+  `project_access`, `client_evidence`, `create_project`.
+- App: `src/lib/seat.ts` (`currentSeat` accepts invitations;
+  `projectAccess`), `src/lib/invite.ts`, `src/lib/supabase/admin.ts`
+  (service role, invites only), `src/components/members/MembersPanel.tsx`,
+  `/members`, a project's `members` tab, `/auth/confirm`, `/auth/signout`.
+- `ProjectPage` takes tabs, buttons and stats from `projectAccess`; a
+  deliverables-only client is sent to the memo. `loadProjectEvidence`
+  falls back to `client_evidence` when no transcripts are readable.
+- The PGlite harness is in the session scratchpad, not the repo (as
+  before); the checks are worth re-creating if this needs changing.
 
 ## State
 

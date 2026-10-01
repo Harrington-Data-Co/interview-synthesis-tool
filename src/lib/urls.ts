@@ -17,8 +17,13 @@ export const VIEWS = [
   ["architecture", "Architecture", "architecture"],
   ["chain", "Chain", "chain"],
   ["corpus", "Corpus", "corpus"],
+  // Who's on the project, and invitations. Not one of the work's tabs.
+  ["members", "Members", "members"],
 ] as const;
 export type ViewKey = (typeof VIEWS)[number][0];
+
+/** What a client on deliverables-only access sees of a project. */
+export const DELIVERABLE_VIEWS: ViewKey[] = ["themes", "memo", "deck", "swimlanes", "architecture"];
 
 export const isViewKey = (v: string | undefined): v is ViewKey => VIEWS.some(([k]) => k === v);
 

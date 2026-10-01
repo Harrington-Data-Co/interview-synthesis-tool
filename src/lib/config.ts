@@ -1,10 +1,5 @@
-/** Harrington Tools is internal for now. Sign-in is restricted to this domain,
- *  and beyond that to addresses that have a seat row. */
-export const ALLOWED_EMAIL_DOMAIN = "harringtondata.com";
-
-export function isAllowedEmail(email: string): boolean {
-  return email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
-}
+/** Who may sign in is decided by invitation (migration 20260930g and the
+ *  hook_require_invitation sign-up hook), not by email domain. */
 
 /** The Harrington Tools hub, where the header's "Harrington Tools" links.
  *  Not built yet (2026-09-30): until it is, the brand isn't a link. */

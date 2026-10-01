@@ -5,7 +5,7 @@ import { SourcesActions } from "@/components/sources/SourcesActions";
 import { loadDirectory } from "@/lib/directory";
 import { loadTranscripts } from "@/lib/library";
 import { loadProgress } from "@/lib/progress";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { canEditWorkspace, currentSeat, deliverablesOnlyProjects } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 /** A client: its short code and its projects (/clients/<client>), reached
@@ -16,11 +16,13 @@ export default async function ClientPage({ params }: { params: Promise<{ client:
   const [directory, seat] = await Promise.all([loadDirectory(supabase), currentSeat()]);
   const client = directory.clients.find((c) => c.slug === slug);
   if (!client) notFound();
-  const editor = canEdit(seat);
+  // The client's code and new projects under it are workspace things.
+  const editor = canEditWorkspace(seat);
   const projects = directory.projects.filter((p) => p.clientId === client.id);
   const { rows, error } = projects.length
     ? await loadTranscripts(supabase, { projectIds: projects.map((p) => p.id) })
     : { rows: [], error: null };
+  const clientOnly = await deliverablesOnlyProjects();
   const progress = await loadProgress(
     supabase,
     projects.map((p) => p.id),
@@ -60,7 +62,7 @@ export default async function ClientPage({ params }: { params: Promise<{ client:
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "var(--space-3)" }}>
           {projects.map((p) => (
-            <ProjectCard key={p.id} path={p.path} name={p.name} progress={progress.get(p.id)!} />
+            <ProjectCard key={p.id} path={p.path} name={p.name} progress={progress.get(p.id)!} deliverablesOnly={clientOnly.has(p.id)} />
           ))}
         </div>
       )}

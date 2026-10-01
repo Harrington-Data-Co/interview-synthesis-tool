@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Progress } from "@/lib/progress";
-import { projectHref, type ViewKey } from "@/lib/urls";
+import { DELIVERABLE_VIEWS, projectHref, type ViewKey } from "@/lib/urls";
 
 type State = "none" | "partial" | "done";
 
@@ -8,8 +8,20 @@ type State = "none" | "partial" | "done";
  *  process has got (Interviews → Themes → Memo) and which outputs exist.
  *  On the home page and a client's page. The card opens the project; each
  *  step and output opens its tab. */
-export function ProjectCard({ path, name, progress: p }: { path: string; name: string; progress: Progress }) {
-  const steps: [ViewKey, string, State, string][] = [
+export function ProjectCard({
+  path,
+  name,
+  progress: p,
+  deliverablesOnly = false,
+}: {
+  path: string;
+  name: string;
+  progress: Progress;
+  /** A client who sees only the deliverables: no interviews or corpus, and
+   *  the card opens the memo. */
+  deliverablesOnly?: boolean;
+}) {
+  const allSteps: [ViewKey, string, State, string][] = [
     [
       "interviews",
       "Interviews",
@@ -27,24 +39,29 @@ export function ProjectCard({ path, name, progress: p }: { path: string; name: s
     ["memo", "Memo", p.memoParagraphs ? "done" : "none", p.memoParagraphs ? `Drafted · ${p.memoParagraphs} paragraph${p.memoParagraphs === 1 ? "" : "s"}` : "Not started"],
   ];
   // The corpus is drawn from confirmed themes, so it's there once they are.
-  const outputs: [ViewKey, string, number | boolean][] = [
+  const allOutputs: [ViewKey, string, number | boolean][] = [
     ["corpus", "Corpus", p.themesConfirmed > 0],
     ["swimlanes", "Process Flows", p.flows],
     ["architecture", "Architecture", p.archMaps],
     ["deck", "Deck", p.deckSlides],
   ];
+  const shown = (view: ViewKey) => !deliverablesOnly || DELIVERABLE_VIEWS.includes(view);
+  const steps = allSteps.filter(([view]) => shown(view));
+  const outputs = allOutputs.filter(([view]) => shown(view));
 
   return (
     <div className="card card-stretch" style={{ gap: "var(--space-3)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <Link href={path} className="card-stretch-link" style={{ fontWeight: 700, fontSize: 15 }}>
+        <Link href={deliverablesOnly ? projectHref(path, "memo") : path} className="card-stretch-link" style={{ fontWeight: 700, fontSize: 15 }}>
           {name}
         </Link>
-        <span className="meta" style={{ fontSize: 12.5 }}>
-          {p.interviews} interview{p.interviews === 1 ? "" : "s"}
-          {p.minutes ? ` · ${p.minutes} min` : ""}
-          {p.latest ? ` · latest ${p.latest}` : ""}
-        </span>
+        {!deliverablesOnly && (
+          <span className="meta" style={{ fontSize: 12.5 }}>
+            {p.interviews} interview{p.interviews === 1 ? "" : "s"}
+            {p.minutes ? ` · ${p.minutes} min` : ""}
+            {p.latest ? ` · latest ${p.latest}` : ""}
+          </span>
+        )}
       </div>
 
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 5 }}>

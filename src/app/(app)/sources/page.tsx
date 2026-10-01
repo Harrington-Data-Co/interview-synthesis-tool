@@ -5,7 +5,8 @@ import { SourcesActions } from "@/components/sources/SourcesActions";
 import { loadDirectory } from "@/lib/directory";
 import { loadTranscripts, participantsOf, SOURCE_LABEL} from "@/lib/library";
 import { googleConfigured } from "@/lib/connectors/google";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { redirect } from "next/navigation";
+import { canEditWorkspace, currentSeat, isStaff } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 /** Intake: new Meet transcripts waiting in Drive, and the Unassigned queue
@@ -14,7 +15,8 @@ import { createClient } from "@/lib/supabase/server";
 export default async function SourcesPage({ searchParams }: { searchParams: Promise<{ google?: string; reason?: string }> }) {
   const query = await searchParams;
   const seat = await currentSeat();
-  const editor = canEdit(seat);
+  if (!isStaff(seat)) redirect("/");
+  const editor = canEditWorkspace(seat);
   const supabase = await createClient();
   const [{ rows, error }, directory, { data: google, error: googleError }] = await Promise.all([
     loadTranscripts(supabase),

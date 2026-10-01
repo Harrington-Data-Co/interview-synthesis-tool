@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { TemplatesEditor, type TemplateRow } from "@/components/templates/TemplatesEditor";
 import { loadDirectory } from "@/lib/directory";
-import { canEdit, currentSeat } from "@/lib/seat";
+import { redirect } from "next/navigation";
+import { canEditWorkspace, currentSeat, isStaff } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 /** Templates: note templates (an interview's note), memo templates (a
@@ -10,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export default async function TemplatesPage({ searchParams }: { searchParams: Promise<{ t?: string; kind?: string }> }) {
   const { t: selectedId, kind: kindParam } = await searchParams;
   const kind = kindParam === "memo" || kindParam === "deck" ? kindParam : "note";
+  if (!isStaff(await currentSeat())) redirect("/");
   const supabase = await createClient();
   const [{ data: templates, error }, { data: uses }, directory, seat] = await Promise.all([
     kind !== "note"
@@ -83,7 +85,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
           templates={rows}
           selectedId={selectedId ?? null}
           directory={{ clients: directory.clients, projects: directory.projects }}
-          editor={canEdit(seat)}
+          editor={canEditWorkspace(seat)}
         />
       )}
     </div>

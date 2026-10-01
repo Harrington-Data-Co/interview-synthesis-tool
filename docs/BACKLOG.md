@@ -122,25 +122,57 @@ project.
 ## Under consideration
 
 ### Invitation-only access, project roles, and client access
-Only invited people can use the tool, whatever their email domain, so clients
-and partners can be let in too. Not yet designed; considered 2026-09-28.
-Multi-tenant client access (clients seeing their own projects) moved here
-from Phase 6 on 2026-09-29, to be designed alongside this.
+*Built 2026-09-30 overnight (branch `invitations`) — migration
+`20260930g_invitations`, checked in PGlite; not yet applied or tried
+signed in.* Only invited people can use the tool, whatever their email
+domain. Multi-tenant client access moved here from Phase 6 on 2026-09-29.
 
-- **Accounts by invitation only**: turn off public sign-ups in Supabase and
-  invite from the app (server-side, via Supabase's invite API). This replaces
-  the sign-up hook and the `@harringtondata.com` check in the sign-in form
-  (`ALLOWED_EMAIL_DOMAIN`, `src/lib/config.ts`).
-- **An invitation creates the seat**, perhaps pending until first sign-in;
-  authentication still isn't membership.
-- **Project roles**: a `project_member` (project, person, role) table, and
-  read policies that check project membership instead of just `has_seat()` —
-  the seam `schema.sql` was built to leave.
-- **Open questions**: who can invite (workspace owners, project owners?);
-  which roles exist per project (owner / editor / viewer / client?); what a
-  client may see (their project's raw transcripts, or only deliverables?);
-  who sees workspace-wide things (the Unassigned queue, the organization
-  list); whether invitations expire.
+**Decided with Ryan 2026-09-30:**
+- **Access is per project for everyone.** Workspace owners see and manage
+  everything; anyone else sees only the projects they're a member of.
+- **Who invites**: workspace owners (to anything, and workspace roles);
+  project owners (to their own project).
+- **What a client sees**: by default the deliverables (memo, deck, process
+  flows, architecture), confirmed themes, and the quotes those cite,
+  attributed by title, not name — no transcripts, notes, uncited codes,
+  people, chain or corpus. A project owner can switch one client to
+  **everything, read-only** when more is needed.
+- Branch, commit, push; no merge.
+
+**Decided in the build (Ryan to confirm or change):**
+- Project roles are owner / editor / viewer / client. The workspace role
+  (owner / editor / viewer) is now optional: it marks Harrington's own
+  people, who also get Sources, People, Organizations and the template
+  library. Someone from outside has none.
+- Invitations last **14 days**; Send again restarts them. **Copy link**
+  hands one over by hand (it replaces any emailed link). Inviting someone
+  who already has a seat adds them at once.
+- Staff see **every person** on People (it's a workspace page), but a
+  person's interviews only where they're on the project. Outsiders see the
+  people who speak in transcripts they can read.
+- **Partners** (outside editors) may add people and organizations while
+  working (speaker pickers) but not rename, merge or delete them; they
+  can't start clients or projects or leave transcripts unassigned.
+- The creator of a project is its owner. Existing seats became members of
+  every existing project with their old role, so nothing changed for them.
+- Removing someone from the workspace keeps their seat (it authors their
+  work), takes them off every project and withdraws their invitations; only
+  a workspace owner can bring them back.
+- Workspace owners aren't listed on a project's Members unless they're on it.
+
+**How it's enforced** (migration header has the detail): read policies ask
+which projects the reader belongs to; one guard trigger per project table
+checks every write — direct or through the definer functions — against the
+row's project, so the 150 writing functions didn't each need a new check.
+Clients get quotes through `client_evidence()`, titles through
+`code_speakers()`.
+
+**Follow-ups:**
+- Activity on Members (the prototype's Activity tab).
+- Who edits people in place (BACKLOG person model) can now follow project
+  roles if wanted.
+- A client's deliverables view could drop the editing chrome entirely
+  (today it's the read-only version of each tab).
 
 ### Active and archived projects
 Raised by Ryan 2026-09-30, once the Clients menu existed: it lists every
@@ -434,4 +466,5 @@ Earlier items are all done. For the 2026-09-30 review (R1–R11):
    reshape routes and links; done in one pass, before client access
    (clients will see these URLs).
 5. **Quick wins whenever: R11, R10, R9.** *All done 2026-09-30.*
-6. Then *Invitation-only access…* and *Mobile-friendly layout* above.
+6. Then *Invitation-only access…* (built 2026-09-30, branch `invitations`)
+   and *Mobile-friendly layout* above.

@@ -31,6 +31,9 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
   const header = useRef<HTMLElement>(null);
   const toggle = (m: Menu) => setOpen((cur) => (cur === m ? null : m));
   const acctOpen = open === "account";
+  // Workspace-wide pages are for Harrington's own people; someone invited
+  // from outside sees only their projects.
+  const staff = !!seat.role;
 
   // Close on navigation, a click elsewhere, or Escape. A click works on
   // touch too, where a hover menu wouldn't.
@@ -111,9 +114,11 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
         </div>
 
         <nav style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-          <Link href="/sources" className="btn" style={navStyle(on("/sources", "/transcripts"))}>
-            Sources
-          </Link>
+          {staff && (
+            <Link href="/sources" className="btn" style={navStyle(on("/sources", "/transcripts"))}>
+              Sources
+            </Link>
+          )}
 
           <div style={{ position: "relative" }}>
             <button
@@ -129,11 +134,13 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
               <div id="clients-menu" className="panel" style={{ ...menuStyle, width: "min(380px, calc(100vw - 32px))" }}>
                 {!clients.length && (
                   <p className="meta" style={{ margin: 0, padding: "var(--space-2)" }}>
-                    No clients yet. Start one with New project on Sources.
+                    {staff ? "No clients yet. Start one with New project on Sources." : "You haven't been added to a project yet."}
                   </p>
                 )}
                 {clients.map((c) => {
                   const theirs = projects.filter((p) => p.clientId === c.id);
+                  // Projects are by membership; only an owner needs the empty clients.
+                  if (!theirs.length && seat.role !== "owner") return null;
                   return (
                     <div key={c.id} style={{ display: "flex", flexDirection: "column" }}>
                       <MenuLink href={clientPath(c.slug)} current={pathname === clientPath(c.slug)} strong>
@@ -156,30 +163,40 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
             )}
           </div>
 
-          <Link href="/people" className="btn" style={navStyle(on("/people", "/organizations"))}>
-            People
-          </Link>
+          {staff && (
+            <Link href="/people" className="btn" style={navStyle(on("/people", "/organizations"))}>
+              People
+            </Link>
+          )}
 
-          <div style={{ position: "relative" }}>
-            <button
-              className="btn"
-              aria-expanded={open === "templates"}
-              aria-controls="templates-menu"
-              onClick={() => toggle("templates")}
-              style={navStyle(on("/templates"), open === "templates")}
-            >
-              Templates <Caret />
-            </button>
-            {open === "templates" && (
-              <div id="templates-menu" className="panel" style={{ ...menuStyle, width: 220 }}>
-                {TEMPLATE_KINDS.map(([text, href]) => (
-                  <MenuLink key={href} href={href}>
-                    {text}
-                  </MenuLink>
-                ))}
-              </div>
-            )}
-          </div>
+          {staff && (
+            <div style={{ position: "relative" }}>
+              <button
+                className="btn"
+                aria-expanded={open === "templates"}
+                aria-controls="templates-menu"
+                onClick={() => toggle("templates")}
+                style={navStyle(on("/templates"), open === "templates")}
+              >
+                Templates <Caret />
+              </button>
+              {open === "templates" && (
+                <div id="templates-menu" className="panel" style={{ ...menuStyle, width: 220 }}>
+                  {TEMPLATE_KINDS.map(([text, href]) => (
+                    <MenuLink key={href} href={href}>
+                      {text}
+                    </MenuLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {seat.role === "owner" && (
+            <Link href="/members" className="btn" style={navStyle(on("/members"))}>
+              Members
+            </Link>
+          )}
         </nav>
 
         <div
@@ -241,8 +258,8 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
                   {seat.name}
                 </span>
                 <span className="meta">{seat.email}</span>
-                <span className={`tag ${roleTag(seat.role)}`} style={{ alignSelf: "flex-start", marginTop: 4 }}>
-                  {seat.role}
+                <span className={`tag ${roleTag(seat.role ?? "")}`} style={{ alignSelf: "flex-start", marginTop: 4 }}>
+                  {seat.role ?? "Invited to projects"}
                 </span>
               </div>
               <button onClick={signOut} className="btn btn-secondary btn-block">
