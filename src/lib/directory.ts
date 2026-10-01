@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type ClientOption = { id: string; name: string };
+/** A client, with Ryan's optional short code for it (LWF). */
+export type ClientOption = { id: string; name: string; code: string | null };
+
+/** "Longwood Foundation · LWF". */
+export const clientLabel = (c: Pick<ClientOption, "name" | "code">) => (c.code ? `${c.name} · ${c.code}` : c.name);
 export type ProjectOption = { id: string; name: string; clientId: string };
 export type OrgOption = {
   id: string;
@@ -103,7 +107,7 @@ export function withinOrg(id: string, orgs: OrgOption[]): string[] {
 
 export async function loadDirectory(supabase: SupabaseClient): Promise<Directory> {
   const [{ data: clients }, { data: projects }, { data: orgs }, { data: people }] = await Promise.all([
-    supabase.from("client").select("id,name").order("name"),
+    supabase.from("client").select("id,name,code").order("name"),
     supabase.from("project").select("id,name,client_id").order("name"),
     supabase.from("organization").select("id,name,parent_id,short_name,kind"),
     supabase.from("person").select("id,name,organization_id,title").order("name"),

@@ -7,28 +7,18 @@ import { DeckStage } from "@/components/deck/DeckStage";
 import { FlowStage } from "@/components/flow/FlowStage";
 import { CodeAllButton, GenerateNotesButton } from "@/components/project/BatchButton";
 import { ProjectInterviews } from "@/components/project/ProjectInterviews";
+import { ProjectTabs, VIEWS, type ViewKey } from "@/components/project/ProjectTabs";
 import type { LabelAxis, LabelMap } from "@/components/project/labels";
 import { MemoStage } from "@/components/memo/MemoStage";
 import { SourcesActions } from "@/components/sources/SourcesActions";
 import { ThemesStage } from "@/components/themes/ThemesStage";
-import { loadDirectory } from "@/lib/directory";
+import { loadDirectory, clientLabel } from "@/lib/directory";
 import { loadTranscripts, participantNames, participantOrgIds, SOURCE_LABEL } from "@/lib/library";
 import { canEdit, currentSeat } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const VIEWS = [
-  ["interviews", "Interviews"],
-  ["themes", "Themes"],
-  ["memo", "Memo"],
-  ["deck", "Deck"],
-  ["swimlanes", "Swimlanes"],
-  ["architecture", "Architecture"],
-  ["chain", "Chain"],
-  ["corpus", "Corpus"],
-] as const;
-type ViewKey = (typeof VIEWS)[number][0];
 
 /** One project: its interviews (with labels, notes and coding), the themes
  *  across them, the findings memo written from those themes, one interview's
@@ -127,7 +117,7 @@ export default async function ProjectPage({
       </Link>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span className="kicker">{client?.name ?? "Client"}</span>
+          <span className="kicker">{client ? clientLabel(client) : "Client"}</span>
           <h2 style={{ fontSize: 26, margin: 0 }}>{project.name}</h2>
         </div>
         {editor && (
@@ -166,23 +156,7 @@ export default async function ProjectPage({
         </div>
       )}
 
-      <div className="seg" style={{ alignSelf: "flex-start" }}>
-        {VIEWS.map(([key, text]) => (
-          <Link
-            key={key}
-            href={key === "interviews" ? `/projects/${id}` : `/projects/${id}?view=${key}`}
-            className="seg-opt"
-            aria-current={view === key ? "page" : undefined}
-            style={{ textDecoration: "none" }}
-          >
-            <span
-              style={view === key ? { background: "var(--color-accent-tint)", color: "var(--color-accent-800)", fontWeight: 700 } : undefined}
-            >
-              {text}
-            </span>
-          </Link>
-        ))}
-      </div>
+      <ProjectTabs projectId={id} view={view} />
 
       {view === "interviews" && (
         <>

@@ -32,7 +32,6 @@ type Edge = { id: string; d: string; mx: number; my: number };
 export function ArchDiagram({ map, typeOf, selected, onSelect }: { map: ArchMapView; typeOf: Map<string, string>; selected: Selection; onSelect: (s: Selection) => void }) {
   const content = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [size, setSize] = useState({ w: 0, h: 0 });
   const [hover, setHover] = useState<string | null>(null);
 
   // Systems no flow touches sit in a strip underneath rather than piling
@@ -93,7 +92,6 @@ export function ArchDiagram({ map, typeOf, selected, onSelect }: { map: ArchMapV
       });
     }
     setEdges(next);
-    setSize({ w: root.scrollWidth, h: root.scrollHeight });
   }, [map]);
 
   useLayoutEffect(() => {
@@ -210,8 +208,8 @@ export function ArchDiagram({ map, typeOf, selected, onSelect }: { map: ArchMapV
           style={{
             position: "absolute",
             inset: 0,
-            width: size.w,
-            height: size.h,
+            width: "100%",
+            height: "100%",
             pointerEvents: "none",
             overflow: "visible",
             zIndex: 1,
@@ -243,8 +241,8 @@ export function ArchDiagram({ map, typeOf, selected, onSelect }: { map: ArchMapV
           style={{
             position: "absolute",
             inset: 0,
-            width: size.w,
-            height: size.h,
+            width: "100%",
+            height: "100%",
             pointerEvents: "none",
             overflow: "visible",
             zIndex: 3,

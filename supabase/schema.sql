@@ -48,9 +48,13 @@ create table seat (
 create table client (
   id         uuid primary key default gen_random_uuid(),
   name       text not null,
+  -- Ryan's short code for the client (LWF), the same in every tool he uses.
+  -- Optional; unique when set. Migration 20260930d.
+  code       text check (code is null or (btrim(code) <> '' and length(code) <= 20)),
   created_by uuid not null references seat (user_id),
   created_at timestamptz not null default now()
 );
+create unique index client_code_key on client (lower(code)) where code is not null;
 
 create table project (
   id         uuid primary key default gen_random_uuid(),
@@ -5682,3 +5686,36 @@ end;
 $$;
 revoke execute on function create_organization_tree from public, anon;
 grant execute on function create_organization_tree to authenticated;
+
+-- ═══ Drive inbox (migration 20260930e) ══════════════════════════════════
+-- Meet transcripts someone set aside as "not an interview", so they stop
+-- showing as waiting on Sources.
+
+create table connector_dismissal (
+  provider     text not null check (provider in ('google')),
+  external_id  text not null,
+  dismissed_by uuid not null default auth.uid() references seat (user_id),
+  dismissed_at timestamptz not null default now(),
+  primary key (provider, external_id)
+);
+alter table connector_dismissal enable row level security;
+create policy connector_dismissal_read on connector_dismissal
+  for select to authenticated using (has_seat());
+
+create or replace function set_connector_dismissal(p_provider text, p_external_id text, p_dismissed boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not can_edit() then
+    raise exception 'Only editors and owners can set files aside.' using errcode = '42501';
+  end if;
+  if p_dismissed then
+    insert into connector_dismissal (provider, external_id, dismissed_by)
+    values (p_provider, p_external_id, auth.uid())
+    on conflict (provider, external_id) do nothing;
+  else
+    delete from connector_dismissal where provider = p_provider and external_id = p_external_id;
+  end if;
+end;
+$$;
+revoke execute on function set_connector_dismissal from public, anon;
+grant execute on function set_connector_dismissal to authenticated;

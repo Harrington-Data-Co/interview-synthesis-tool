@@ -6,8 +6,10 @@ import type { FlowStepView, FlowView } from "@/lib/flow/load";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 export const PAIN = DATA_COLORS[4];
-const LANE_W = 170;
-const COL_W = 180;
+const LANE_W = 160;
+// A column shrinks to this before the map scrolls sideways, so an eight-step
+// process still fits a laptop screen.
+const COL_W = 140;
 
 /** Does a step rest on a Pain or Constraint code? Then it's a pain point. */
 export const isPain = (s: FlowStepView, typeOf: Map<string, string>) =>
@@ -40,7 +42,6 @@ export function Swimlane({
 }) {
   const content = useRef<HTMLDivElement>(null);
   const [arrows, setArrows] = useState<Arrow[]>([]);
-  const [size, setSize] = useState({ w: 0, h: 0 });
 
   const positions = [...new Set(flow.steps.map((s) => s.position))].sort((a, b) => a - b);
   const at = new Map(flow.steps.map((s) => [`${s.laneId}:${s.position}`, s]));
@@ -69,7 +70,6 @@ export function Swimlane({
         }
     }
     setArrows(next);
-    setSize({ w: root.scrollWidth, h: root.scrollHeight });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flow]);
 
@@ -87,7 +87,9 @@ export function Swimlane({
   return (
     <div style={{ overflowX: "auto", border: "1px solid var(--line-2)", borderRadius: "var(--radius)", background: "var(--color-surface)" }}>
       <div ref={content} style={{ position: "relative", minWidth: LANE_W + Math.max(positions.length, 1) * COL_W }}>
-        <svg aria-hidden style={{ position: "absolute", inset: 0, width: size.w, height: size.h, pointerEvents: "none", zIndex: 1, overflow: "visible" }}>
+        {/* Sized to the drawing, never to a measurement: a measured width could
+            outlive a longer map and keep the page that wide. */}
+        <svg aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "visible" }}>
           <defs>
             <marker id={`arrow-${flow.id}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M0,0 L8,4 L0,8 z" fill="var(--color-navy)" opacity={0.55} />
@@ -117,7 +119,8 @@ export function Swimlane({
               gridTemplateColumns: cols,
               borderBottom: li < flow.lanes.length - 1 ? "1px solid var(--line-2)" : undefined,
               background: li % 2 ? "var(--color-bg-soft)" : "var(--color-surface)",
-              minHeight: 92,
+              // A lane with no steps yet stays slim rather than a tall empty band.
+              minHeight: flow.steps.some((s) => s.laneId === lane.id) ? 92 : 52,
             }}
           >
             <div
@@ -142,7 +145,7 @@ export function Swimlane({
             {positions.map((p) => {
               const s = at.get(`${lane.id}:${p}`);
               return (
-                <div key={p} style={{ padding: "10px 12px", display: "flex", alignItems: "center", position: "relative", zIndex: 2 }}>
+                <div key={p} style={{ padding: "8px", display: "flex", alignItems: "center", position: "relative", zIndex: 2 }}>
                   {s ? (
                     <StepCard step={s} pain={isPain(s, typeOf)} picked={selected === s.id} onPick={() => onPick(s.id)} />
                   ) : editor ? (
@@ -184,10 +187,10 @@ function StepCard({ step, pain, picked, onPick }: { step: FlowStepView; pain: bo
         cursor: "pointer",
         width: "100%",
         minHeight: 64,
-        padding: "8px 10px",
+        padding: "7px 9px",
         display: "flex",
         flexDirection: "column",
-        gap: 5,
+        gap: 4,
         borderRadius: 4,
         background: wait ? "var(--color-navy)" : "var(--color-surface)",
         color: wait ? "#FFFFFF" : "var(--color-text)",
@@ -204,7 +207,7 @@ function StepCard({ step, pain, picked, onPick }: { step: FlowStepView; pain: bo
           </span>
         )}
       </span>
-      <span style={{ fontSize: 12.5, lineHeight: 1.35, fontWeight: 600 }}>{step.label}</span>
+      <span style={{ fontSize: 12, lineHeight: 1.35, fontWeight: 600 }}>{step.label}</span>
       <span className="mono" style={{ fontSize: 9.5, opacity: 0.7, marginTop: "auto" }}>
         {step.codeIds.length} code{step.codeIds.length === 1 ? "" : "s"}
         {step.note ? " · note" : ""}

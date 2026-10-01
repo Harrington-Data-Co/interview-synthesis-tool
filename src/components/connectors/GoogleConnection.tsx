@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Directory } from "@/lib/directory";
+import { DriveInbox } from "./DriveInbox";
 import { MeetImport } from "./MeetImport";
 
 /** Connect or disconnect Google Drive, where Google Meet saves transcripts. */
@@ -59,8 +60,8 @@ export function GoogleConnection({
             )}
             {state === "connected" && (
               <>
-                <button className="btn btn-primary" onClick={() => setImporting(true)} style={{ fontSize: 12.5 }}>
-                  Import from Google Meet
+                <button className="btn btn-secondary" onClick={() => setImporting(true)} style={{ fontSize: 12.5 }}>
+                  Browse and search Drive
                 </button>
                 <button className="btn btn-ghost" onClick={disconnect} disabled={busy} style={{ fontSize: 12.5 }}>
                   {busy ? "Disconnecting…" : "Disconnect"}
@@ -70,6 +71,7 @@ export function GoogleConnection({
           </div>
         )}
       </div>
+      {state === "connected" && editor && <DriveInbox directory={directory} />}
       {importing && <MeetImport directory={directory} onClose={() => setImporting(false)} />}
       {(notice || error) && (
         <p style={{ margin: 0, fontSize: 12.5, color: error || notice?.tone === "error" ? "var(--color-danger, #b3261e)" : "var(--color-accent-800)" }}>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, Field, Notice } from "@/components/ui";
-import type { ClientOption, Directory } from "@/lib/directory";
+import { clientLabel, type ClientOption, type Directory } from "@/lib/directory";
 import { UploadDialog } from "./UploadDialog";
 
 /** Editor actions: add transcripts (into a given project, when on one) and,
@@ -41,6 +41,7 @@ function NewProjectDialog({ clients, onClose }: { clients: ClientOption[]; onClo
   const router = useRouter();
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [clientName, setClientName] = useState("");
+  const [clientCode, setClientCode] = useState("");
   const [projectName, setProjectName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -52,7 +53,7 @@ function NewProjectDialog({ clients, onClose }: { clients: ClientOption[]; onClo
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(isNewClient ? { clientName, projectName } : { clientId, projectName }),
+      body: JSON.stringify(isNewClient ? { clientName, clientCode, projectName } : { clientId, projectName }),
     });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
@@ -68,16 +69,21 @@ function NewProjectDialog({ clients, onClose }: { clients: ClientOption[]; onClo
         <select className="input" value={clientId} onChange={(e) => setClientId(e.target.value)}>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {clientLabel(c)}
             </option>
           ))}
           <option value="">New client…</option>
         </select>
       </Field>
       {isNewClient && (
-        <Field label="Client name">
-          <input className="input" value={clientName} onChange={(e) => setClientName(e.target.value)} autoFocus />
-        </Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: "var(--space-3)" }}>
+          <Field label="Client name">
+            <input className="input" value={clientName} onChange={(e) => setClientName(e.target.value)} autoFocus />
+          </Field>
+          <Field label="Code" hint="Optional, as in Google Drive.">
+            <input className="input" value={clientCode} placeholder="e.g. LWF" onChange={(e) => setClientCode(e.target.value)} />
+          </Field>
+        </div>
       )}
       <Field label="Project name">
         <input className="input" value={projectName} onChange={(e) => setProjectName(e.target.value)} />

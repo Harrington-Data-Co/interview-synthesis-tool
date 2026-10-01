@@ -169,6 +169,9 @@ export function FlowView({ projectId, editor, data, mapId }: { projectId: string
           </div>
 
           <Swimlane
+            // A map of its own per flow: switching maps starts at the beginning
+            // instead of keeping the last map's scroll and measurements.
+            key={flow.id}
             flow={flow}
             typeOf={typeOf}
             selected={stepId}

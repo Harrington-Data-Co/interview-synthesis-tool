@@ -204,6 +204,9 @@ They duplicate *Who's speaking*, and don't fit interviews that aren't 1:1.
 - Do with R4 and R5: all three need a *person* behind a speaker.
 
 ### R3. Create a client or project from the upload dialog's dropdowns
+*Built 2026-09-30 (branch `intake-and-project-tabs`), no migration: the shared client and
+project picker (upload dialog, Edit record) offers "New client…" (name and
+optional code, then straight on to its first project) and "New project…".*
 "New client…" / "New project…" at the foot of each dropdown, created in
 place. Small. A new client can take a short code (R7), optionally.
 
@@ -285,6 +288,14 @@ page; visibility is designed for client access.
   transcripts with no participant speaker).
 
 ### R6. Rework the upload dialog; new Meet transcripts show up by themselves
+*Built 2026-09-30 (branch `intake-and-project-tabs`) — migration `20260930e_drive_inbox`.
+The review is wider and in numbered steps (Where it goes, Details, Who's
+speaking), with a tighter speakers table, Review/Hide on batch rows, and
+the note beside the buttons. Sources shows new Meet transcripts in Drive by
+themselves (the newest not imported, not uploaded by hand, not set aside):
+tick and "Review and import", or "Not an interview" to set one aside
+(brought back from Browse and search Drive). Not built: suggesting a
+client from the Drive folder.*
 - A design pass on the dialog, best done after R2–R5 change what's in it.
 - New Meet transcripts appear on Sources without clicking *Import from
   Google Meet*: a "Waiting in Drive" list of Docs not yet imported, checked
@@ -292,6 +303,10 @@ page; visibility is designed for client access.
 - With R7, a Doc's Drive folder can suggest the client.
 
 ### R7. Client short codes
+*Built 2026-09-30 (branch `intake-and-project-tabs`) — migration `20260930d_client_codes`:
+an optional `client.code`, unique ignoring case, shown beside the client's
+name (pickers, library, project page) and set or changed in place from the
+library. Not in URLs.*
 Use the same short codes for clients as Ryan's Google Drive.
 
 - **Decided 2026-09-30: optional.** A quality-of-life aid for matching,
@@ -312,6 +327,11 @@ its projects) and **Templates** (Note, Memo and Deck templates directly).
   layout*).
 
 ### R9. Separate process from outputs in a project's tabs
+*Built 2026-09-30 (branch `intake-and-project-tabs`): `src/components/project/ProjectTabs.tsx`
+groups the tabs as Process (Interviews → Themes → Memo, with arrows),
+Check (Chain) and Outputs; the current tab is a raised segment. Outputs
+reordered (Ryan, 2026-09-30) to Corpus, Process Flows, Architecture, Deck,
+with "Swimlanes" renamed **Process Flows** in the tab.*
 Process: **Interviews → Themes → Memo → Chain**, shown as steps with arrows.
 Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
 
@@ -322,12 +342,38 @@ Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
   whole process: **Interviews → Themes → Memo**, then Chain set apart.
 
 ### R10. Swimlane whitespace
+*Fixed 2026-09-30 (branch `intake-and-project-tabs`). The cause (Ryan's screenshots): after
+viewing a long map (PF-1, 22 steps) and switching to a shorter one, the
+shorter map kept the long map's scroll position and width — its arrow
+layer was sized to a measured width, which then held the page that wide —
+so it showed blank space on the right. Now each map gets its own swimlane
+(switching starts at the beginning) and the arrow layer is sized to the
+drawing itself; the architecture diagram had the same pattern and got the
+same fix. Also: columns shrink to 140px before a map scrolls, cards are a
+little tighter, and lanes with no steps are slim.*
 Short process maps leave a wide empty area on the right. Size the grid to
 its steps (or spread steps to fill) in `Swimlane.tsx`. Small.
 
 ### R11. Favicon
 Use the Harrington Data Co website's favicon (`src/app/icon.*` /
 `favicon.ico`). Small; needs the file from harringtondata.com.
+
+### R12. Rebuild the Deck
+Raised 2026-09-30. Ryan doesn't like how the Deck tab turned out: it's
+clunky. Not for now; a later piece of work.
+
+- **Goal:** the deck as a **reveal.js** slide deck with interactions,
+  presented and navigated in the browser, instead of today's slide list
+  with a .pptx download.
+- **Export** to other formats: **Google Slides**, **PowerPoint** and
+  **PDF**.
+- Today's pieces to build on or replace: slides as `deck_slide` rows
+  citing themes and codes (`src/lib/deck/`), the deck template, the
+  Claude pass (`deck-v1`), and `src/lib/deck/pptx.ts` (pptxgenjs).
+- To work out: what "interactions" means here (e.g. click a finding to see
+  its quotes, as the evidence drawer does elsewhere), and whether Google
+  Slides export goes through the Drive connection (which is read-only
+  today).
 
 ## Suggested order
 

@@ -25,7 +25,6 @@ const LAYOUT_LABEL: Record<IngestPreview["layout"], string> = {
   plain: "Speaker-labelled text",
 };
 
-
 type Details = {
   title: string;
   recordedOn: string;
@@ -59,7 +58,13 @@ export type Incoming = { file: File; external: External };
 
 /** Who's interviewed, by the people picked for participant speakers. */
 const participantsOf = (i: Item) =>
-  [...new Set(Object.values(i.speakers).filter((s) => s.role === "participant" && s.personText.trim()).map((s) => s.personText.trim()))].join(", ");
+  [
+    ...new Set(
+      Object.values(i.speakers)
+        .filter((s) => s.role === "participant" && s.personText.trim())
+        .map((s) => s.personText.trim()),
+    ),
+  ].join(", ");
 const label = (i: Item) => i.file?.name ?? (i.pasted?.name || "Pasted transcript");
 const skipped = (i: Item) => i.state === "unreadable" || !!i.preview?.duplicateOf || !!i.sameAs;
 
@@ -112,14 +117,11 @@ export function UploadDialog({
   const [lastSaved, setLastSaved] = useState<{ id: string; title: string } | null>(null);
 
   const update = (key: string, patch: Partial<Item> | ((i: Item) => Partial<Item>)) =>
-    setItems((all) =>
-      all.map((i) => (i.key === key ? { ...i, ...(typeof patch === "function" ? patch(i) : patch) } : i)),
-    );
+    setItems((all) => all.map((i) => (i.key === key ? { ...i, ...(typeof patch === "function" ? patch(i) : patch) } : i)));
 
   async function read(from?: Incoming[]) {
     setLastSaved(null);
-    const picked: (Incoming | { file: File | null; external: null })[] =
-      from ?? (mode === "file" ? files : [null]).map((file) => ({ file, external: null }));
+    const picked: (Incoming | { file: File | null; external: null })[] = from ?? (mode === "file" ? files : [null]).map((file) => ({ file, external: null }));
     const fresh: Item[] = picked.map(({ file, external }, n) => ({
       key: `${Date.now()}-${n}`,
       file,
@@ -252,35 +254,25 @@ export function UploadDialog({
   const cantSave = busy || reading || !saveable.length || missingTitle;
 
   return (
-    <Dialog title="Add transcripts" onClose={busy ? undefined : onClose} width={920}>
+    <Dialog title="Add transcripts" onClose={busy ? undefined : onClose} width={stage === "review" ? 1120 : 760}>
       {stage === "pick" && (
         <>
           {lastSaved && (
             <Notice>
-              Saved <a href={`/transcripts/${lastSaved.id}`}>{lastSaved.title}</a>. Add the next one — the client and
-              project are kept.
+              Saved <a href={`/transcripts/${lastSaved.id}`}>{lastSaved.title}</a>. Add the next one — the client and project are kept.
             </Notice>
           )}
           <div className="seg" style={{ alignSelf: "flex-start" }}>
             {(["file", "paste"] as const).map((m) => (
               <label key={m} className="seg-opt">
-                <input
-                  type="radio"
-                  name="upload-mode"
-                  checked={mode === m}
-                  onChange={() => setMode(m)}
-                  style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-                />
+                <input type="radio" name="upload-mode" checked={mode === m} onChange={() => setMode(m)} style={{ position: "absolute", opacity: 0, pointerEvents: "none" }} />
                 <span>{m === "file" ? "Upload files" : "Paste a transcript"}</span>
               </label>
             ))}
           </div>
 
           {mode === "file" ? (
-            <Field
-              label="Transcript files"
-              hint="Choose one or several: Google Meet .docx, Teams or Zoom .vtt, .srt, or .txt. Up to 8 MB each."
-            >
+            <Field label="Transcript files" hint="Choose one or several: Google Meet .docx, Teams or Zoom .vtt, .srt, or .txt. Up to 8 MB each.">
               <input
                 // Remount after each save, so the picker actually clears.
                 key={lastSaved?.id ?? "files"}
@@ -295,19 +287,10 @@ export function UploadDialog({
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "var(--space-3)" }}>
                 <Field label="Meeting name" hint="Becomes the title and the stored file's name.">
-                  <input
-                    className="input"
-                    value={pastedName}
-                    onChange={(e) => setPastedName(e.target.value)}
-                    placeholder="Profisee and Delaware Early Education"
-                  />
+                  <input className="input" value={pastedName} onChange={(e) => setPastedName(e.target.value)} placeholder="Profisee and Delaware Early Education" />
                 </Field>
                 <Field label="Copied from">
-                  <select
-                    className="input"
-                    value={pastedSource}
-                    onChange={(e) => setPastedSource(e.target.value as SourceKind)}
-                  >
+                  <select className="input" value={pastedSource} onChange={(e) => setPastedSource(e.target.value as SourceKind)}>
                     {Object.entries(SOURCE_LABEL).map(([v, l]) => (
                       <option key={v} value={v}>
                         {l}
@@ -316,17 +299,8 @@ export function UploadDialog({
                   </select>
                 </Field>
               </div>
-              <Field
-                label="Transcript"
-                hint="Paste the transcript itself, one “Name: what they said” per line — not the meeting summary."
-              >
-                <textarea
-                  className="input mono"
-                  rows={12}
-                  value={pasted}
-                  onChange={(e) => setPasted(e.target.value)}
-                  style={{ resize: "vertical", fontSize: 12 }}
-                />
+              <Field label="Transcript" hint="Paste the transcript itself, one “Name: what they said” per line — not the meeting summary.">
+                <textarea className="input mono" rows={12} value={pasted} onChange={(e) => setPasted(e.target.value)} style={{ resize: "vertical", fontSize: 12 }} />
               </Field>
             </>
           )}
@@ -344,19 +318,19 @@ export function UploadDialog({
 
       {stage === "review" && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "var(--space-3)" }}>
-            <ClientProjectPicker
-              directory={directory}
-              projectId={projectId}
-              onChange={setProjectId}
-              noneLabel="Library only, for now"
-            />
-          </div>
+          <Step
+            n={1}
+            title="Where it goes"
+            note={single ? "Leave it in the library for now, or put it straight into a client's project." : "For every transcript below, unless one is changed on its own."}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: "var(--space-3)" }}>
+              <ClientProjectPicker directory={directory} projectId={projectId} onChange={setProjectId} noneLabel="Library only, for now" />
+            </div>
+          </Step>
           {!single && (
-            <p className="meta" style={{ margin: 0 }}>
-              The client and project apply to every transcript below unless one is changed individually. Open a row to
-              check its details and speakers.
-            </p>
+            <Step n={2} title={`The transcripts · ${items.length}`} note="Review one to check its details and who's speaking; the rest keep what was read.">
+              {null}
+            </Step>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -374,7 +348,19 @@ export function UploadDialog({
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "var(--space-2)",
+              alignItems: "center",
+              flexWrap: "wrap",
+              borderTop: "1px solid var(--line-2)",
+              paddingTop: "var(--space-3)",
+            }}
+          >
+            <span className="meta" style={{ fontSize: 12, marginRight: "auto", maxWidth: "60ch" }}>
+              Saving keeps each original file and its checksum. The lines can&apos;t be edited afterwards; everything else can, from the transcript page.
+            </span>
             <button className="btn btn-ghost" onClick={() => setStage("pick")} disabled={busy}>
               Back
             </button>
@@ -389,18 +375,10 @@ export function UploadDialog({
               </>
             ) : (
               <button className="btn btn-primary" onClick={() => save("summary")} disabled={cantSave}>
-                {reading
-                  ? "Reading…"
-                  : busy
-                    ? "Saving…"
-                    : `Save ${saveable.length} transcript${saveable.length === 1 ? "" : "s"}`}
+                {reading ? "Reading…" : busy ? "Saving…" : `Save ${saveable.length} transcript${saveable.length === 1 ? "" : "s"}`}
               </button>
             )}
           </div>
-          <p className="meta" style={{ margin: 0 }}>
-            Saving stores each original file and its checksum. Lines can&apos;t be edited afterwards; everything else
-            can, from the transcript page.
-          </p>
         </>
       )}
 
@@ -426,6 +404,30 @@ export function UploadDialog({
         </>
       )}
     </Dialog>
+  );
+}
+
+/** A numbered part of the review, with a line saying what it's for. */
+function Step({ n, title, note, children }: { n?: number; title: string; note?: string; children: React.ReactNode }) {
+  return (
+    <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        {n !== undefined && (
+          <span className="mono" style={{ fontSize: 11, fontWeight: 700, color: "var(--color-accent-800)" }}>
+            {String(n).padStart(2, "0")}
+          </span>
+        )}
+        <span className="kicker" style={{ fontSize: 11 }}>
+          {title}
+        </span>
+        {note && (
+          <span className="meta" style={{ fontSize: 12 }}>
+            {note}
+          </span>
+        )}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -480,27 +482,10 @@ function ItemRow({
   const locked = item.state === "saving" || item.state === "saved";
 
   return (
-    <div
-      className="panel"
-      style={{ padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}
-    >
+    <div className="panel" style={{ padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-        {!single && (
-          <button
-            className="btn btn-ghost"
-            style={{ fontSize: 12, padding: "2px 8px" }}
-            onClick={() => onChange((i) => ({ open: !i.open }))}
-            disabled={!p || skipped(item)}
-            aria-expanded={item.open}
-            aria-label={item.open ? "Collapse" : "Expand"}
-          >
-            {item.open ? "▾" : "▸"}
-          </button>
-        )}
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-          <strong style={{ fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {d.title || label(item)}
-          </strong>
+          <strong style={{ fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title || label(item)}</strong>
           <span className="meta" style={{ fontSize: 11.5 }}>
             {label(item)}
             {p && ` · ${LAYOUT_LABEL[p.layout]} · ${p.lineCount} turns${p.durationMins ? ` · ${p.durationMins} min` : ""}`}
@@ -508,6 +493,11 @@ function ItemRow({
           </span>
         </div>
         <StatusTag item={item} />
+        {!single && p && !skipped(item) && (
+          <button className="btn btn-secondary" style={{ fontSize: 12, padding: "3px 12px" }} onClick={() => onChange((i) => ({ open: !i.open }))} aria-expanded={item.open}>
+            {item.open ? "Hide" : "Review"}
+          </button>
+        )}
         {item.savedId && (
           <a href={`/transcripts/${item.savedId}`} className="meta" style={{ fontSize: 12 }}>
             Open
@@ -518,67 +508,46 @@ function ItemRow({
       {item.error && <Notice tone="error">{item.error}</Notice>}
       {p?.duplicateOf && (
         <Notice>
-          This exact file is already in the library as{" "}
-          <a href={`/transcripts/${p.duplicateOf.id}`}>{p.duplicateOf.title}</a>. It will be skipped.
+          This exact file is already in the library as <a href={`/transcripts/${p.duplicateOf.id}`}>{p.duplicateOf.title}</a>. It will be skipped.
         </Notice>
       )}
       {item.sameAs && <Notice>Same file as “{item.sameAs}” above. It will be skipped.</Notice>}
 
       {p && item.open && !skipped(item) && (
-        <fieldset
-          disabled={locked}
-          style={{ border: 0, padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "var(--space-3)" }}>
-            <Field label="Title">
-              <input className="input" value={d.title} onChange={(e) => setDetail({ title: e.target.value })} />
-            </Field>
-            <Field label="Recorded on">
-              <input
-                className="input"
-                type="date"
-                value={d.recordedOn}
-                onChange={(e) => setDetail({ recordedOn: e.target.value })}
-              />
-            </Field>
-            <Field label="Source">
-              <select
-                className="input"
-                value={d.source}
-                onChange={(e) => setDetail({ source: e.target.value as SourceKind })}
-              >
-                {Object.entries(SOURCE_LABEL).map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
+        <fieldset disabled={locked} style={{ border: 0, padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <Step n={single ? 2 : undefined} title="Details">
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "var(--space-3)" }}>
+              <Field label="Title">
+                <input className="input" value={d.title} onChange={(e) => setDetail({ title: e.target.value })} />
+              </Field>
+              <Field label="Recorded on">
+                <input className="input" type="date" value={d.recordedOn} onChange={(e) => setDetail({ recordedOn: e.target.value })} />
+              </Field>
+              <Field label="Source">
+                <select className="input" value={d.source} onChange={(e) => setDetail({ source: e.target.value as SourceKind })}>
+                  {Object.entries(SOURCE_LABEL).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </Step>
 
           {!single && (
             <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5 }}>
-              <input
-                type="checkbox"
-                checked={item.projectId !== undefined}
-                onChange={(e) => onChange({ projectId: e.target.checked ? batchProjectId : undefined })}
-              />
-              A different client or project for this one
+              <input type="checkbox" checked={item.projectId !== undefined} onChange={(e) => onChange({ projectId: e.target.checked ? batchProjectId : undefined })} />A different
+              client or project for this one
             </label>
           )}
           {!single && item.projectId !== undefined && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "var(--space-3)" }}>
-              <ClientProjectPicker
-                directory={directory}
-                projectId={item.projectId}
-                onChange={(id) => onChange({ projectId: id })}
-                noneLabel="Library only, for now"
-              />
+              <ClientProjectPicker directory={directory} projectId={item.projectId} onChange={(id) => onChange({ projectId: id })} noneLabel="Library only, for now" />
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <span className="kicker">Who&apos;s speaking</span>
+          <Step n={single ? 3 : undefined} title="Who's speaking" note="Who each name in the transcript is, their part in the call, and their organization and title at the time.">
             <SpeakersEditor
               rows={p.speakers.map((sp) => ({
                 name: sp.name,
@@ -600,7 +569,7 @@ function ItemRow({
                 No one is marked as the participant. Coding looks for findings in the participant&apos;s turns.
               </p>
             )}
-          </div>
+          </Step>
         </fieldset>
       )}
     </div>
@@ -624,12 +593,7 @@ function Summary({ items }: { items: Item[] }) {
         ))}
         {skippedItems.map((i) => (
           <li key={i.key} className="meta">
-            {label(i)} —{" "}
-            {i.state === "unreadable"
-              ? i.error
-              : i.preview?.duplicateOf
-                ? "already in the library"
-                : "duplicate in this batch"}
+            {label(i)} — {i.state === "unreadable" ? i.error : i.preview?.duplicateOf ? "already in the library" : "duplicate in this batch"}
           </li>
         ))}
       </ul>

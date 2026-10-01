@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Directory } from "@/lib/directory";
+import { clientLabel, type Directory } from "@/lib/directory";
 
 /** Per-row project picker in the library, grouped by client. Assigning queues
  *  the transcript. Goes away when the library is organized by project. */
@@ -52,7 +52,7 @@ export function AssignProject({
       >
         <option value="">Unassigned</option>
         {directory.clients.map((c) => (
-          <optgroup key={c.id} label={c.name}>
+          <optgroup key={c.id} label={clientLabel(c)}>
             {directory.projects
               .filter((p) => p.clientId === c.id)
               .map((p) => (
