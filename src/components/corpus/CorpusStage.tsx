@@ -59,6 +59,7 @@ export async function CorpusStage({
       facets.push({
         id: a.id,
         name: a.name,
+        group: "label",
         values: options.map((o) => o.value),
         valueOf: Object.fromEntries(
           (tl ?? []).filter((l) => l.axis_id === a.id && value.has(l.option_id)).map((l) => [l.transcript_id, value.get(l.option_id)!]),
@@ -71,6 +72,7 @@ export async function CorpusStage({
     facets.push({
       id: "organization",
       name: "Organization",
+      group: "organization",
       values: [...new Set(orgs.map((i) => i.organization!))].sort(),
       valueOf: Object.fromEntries(orgs.map((i) => [i.id, i.organization!])),
     });
@@ -85,7 +87,7 @@ export async function CorpusStage({
         if (o) valueOf[i.id] = orgLabel(o);
       }
       if (!Object.keys(valueOf).length) continue;
-      facets.push({ id: `kind-${kind.toLowerCase()}`, name: kind, values: [...new Set(Object.values(valueOf))].sort(), valueOf });
+      facets.push({ id: `kind-${kind.toLowerCase()}`, name: kind, group: "organization", values: [...new Set(Object.values(valueOf))].sort(), valueOf });
     }
     // With sub-organizations in play, also group by the organization they sit
     // under: every office of Delaware DOE together.
@@ -93,11 +95,18 @@ export async function CorpusStage({
       facets.push({
         id: "top-organization",
         name: "Top organization",
+        group: "organization",
         values: [...new Set(orgs.map((i) => topOf(i.organization!)))].sort(),
         valueOf: Object.fromEntries(orgs.map((i) => [i.id, topOf(i.organization!)])),
       });
     }
   }
+
+  // A label axis named like an organization grouping (a project's own
+  // "Organization" label beside the participants' organizations) says so,
+  // wherever its name shows: the picker, the matrix, the coverage note.
+  const builtIn = new Set(facets.filter((f) => f.group === "organization").map((f) => f.name.toLowerCase()));
+  for (const f of facets) if (f.group === "label" && builtIn.has(f.name.toLowerCase())) f.name = `${f.name} (label)`;
 
   // A theme's codes, as corpus_matrix() counts them: active codes only.
   const active = new Set(evidence.codes.map((c) => c.id));

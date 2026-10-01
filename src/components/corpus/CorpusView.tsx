@@ -14,7 +14,7 @@ import {
 } from "@/lib/corpus/derive";
 import { chordMatrix, groupShares, memoFlag } from "@/lib/corpus/views";
 import type { EvidenceCode, EvidenceInterview } from "@/lib/themes/evidence";
-import { HoverTip } from "./bits";
+import { GroupBy, HoverTip } from "./bits";
 import { CorpusProvider, type CorpusQuote } from "./CorpusContext";
 import { EvidenceMixView } from "./EvidenceMixView";
 import { MemoMap } from "./MemoMap";
@@ -35,6 +35,9 @@ export type CorpusTheme = {
 export type FacetData = {
   id: string;
   name: string;
+  /** A project's own label axis, or a grouping by the participants'
+   *  organizations (their own, a kind of organization, the top level). */
+  group: "label" | "organization";
   values: string[];
   valueOf: Record<string, string>;
 };
@@ -319,13 +322,18 @@ export function CorpusView({
                 Coverage by group
               </span>
               {facets.length > 1 && (
-                <div className="seg" style={{ marginLeft: "auto" }}>
-                  {facets.map((f) => (
-                    <Link key={f.id} href={href({ facet: f.id })} className="seg-opt" style={{ textDecoration: "none" }}>
-                      <span style={f.id === facet?.id ? onStyle : undefined}>{f.name}</span>
-                    </Link>
-                  ))}
-                </div>
+                <GroupBy
+                  value={facet?.id ?? ""}
+                  groups={(
+                    [
+                      ["Labels", "label"],
+                      ["Organizations", "organization"],
+                    ] as const
+                  ).map(([label, g]) => ({
+                    label,
+                    options: facets.filter((f) => f.group === g).map((f) => ({ id: f.id, name: f.name, href: href({ facet: f.id }) })),
+                  }))}
+                />
               )}
             </div>
             {coverage.map((c) => (

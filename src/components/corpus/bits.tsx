@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { projectHref } from "@/lib/urls";
 
 export const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
@@ -198,5 +199,45 @@ export function HoverTip({
       {children}
       {tip.node}
     </Tag>
+  );
+}
+
+/** Which facet the corpus groups interviews by: a dropdown, since a project
+ *  can have many (each label axis, then each way of grouping organizations),
+ *  in a section for each. Empty sections are left out. */
+export function GroupBy({
+  value,
+  groups,
+}: {
+  value: string;
+  groups: { label: string; options: { id: string; name: string; href: string }[] }[];
+}) {
+  const router = useRouter();
+  const hrefOf = new Map(groups.flatMap((g) => g.options.map((o) => [o.id, o.href])));
+  return (
+    <label style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: muted(62), maxWidth: "100%" }}>
+      Group by
+      <select
+        className="input"
+        value={value}
+        onChange={(e) => {
+          const href = hrefOf.get(e.target.value);
+          if (href) router.push(href, { scroll: false });
+        }}
+        style={{ fontSize: 12.5, width: "auto", maxWidth: 220, minWidth: 0, padding: "4px 8px" }}
+      >
+        {groups
+          .filter((g) => g.options.length)
+          .map((g) => (
+            <optgroup key={g.label} label={g.label}>
+              {g.options.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+      </select>
+    </label>
   );
 }
