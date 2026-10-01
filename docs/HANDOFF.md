@@ -42,10 +42,11 @@ migrations go in `supabase/migrations/` for Ryan to apply.
 ### How the evening went
 
 - `people` merged into `main` (`a208353`) and pushed.
-- Branch **`intake-and-project-tabs`** (pushed, not merged): R7 + R3 (`54a78be`), R6
+- Branch **`intake-and-project-tabs`**, merged into `main` as `a829924`
+  (2026-09-30, after Ryan applied migrations `d` and `e`): R7 + R3 (`54a78be`), R6
   (`1de6531`), R9 (`6e5d3c6`), R10 (next commit). Each is noted in
   `docs/BACKLOG.md`.
-- **Two new migrations for Ryan to apply:**
+- **Migrations applied by Ryan:**
   `supabase/migrations/20260930d_client_codes.sql` (R7) and
   `20260930e_drive_inbox.sql` (R6). Both checked in PGlite.
 - R10's real cause came from Ryan's screenshots (a shorter map kept a
