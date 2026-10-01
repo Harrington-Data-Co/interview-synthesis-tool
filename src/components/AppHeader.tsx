@@ -262,6 +262,9 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
                   {seat.role ?? "Invited to projects"}
                 </span>
               </div>
+              <a href="/account/password" className="btn btn-ghost btn-block">
+                Change password
+              </a>
               <button onClick={signOut} className="btn btn-secondary btn-block">
                 Sign out
               </button>

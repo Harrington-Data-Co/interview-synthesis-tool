@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/config";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const [mode, setMode] = useState<"password" | "reset">("password");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function signIn(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
 
@@ -26,17 +30,37 @@ export default function SignInPage() {
 
     setBusy(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: typed,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    if (mode === "password") {
+      const { error } = await supabase.auth.signInWithPassword({ email: typed, password });
+      setBusy(false);
+      if (error) {
+        setErr(
+          /invalid login credentials/i.test(error.message)
+            ? "That email and password don't match. If you haven't set a password yet, use Forgot your password."
+            : error.message,
+        );
+        return;
+      }
+      router.push("/");
+      router.refresh();
+      return;
+    }
+
+    // The reset link lands on /auth/confirm, which asks for a click before
+    // using it, then on the set-a-password page.
+    const { error } = await supabase.auth.resetPasswordForEmail(typed, {
+      redirectTo: `${window.location.origin}/auth/confirm?next=/account/password`,
     });
     setBusy(false);
-
-    // An address with no invitation is refused by the sign-up hook, whose
-    // message says so.
     if (error) setErr(error.message);
     else setSent(true);
   }
+
+  const switchTo = (m: "password" | "reset") => {
+    setMode(m);
+    setErr("");
+    setSent(false);
+  };
 
   return (
     <div
@@ -144,7 +168,7 @@ export default function SignInPage() {
         }}
       >
         <form
-          onSubmit={signIn}
+          onSubmit={submit}
           className="panel"
           style={{
             width: "min(420px,100%)",
@@ -158,35 +182,22 @@ export default function SignInPage() {
             <span className="tag tag-accent" style={{ alignSelf: "flex-start" }}>
               By invitation
             </span>
-            <h2 style={{ fontSize: 28, margin: "4px 0 0" }}>Sign in to Harrington Tools</h2>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 13.5,
-                lineHeight: 1.55,
-                color: "var(--color-muted)",
-              }}
-            >
-              Use the email address your invitation went to. We&apos;ll send a link
-              that signs you in.
+            <h2 style={{ fontSize: 28, margin: "4px 0 0" }}>
+              {mode === "password" ? "Sign in to Harrington Tools" : "Set or reset your password"}
+            </h2>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: "var(--color-muted)" }}>
+              {mode === "password"
+                ? "Use the email address your invitation went to."
+                : "We'll email a link to choose a new password. Use this the first time, too, if you haven't set one."}
             </p>
           </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "color-mix(in srgb, var(--color-text) 55%, transparent)",
-              }}
-            >
-              Email
-            </span>
+          <SignInField label="Email">
             <input
               className="input"
               type="email"
               autoComplete="email"
+              required
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -194,10 +205,27 @@ export default function SignInPage() {
               }}
               placeholder="you@example.com"
             />
-          </label>
+          </SignInField>
+
+          {mode === "password" && (
+            <SignInField label="Password">
+              <input
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErr("");
+                }}
+              />
+            </SignInField>
+          )}
 
           {err && (
             <div
+              role="alert"
               style={{
                 padding: "var(--space-2) var(--space-3)",
                 border: "1px solid var(--color-accent-600)",
@@ -222,34 +250,42 @@ export default function SignInPage() {
                 color: "var(--color-navy)",
               }}
             >
-              Check <strong>{email}</strong> — the sign-in link is on its way. It expires
-              in an hour.
+              If <strong>{email}</strong> has an account, a link to set a password is on its way. It expires in an hour.
             </div>
           ) : (
-            <button
-              type="submit"
-              className="btn btn-primary btn-block"
-              disabled={busy}
-              style={{ justifyContent: "center" }}
-            >
-              {busy ? "Sending…" : "Email me a sign-in link"}
+            <button type="submit" className="btn btn-primary btn-block" disabled={busy} style={{ justifyContent: "center" }}>
+              {busy ? (mode === "password" ? "Signing in…" : "Sending…") : mode === "password" ? "Sign in" : "Email me a link"}
             </button>
           )}
 
-          <p
-            style={{
-              margin: 0,
-              fontSize: 11,
-              lineHeight: 1.5,
-              color: "color-mix(in srgb, var(--color-text) 50%, transparent)",
-            }}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ alignSelf: "flex-start", fontSize: 12.5, padding: 0 }}
+            onClick={() => switchTo(mode === "password" ? "reset" : "password")}
           >
-            Your account is for the whole subdomain. Roles are set per tool, so an Owner
-            here can be a Viewer in the next tool. Every record already stores who made
-            it.
-          </p>
+            {mode === "password" ? "Forgot your password?" : "← Back to sign in"}
+          </button>
         </form>
       </div>
     </div>
+  );
+}
+
+function SignInField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <span
+        style={{
+          fontSize: 10,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "color-mix(in srgb, var(--color-text) 55%, transparent)",
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
