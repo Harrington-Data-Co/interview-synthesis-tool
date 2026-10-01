@@ -42,7 +42,7 @@ migrations go in `supabase/migrations/` for Ryan to apply.
 ### How the evening went
 
 - `people` merged into `main` (`a208353`) and pushed.
-- Branch **`evening`** (pushed, not merged): R7 + R3 (`54a78be`), R6
+- Branch **`intake-and-project-tabs`** (pushed, not merged): R7 + R3 (`54a78be`), R6
   (`1de6531`), R9 (`6e5d3c6`), R10 (next commit). Each is noted in
   `docs/BACKLOG.md`.
 - **Two new migrations for Ryan to apply:**

@@ -204,7 +204,7 @@ They duplicate *Who's speaking*, and don't fit interviews that aren't 1:1.
 - Do with R4 and R5: all three need a *person* behind a speaker.
 
 ### R3. Create a client or project from the upload dialog's dropdowns
-*Built 2026-09-30 (branch `evening`), no migration: the shared client and
+*Built 2026-09-30 (branch `intake-and-project-tabs`), no migration: the shared client and
 project picker (upload dialog, Edit record) offers "New client…" (name and
 optional code, then straight on to its first project) and "New project…".*
 "New client…" / "New project…" at the foot of each dropdown, created in
@@ -288,7 +288,7 @@ page; visibility is designed for client access.
   transcripts with no participant speaker).
 
 ### R6. Rework the upload dialog; new Meet transcripts show up by themselves
-*Built 2026-09-30 (branch `evening`) — migration `20260930e_drive_inbox`.
+*Built 2026-09-30 (branch `intake-and-project-tabs`) — migration `20260930e_drive_inbox`.
 The review is wider and in numbered steps (Where it goes, Details, Who's
 speaking), with a tighter speakers table, Review/Hide on batch rows, and
 the note beside the buttons. Sources shows new Meet transcripts in Drive by
@@ -303,7 +303,7 @@ client from the Drive folder.*
 - With R7, a Doc's Drive folder can suggest the client.
 
 ### R7. Client short codes
-*Built 2026-09-30 (branch `evening`) — migration `20260930d_client_codes`:
+*Built 2026-09-30 (branch `intake-and-project-tabs`) — migration `20260930d_client_codes`:
 an optional `client.code`, unique ignoring case, shown beside the client's
 name (pickers, library, project page) and set or changed in place from the
 library. Not in URLs.*
@@ -327,7 +327,7 @@ its projects) and **Templates** (Note, Memo and Deck templates directly).
   layout*).
 
 ### R9. Separate process from outputs in a project's tabs
-*Built 2026-09-30 (branch `evening`): `src/components/project/ProjectTabs.tsx`
+*Built 2026-09-30 (branch `intake-and-project-tabs`): `src/components/project/ProjectTabs.tsx`
 groups the tabs as Process (Interviews → Themes → Memo, with arrows),
 Check (Chain) and Outputs; the current tab is a raised segment. Outputs
 reordered (Ryan, 2026-09-30) to Corpus, Process Flows, Architecture, Deck,
@@ -342,7 +342,7 @@ Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
   whole process: **Interviews → Themes → Memo**, then Chain set apart.
 
 ### R10. Swimlane whitespace
-*Fixed 2026-09-30 (branch `evening`). The cause (Ryan's screenshots): after
+*Fixed 2026-09-30 (branch `intake-and-project-tabs`). The cause (Ryan's screenshots): after
 viewing a long map (PF-1, 22 steps) and switching to a shorter one, the
 shorter map kept the long map's scroll position and width — its arrow
 layer was sized to a measured width, which then held the page that wide —
