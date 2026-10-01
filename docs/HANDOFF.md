@@ -48,10 +48,9 @@ migrations go in `supabase/migrations/` for Ryan to apply.
 - **Two new migrations for Ryan to apply:**
   `supabase/migrations/20260930d_client_codes.sql` (R7) and
   `20260930e_drive_inbox.sql` (R6). Both checked in PGlite.
-- To confirm with Ryan: R10 was built on a reading of "whitespace on the
-  right" (a wide map's last steps off-screen); if he meant something else,
-  ask for a screenshot. R6 doesn't yet suggest a client from the Drive
-  folder.
+- R10's real cause came from Ryan's screenshots (a shorter map kept a
+  longer map's scroll and width) and is fixed. R6 doesn't yet suggest a
+  client from the Drive folder.
 
 ## Decisions from 2026-09-30 (don't re-ask)
 

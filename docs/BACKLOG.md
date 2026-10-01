@@ -341,11 +341,15 @@ Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
   whole process: **Interviews → Themes → Memo**, then Chain set apart.
 
 ### R10. Swimlane whitespace
-*Built 2026-09-30 (branch `evening`), on a reading of the complaint Ryan
-should confirm: with real output (an eight-step OCCL visit map), the last
-column sat off-screen with no scroll cue, leaving lanes looking empty.
-Columns now shrink to 140px before the map scrolls, cards are a little
-tighter, and lanes with no steps are slim.*
+*Fixed 2026-09-30 (branch `evening`). The cause (Ryan's screenshots): after
+viewing a long map (PF-1, 22 steps) and switching to a shorter one, the
+shorter map kept the long map's scroll position and width — its arrow
+layer was sized to a measured width, which then held the page that wide —
+so it showed blank space on the right. Now each map gets its own swimlane
+(switching starts at the beginning) and the arrow layer is sized to the
+drawing itself; the architecture diagram had the same pattern and got the
+same fix. Also: columns shrink to 140px before a map scrolls, cards are a
+little tighter, and lanes with no steps are slim.*
 Short process maps leave a wide empty area on the right. Size the grid to
 its steps (or spread steps to fill) in `Swimlane.tsx`. Small.
 

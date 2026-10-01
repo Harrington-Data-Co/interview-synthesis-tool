@@ -215,7 +215,7 @@ export function ArchView({ projectId, editor, data, mapId }: { projectId: string
             )}
           </div>
 
-          <ArchDiagram map={map} typeOf={typeOf} selected={selected} onSelect={setSelected} />
+          <ArchDiagram key={map.id} map={map} typeOf={typeOf} selected={selected} onSelect={setSelected} />
 
           <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: muted(65) }}>
             <Legend box={{ background: "var(--color-surface)", border: "1px solid var(--line-4)" }} text="Official system" />
