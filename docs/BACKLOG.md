@@ -329,8 +329,9 @@ its projects) and **Templates** (Note, Memo and Deck templates directly).
 ### R9. Separate process from outputs in a project's tabs
 *Built 2026-09-30 (branch `evening`): `src/components/project/ProjectTabs.tsx`
 groups the tabs as Process (Interviews → Themes → Memo, with arrows),
-Check (Chain) and Outputs (Deck, Swimlanes, Architecture, Corpus); the
-current tab is a raised segment.*
+Check (Chain) and Outputs; the current tab is a raised segment. Outputs
+reordered (Ryan, 2026-09-30) to Corpus, Process Flows, Architecture, Deck,
+with "Swimlanes" renamed **Process Flows** in the tab.*
 Process: **Interviews → Themes → Memo → Chain**, shown as steps with arrows.
 Outputs: **Deck, Swimlanes, Architecture, Corpus**, set apart.
 
@@ -356,6 +357,23 @@ its steps (or spread steps to fill) in `Swimlane.tsx`. Small.
 ### R11. Favicon
 Use the Harrington Data Co website's favicon (`src/app/icon.*` /
 `favicon.ico`). Small; needs the file from harringtondata.com.
+
+### R12. Rebuild the Deck
+Raised 2026-09-30. Ryan doesn't like how the Deck tab turned out: it's
+clunky. Not for now; a later piece of work.
+
+- **Goal:** the deck as a **reveal.js** slide deck with interactions,
+  presented and navigated in the browser, instead of today's slide list
+  with a .pptx download.
+- **Export** to other formats: **Google Slides**, **PowerPoint** and
+  **PDF**.
+- Today's pieces to build on or replace: slides as `deck_slide` rows
+  citing themes and codes (`src/lib/deck/`), the deck template, the
+  Claude pass (`deck-v1`), and `src/lib/deck/pptx.ts` (pptxgenjs).
+- To work out: what "interactions" means here (e.g. click a finding to see
+  its quotes, as the evidence drawer does elsewhere), and whether Google
+  Slides export goes through the Drive connection (which is read-only
+  today).
 
 ## Suggested order
 

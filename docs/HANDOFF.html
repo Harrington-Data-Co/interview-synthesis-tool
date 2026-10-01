@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>handoff</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="HANDOFF_files/libs/clipboard/clipboard.min.js"></script>
+<script src="HANDOFF_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="HANDOFF_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="HANDOFF_files/libs/quarto-html/popper.min.js"></script>
+<script src="HANDOFF_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="HANDOFF_files/libs/quarto-html/anchor.min.js"></script>
+<link href="HANDOFF_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="HANDOFF_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="HANDOFF_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="HANDOFF_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="HANDOFF_files/libs/bootstrap/bootstrap-917079515d91bccb85b543faf8aa8bb6.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="handoff-where-things-stand" class="level1">
+<h1>Handoff — where things stand</h1>
+<p>Updated 2026-09-30 evening, before the people work merged and Ryan’s one-hour away session. Read this first, then <code>docs/PLAN.md</code> and <code>docs/BACKLOG.md</code>.</p>
+<section id="state" class="level2">
+<h2 class="anchored" data-anchor-id="state">State</h2>
+<ul>
+<li><code>main</code> holds Phases 0–6 plus the evidence drawer; the <strong>people and organizations</strong> work (branch <code>people</code>) is being squash-merged into <code>main</code> as the first step of the evening session (see “Evening plan”).</li>
+<li><strong>Migrations: everything is applied</strong>, through <code>20260930a_people</code>, <code>20260930b_organizations</code> and <code>20260930c_organization_detail</code> (checked against Supabase 2026-09-30).</li>
+<li><strong>Google Drive is connected</strong> (Ryan’s harringtondata.com account, read-only scope). Meet transcripts live across his drives, mostly the shared drive, not in “Meet Recordings”.</li>
+<li>Prompts: <code>coding-v2</code> (lists the people in the call), <code>note-v2</code>, <code>themes-v1</code>, <code>memo-v1</code>, <code>flow-v1</code>, <code>deck-v1</code>, <code>arch-v1</code>. Model <code>claude-opus-5-5</code>, effort <code>high</code>. coding-v2 hasn’t been run against Claude yet.</li>
+</ul>
+</section>
+<section id="evening-plan-2026-09-30-ryan-away-1-hour" class="level2">
+<h2 class="anchored" data-anchor-id="evening-plan-2026-09-30-ryan-away-1-hour">Evening plan (2026-09-30, Ryan away ~1 hour)</h2>
+<p>Ryan asked for, in order:</p>
+<ol type="1">
+<li>Write this handoff. (Done.)</li>
+<li>Merge <code>people</code> into <code>main</code>.</li>
+<li><strong>R7 + R3</strong>: optional client short codes; “New client…” / “New project…” from the upload dialog’s dropdowns.</li>
+<li><strong>R6</strong>: rework the upload dialog; new Meet transcripts show up on Sources by themselves.</li>
+<li>Quick wins <strong>R9</strong> (project tabs: process vs outputs, Chain set apart as a check) and <strong>R10</strong> (swimlane whitespace).</li>
+</ol>
+<p>Explicitly <strong>not</strong> tonight: R1 + R8 (URLs, top navigation), R11 (favicon), and the loose ends (dropping the participant columns, architecture undo, crowded architecture maps, trying Swimlanes/Deck/Architecture signed in, the flaky corpus check). Work goes on a branch for Ryan’s review; new migrations go in <code>supabase/migrations/</code> for Ryan to apply.</p>
+<section id="how-the-evening-went" class="level3">
+<h3 class="anchored" data-anchor-id="how-the-evening-went">How the evening went</h3>
+<ul>
+<li><code>people</code> merged into <code>main</code> (<code>a208353</code>) and pushed.</li>
+<li>Branch <strong><code>evening</code></strong> (pushed, not merged): R7 + R3 (<code>54a78be</code>), R6 (<code>1de6531</code>), R9 (<code>6e5d3c6</code>), R10 (next commit). Each is noted in <code>docs/BACKLOG.md</code>.</li>
+<li><strong>Two new migrations for Ryan to apply:</strong> <code>supabase/migrations/20260930d_client_codes.sql</code> (R7) and <code>20260930e_drive_inbox.sql</code> (R6). Both checked in PGlite.</li>
+<li>R10’s real cause came from Ryan’s screenshots (a shorter map kept a longer map’s scroll and width) and is fixed. R6 doesn’t yet suggest a client from the Drive folder.</li>
+</ul>
+</section>
+</section>
+<section id="decisions-from-2026-09-30-dont-re-ask" class="level2">
+<h2 class="anchored" data-anchor-id="decisions-from-2026-09-30-dont-re-ask">Decisions from 2026-09-30 (don’t re-ask)</h2>
+<ul>
+<li><strong>Client short codes are optional</strong>, a through-line key Ryan uses to match clients across all his tools. Never required; <strong>URLs use the client’s name</strong>, not the code.</li>
+<li><strong>Chain is not a process step.</strong> Project tabs read Interviews → Themes → Memo, with Chain set apart as a check on the whole process; outputs (Deck, Swimlanes, Architecture, Corpus) are separate.</li>
+<li><strong>Interviewers are people too.</strong> A speaker’s part in the call is <strong>Part</strong> (interviewer / participant / other); their job is <strong>Title</strong>.</li>
+<li><strong>Design for client access</strong>: who may see a person goes through <code>can_see_person()</code>; permissions for inline editing come with project roles.</li>
+<li><strong>Organizations nest arbitrarily deep</strong> (State of Delaware › Department › Division › Unit), each with an optional <strong>kind</strong> and <strong>short name</strong>.</li>
+<li>Tables share one engine (<code>src/components/table/</code>); drawers share one frame (<code>src/components/Drawer.tsx</code>); selections share one pill (<code>src/components/SelectionBar.tsx</code>). Keep new tables, drawers and selections on these.</li>
+</ul>
+</section>
+<section id="how-people-and-organizations-are-put-together" class="level2">
+<h2 class="anchored" data-anchor-id="how-people-and-organizations-are-put-together">How people and organizations are put together</h2>
+<ul>
+<li><strong>person</strong> (name; current organization and title) behind each <code>transcript_speaker</code> (<code>person_id</code>, plus <code>title</code> as of that call; the speaker’s organization is also as of that call). <code>display_name</code> follows the person’s name by trigger, so older views show people without changes. Current organization/title follow the person’s latest interview whenever a speaker of theirs changes.</li>
+<li><strong>Who’s speaking</strong> (<code>SpeakersEditor</code> in <code>src/components/pickers.tsx</code>): As written, Person (typed; matches known people, else a new person), Part, Organization, Title. The upload preview pre-fills from the last time an export name was seen or a known person’s name. Two export names for one person: pick the same person on both rows.</li>
+<li><strong>People page</strong> (<code>/people</code>, <code>src/components/people/</code>): shared table engine with columns Name (+ possible-duplicate section), Organization (+ top organization + one section per kind), Title, Part, Clients, Interviews, Latest; inline organization and title; row click opens the drawer (Information, Projects); merge from the selection pill. <code>/people?person=&lt;id&gt;</code> opens a drawer.</li>
+<li><strong>Organizations page</strong> (<code>/organizations</code>): the tree (Show levels, search by name, short name, kind), drawer to rename, set short name and kind, move (“Sits under”), add a sub-organization, delete when unused; merge from the pill; New organization; Add from outline (indented lines, <code>(SHORT)</code> and <code>[Kind]</code>, reuses what exists).</li>
+<li><strong>Grouping by kind</strong>: <code>kindColumns()</code> (<code>src/components/table/</code>) adds a column per kind in use to the People and Interviews tables; the corpus gets a facet per kind.</li>
+<li><strong>Quote attribution</strong> is by the title of whoever spoke the quoted line (<code>code_speakers()</code>); swimlanes and architecture use participants’ titles per interview.</li>
+<li>Database rules: <code>supabase/migrations/20260930a–c</code>; all writes to people and organizations go through definer functions that log to <code>edit</code>.</li>
+</ul>
+</section>
+<section id="how-phase-6-is-put-together" class="level2">
+<h2 class="anchored" data-anchor-id="how-phase-6-is-put-together">How Phase 6 is put together</h2>
+<ul>
+<li><strong>Google connection</strong> (<code>src/lib/connectors/google.ts</code>, <code>/api/connectors/google/{start,callback}</code>, <code>connector_account</code>): per-user OAuth, <code>drive.readonly</code>, offline access. The refresh token is sealed with AES-256-GCM under <code>CONNECTOR_TOKEN_KEY</code> before it’s stored; RLS lets a user see only their own row. Sources page shows the connection.</li>
+<li><strong>Meet import</strong> (<code>src/lib/connectors/{meet,names}.ts</code>, <code>/api/connectors/google/meet[/file]</code>, <code>MeetImport.tsx</code>): lists Meet transcript Docs across all drives (Gemini notes excluded), newest first; search is Drive full-text and is sorted in the app, since Drive refuses <code>orderBy</code> with full-text. Picked Docs are exported as .docx and handed to the usual <code>UploadDialog</code> review; <code>connector_import</code> records Drive file → transcript so imported Docs show as such.</li>
+<li><strong>Swimlanes</strong> (<code>src/lib/flow/</code>, <code>src/components/flow/</code>): Claude draws process maps (<code>flow</code>, lanes, ordered steps of kind task/wait/decision) from Step, Tool, Stakeholder, Pain and Constraint codes; every step cites codes. People can add, edit, move and delete lanes and steps, and undo the last step edit.</li>
+<li><strong>Deck</strong> (<code>src/lib/deck/</code>, <code>src/components/deck/</code>): deck templates are <code>product_template</code> kind <code>deck</code>; Claude writes <code>deck_slide</code> rows per section (finding, quote or statement layouts, ≤6 bullets), citing themes and codes under the memo’s rules; a quote slide’s quote must be a cited code. Rewrite keeps slides people edited. <code>/api/projects/[id]/deck/pptx</code> builds the .pptx with pptxgenjs (<code>src/lib/deck/pptx.ts</code>).</li>
+<li><strong>Architecture</strong> (<code>src/lib/arch/</code>, <code>src/components/arch/</code>): Claude draws <code>arch_map</code>s of systems (<code>arch_node</code>: kind, official or workaround), flows between them (<code>arch_flow</code>: what moves, by hand or automatic) and gaps (<code>arch_gap</code>), each citing codes. Items that fail the checks land in <code>arch_rejection</code> (“Needs review”). <code>layers()</code> places systems in columns by longest path so data reads left to right (cycles broken); <code>ArchDiagram</code> measures the cards and draws flows as SVG. Picking a system lights its flows; picking a gap lights everything sharing its codes. All writes go through <code>save_arch_item</code> / <code>delete_arch_item</code>.</li>
+</ul>
+</section>
+<section id="how-phase-5-is-put-together" class="level2">
+<h2 class="anchored" data-anchor-id="how-phase-5-is-put-together">How Phase 5 is put together</h2>
+<ul>
+<li><strong>Themes are the cross-interview unit.</strong> A code belongs to one transcript, so the matrix is theme × interview and saturation counts new themes per interview (recording order, keys I1… as on the Themes tab). Confirmed themes by default; <code>?proposed=1</code> includes proposals, marked as such.</li>
+<li><code>corpus_matrix(project, include_proposed)</code> (SQL) does the counting: one row per theme per interview, plus null-theme rows for codes in no counted theme. Active codes only; a merged code never counts.</li>
+<li><code>src/lib/corpus/derive.ts</code>: grouping columns by a facet (each label axis, then the participant’s organization), theme rows, saturation and its note, coverage by group (≤2 interviews is “thin”), and the “only <group>” flag for a theme whose support sits inside one labelled group.</group></li>
+<li><code>src/lib/corpus/chain.ts</code>: <code>reach()</code> (forward and backward separately, as the prototype’s <code>chain()</code>), and <code>foldLines()</code>, which keeps quoted lines plus the line before each run and folds the rest.</li>
+<li><strong>Corpus tab</strong> (<code>src/components/corpus/</code>): a server component; the facet and the proposals toggle are URL parameters. The matrix itself is a client component (<code>ThemeMatrix</code>): group names are set at an angle over a coloured bar per group, with a ruled gap between groups; a Groups column beside Ivs says “Only ‹group›” or “n of m groups”; proposed themes have a dashed ref; a theme’s name expands in place (with its description), growing only that row while the cells keep their size.</li>
+<li><strong>Corpus views on trial</strong> (for Ryan to judge; each is its own file). All share one quotes panel and data through <code>CorpusContext</code> (<code>openPanel</code> with themes, optionally narrowed to interviews or code types); shared pieces (expandable theme name, dashed proposed ref, hover tooltip) are in <code>bits.tsx</code>. (1) Matrix cells open their quotes; (2) “Share of group” switch on the matrix; (3) <code>MemoMap</code>: themes plotted by interviews (x) and groups reached (y; codes when ungrouped), filled = cited, with the strong corner and the “rests on little” edges shaded and a “needs a look” list beside it; (4) <code>ThemeChord</code>: chord diagram, ribbon ends sized by each theme’s codes in the shared interviews (<code>chordMatrix</code> / <code>chordLayout</code>), with a “most shared” list; (5) <code>EvidenceMixView</code>: sortable by kind or total, Codes/Share scale, segment hover detail, segment click opens those quotes. Rules in <code>src/lib/corpus/views.ts</code>, tested.</li>
+<li><strong>One selection across the corpus charts</strong> (<code>CorpusContext</code>: <code>selected</code>, <code>toggleSelect</code>, <code>select</code>): a theme, or a pair from a chord. Clicking a theme name (matrix, evidence mix), a memo-map dot or list row, or a chord arc selects it everywhere; a chord ribbon selects the pair. It stays until clicked again, cleared from the bar at the foot of the window, or Escape (which closes the quotes panel first). Cells and segments select their theme and open their quotes.</li>
+<li><strong>Themes are listed by number in every corpus chart</strong> (<code>compareRefs</code>: TH-2 before TH-12). <code>themeRows()</code> keeps the order it’s given. A click anywhere in a matrix or evidence-mix row toggles the selection; only the name cell expands (and selects); filled cells and segments open quotes instead. The matrix has a Codes column (a theme’s codes across every interview).</li>
+<li><strong>Click-off clears the selection.</strong> <code>CorpusContext</code> listens for clicks that land on nothing interactive; chart elements that handle their own clicks carry <code>KEEP</code> (<code>data-keep-selection</code>). Buttons, links and form controls (sort and mode switches) keep it too.</li>
+<li><strong>Every number and mark has a hover tooltip</strong> saying what it means (<code>useTip</code> / <code>TipBody</code> in client charts, <code>HoverTip</code> for the server-rendered cards).</li>
+<li><strong>Memo map regions are filters</strong>: clicking Strong, In between or Rests on little lists that region’s themes beside the chart and fades the rest.</li>
+<li><strong>Chart colours come from <code>src/lib/palette.ts</code></strong> (Ryan’s palette: <code>#127A5B #3B6DB3 #C27A22 #8B5AA0 #C0503A</code>, grey <code>#8A8F94</code> for Other; use it wherever a chart needs more colours). <code>muted()</code> there desaturates series out of focus, as the evidence mix does when sorted by a group.</li>
+<li><strong>Chain tab</strong> (<code>src/components/chain/</code>): <code>ChainStage</code> loads one interview (<code>?interview=</code>, <code>?note=</code> for the note template, <code>?memo=</code> for the memo template) and resolves citations of merged codes to the code they were merged into. <code>ChainBoard</code> measures the rendered cards (<code>data-node</code>) with a ResizeObserver and draws the edges as SVG. Edges: line → code, code → note item, code → theme, theme → paragraph, code → paragraph. Memo paragraphs that cite nothing from the interview are hidden and counted.</li>
+<li>Board layout: five column cards (navy header bands), each scrolling on its own inside a board of fixed height; edges are re-measured on every column scroll, and an edge whose card is scrolled out of view is pinned to that column’s edge and dashed. Picking a node scrolls every other column to its part of the chain (centred if it fits, else first card near the top). <strong>Fit</strong> shares the page width (minimum column widths, then scroll); <strong>Spread</strong> uses fixed wide columns and scrolls sideways, with stage chips, edge fades and arrow buttons as scroll cues. The choice is kept in localStorage (<code>chain-density</code>). Full screen mode; Esc leaves. The chain tab lifts the page’s 1400px cap. Edges between neighbouring columns draw over the cards; edges that skip a column draw behind them.</li>
+</ul>
+</section>
+<section id="how-phase-4-is-put-together" class="level2">
+<h2 class="anchored" data-anchor-id="how-phase-4-is-put-together">How Phase 4 is put together</h2>
+<ul>
+<li><strong>Themes</strong> (<code>src/lib/themes/</code>, <code>src/components/themes/</code>, <code>/api/projects/[id]/themes[/propose]</code>): per project. Claude proposes; proposals count only once a person confirms them. Re-proposing replaces unconfirmed proposals and keeps confirmed themes and any theme a memo cites.</li>
+<li><strong>Memo templates</strong> share the Templates page with note templates (<code>/templates?kind=memo</code>); <code>/api/templates</code> takes <code>kind: "note" | "memo"</code>. Tables: <code>product_template</code> (kind <code>report</code>) and <code>product_section</code>.</li>
+<li><strong>The memo</strong> (<code>src/lib/memo/</code>, <code>src/components/memo/</code>, <code>/api/projects/[id]/memo</code>, <code>/api/memos/[id]/items</code>, <code>/api/memos/[id]/markdown</code>, <code>/projects/[id]/memo/print</code>): paragraphs are <code>product_item</code> rows citing themes and/or codes. Claude is held to stricter rules than people (confirmed themes only; themes only in sections that fill from themes; codes of the section’s types or within a cited theme). The app’s gate mirrors the database; the database has the final word.</li>
+<li><code>src/lib/memo/load.ts</code> is the one loader for the view, the Markdown export and the print page.</li>
+</ul>
+</section>
+<section id="patterns-every-claude-pass-follows" class="level2">
+<h2 class="anchored" data-anchor-id="patterns-every-claude-pass-follows">Patterns every Claude pass follows</h2>
+<p>A <code>*_run</code> table (model, tokens, cost, outcome); a <code>*_rejection</code> review queue (“Needs review”); an app-side gate that mirrors the database’s rules; definer functions for all writes, with direct writes closed by RLS; edits logged to <code>edit</code> with before/after and revertible; deferred triggers that require at least one citation; evidence that can’t be deleted while cited. Section keys go to Claude as <code>S1..Sn</code> through a zod enum, with a forgiving gate — this fixed the Sierra note bug in Phase 3.</p>
+</section>
+<section id="checking-the-database" class="level2">
+<h2 class="anchored" data-anchor-id="checking-the-database">Checking the database</h2>
+<p>Database behaviour was checked with a PGlite harness (<code>check*.mjs</code>) that lived in a session scratchpad and is <strong>not</strong> in the repo. To re-check, load <code>supabase/schema.sql</code> into PGlite (with <code>auth.uid()</code> stubbed) and exercise the functions, or ask Ryan to test against Supabase. Unit tests: <code>npx vitest run</code>. Before handing over: <code>npx tsc --noEmit</code>, <code>npx eslint src</code>, <code>npm run build</code>.</p>
+</section>
+<section id="standing-rules" class="level2">
+<h2 class="anchored" data-anchor-id="standing-rules">Standing rules</h2>
+<ul>
+<li>Never commit <code>fixtures/private/*</code> (real client transcripts) or <code>.env.local</code>; never print secrets.</li>
+<li>Ask before spending money on Claude runs.</li>
+<li>Commit, push or merge only when Ryan asks.</li>
+<li>New migrations go in <code>supabase/migrations/</code>, and <code>supabase/schema.sql</code> is kept as the whole current database. Ryan applies migrations himself in the Supabase SQL editor.</li>
+</ul>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

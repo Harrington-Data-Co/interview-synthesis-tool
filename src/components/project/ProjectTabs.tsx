@@ -5,7 +5,8 @@ export const VIEWS = [
   ["themes", "Themes"],
   ["memo", "Memo"],
   ["deck", "Deck"],
-  ["swimlanes", "Swimlanes"],
+  // Named Process Flows (Ryan, 2026-09-30); the view key stays "swimlanes".
+  ["swimlanes", "Process Flows"],
   ["architecture", "Architecture"],
   ["chain", "Chain"],
   ["corpus", "Corpus"],
@@ -18,7 +19,7 @@ export type ViewKey = (typeof VIEWS)[number][0];
 const TAB_GROUPS: { label: string; keys: ViewKey[]; flow?: boolean; hint: string }[] = [
   { label: "Process", keys: ["interviews", "themes", "memo"], flow: true, hint: "Each step builds on the one before." },
   { label: "Check", keys: ["chain"], hint: "Trace a finding back through every step." },
-  { label: "Outputs", keys: ["deck", "swimlanes", "architecture", "corpus"], hint: "What the work produces." },
+  { label: "Outputs", keys: ["corpus", "swimlanes", "architecture", "deck"], hint: "What the work produces." },
 ];
 
 /** A project's tabs, grouped: the process (with arrows, since each step
