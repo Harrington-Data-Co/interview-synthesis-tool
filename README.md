@@ -103,14 +103,14 @@ the rules live in migration `20260930g_invitations.sql`.
   people. They add Sources, People, Organizations and the template library;
   an editor can also start clients and projects (and owns what they start).
   Someone from outside has no workspace role.
-- **Inviting**: workspace owners from **Members** in the header (Harrington
+- **Inviting**: workspace owners from **Workspace → Members** (Harrington
   colleagues, with a workspace role); project owners from a project's
   **Members** tab (anyone, to that project). An address that already has a
   seat is added at once; anyone else gets an email whose link lands on
   `/auth/confirm` and is accepted on arrival. Invitations last 14 days and
   can be sent again, withdrawn, or handed over as a link (**Copy link**).
-- **Removing**: from a project's Members tab, or from the workspace on
-  Members (every project at once). What they made stays, under their name.
+- **Removing**: from a project's Members tab, or from **Workspace →
+  Members** (every project at once). What they made stays, under their name.
 
 Invitation emails need `SUPABASE_SERVICE_ROLE_KEY` (server only), and go
 through Supabase's sender until the next section is done — a few emails an
@@ -141,13 +141,15 @@ To get the click-first protection for emailed links too, in Authentication
 - **Your account** (account menu): name, initials and title — the name
   also goes on the shared Harrington Tools account — your password,
   *Sign out of other devices*, and what you can get at.
-- **Workspace settings** (owners, account menu): how long invitations last;
-  two-factor sign-in; and *This server*, a check of how this deployment is
-  set up.
-- **Members** shows when each person last signed in and an **Activity**
-  log: every invitation, acceptance, role change and removal, written by
-  the database itself (migration `20261001a`). A project's owners see their
-  project's on its Members tab.
+- **Workspace** (owners, in the header), in four tabs:
+  - **Members**: everyone, their projects and when they last signed in;
+    open invitations; inviting Harrington colleagues.
+  - **Activity**: every invitation, acceptance, role change and removal,
+    written by the database itself (migration `20261001a`). A project's
+    owners see their project's on its Members tab.
+  - **Settings**: what an owner changes — how long invitations last.
+  - **Setup**: getting a deployment ready — what the server has been given
+    and the addresses to register. It only reports.
 - **Two-factor sign-in** has its rail in place but is off: the database can
   require it per role (`workspace_setting.mfa_required_for`) and then shows
   nothing to a session without it. What's left is the screen to set up an
@@ -247,9 +249,9 @@ here (`next.config.ts`).
    `https://tools.harringtondata.com/interview-synthesis/api/connectors/google/callback`.
 8. **Email from Harrington's domain** — the next section. Before inviting
    anyone outside.
-9. **Check it.** Sign in at `https://tools.harringtondata.com`, open
-   **Workspace settings** from the account menu: *This server* lists
-   what's set and what isn't, and the addresses to register.
+9. **Check it.** Sign in at `https://tools.harringtondata.com` and open
+   **Workspace → Setup**: it lists what the server has been given and what
+   it hasn't, and the addresses to register.
 
 **One database or two?** Local work and production can share one Supabase
 project (simplest while you're the only one using it: everything you do
@@ -299,8 +301,8 @@ src/lib/memo/           the findings memo: prompt, citation gate, loader, Markdo
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may see and change
 src/lib/invite.ts       invitation emails and copyable links
-src/app/(app)/members/  the workspace's people, invitations and activity (owners)
-src/app/(app)/account/  your account; settings/ the workspace's (owners)
+src/app/(app)/workspace/ owners: members, activity, settings, setup
+src/app/(app)/account/  your account
 src/lib/basePath.ts     the path the app sits under (/interview-synthesis)
 supabase/schema.sql     the data model; migrations/ updates an existing one
 docs/                   the build plan, backlog, and session handoff

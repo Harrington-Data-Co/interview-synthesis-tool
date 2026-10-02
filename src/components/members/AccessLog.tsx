@@ -3,7 +3,7 @@ import { formatDateTime } from "@/lib/when";
 
 /** Who invited, added, changed or removed whom (migration 20261001a):
  *  everything for a workspace owner, one project's for its owners. */
-export async function AccessLog({ projectId, limit = 60 }: { projectId?: string; limit?: number }) {
+export async function AccessLog({ projectId, limit = 60, heading = true }: { projectId?: string; limit?: number; heading?: boolean }) {
   const supabase = await createClient();
   let query = supabase.from("access_event").select("id,at,actor,verb,subject_user,subject_email,project_id,detail").order("at", { ascending: false }).limit(limit);
   if (projectId) query = query.eq("project_id", projectId);
@@ -18,7 +18,7 @@ export async function AccessLog({ projectId, limit = 60 }: { projectId?: string;
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxWidth: 860 }}>
-      <span className="kicker">Activity</span>
+      {heading && <span className="kicker">Activity</span>}
       {!events?.length ? (
         <p className="meta">Nothing yet.</p>
       ) : (

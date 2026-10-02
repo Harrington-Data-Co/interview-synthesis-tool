@@ -190,11 +190,14 @@ rails built now.
 - **Your account** (`/account`): name, initials, title (name also on the
   shared Supabase account), password, sign out of other devices, your
   access.
-- **Workspace settings** (`/settings`, owners): invitation lifetime;
-  two-factor status; *This server*, a deployment check with the addresses
-  to register.
-- **Members**: last sign-in, and an **Activity** log written by triggers
-  (`access_event`). Project owners see their project's.
+- **Workspace** (`/workspace`, owners), four tabs — reorganized with Ryan
+  2026-10-01 so settings people change aren't mixed with the deployment
+  checklist: **Members** (with last sign-in), **Activity** (the log,
+  written by triggers into `access_event`; project owners see their
+  project's on its Members tab), **Settings** (invitation lifetime; two-
+  factor joins once switchable), **Setup** (what the server has been
+  given and the addresses to register; reports only). `/members` and
+  `/settings` redirect.
 - **Two-factor rail**: `workspace_setting.mfa_required_for` (empty);
   `current_seat_role`, `has_seat` and `my_memberships` hide everything from
   a session below `aal2` when the caller's role needs it;
@@ -208,6 +211,25 @@ domain and env vars (README → *Deploying*); one Supabase project or two.
 **Next for two-factor:** an enrollment screen on Your account (Supabase
 `mfa.enroll` / `challenge` / `verify`, TOTP), a verify step after sign-in
 when `mfa_required_now()`, then a switch in Settings.
+
+### Choose the model for the AI passes
+Raised by Ryan 2026-10-01, for a later release. Every Claude pass — coding,
+notes, themes, the memo, deck, process flows and architecture — uses one
+model and effort fixed in code (`MODEL = "claude-opus-5-5"`, effort `high`,
+`src/lib/claude/call.ts`), with the server-side fallback. Make it a choice
+instead.
+
+- Each run already records the model asked for and the one that answered
+  (`*_run.model`, `served_by`) and its cost, so switching keeps the record
+  straight; `PRICES` in `call.ts` needs an entry for each model offered.
+- To decide: who chooses (workspace owners in **Workspace → Settings**,
+  per project, or per run); one model for everything or per pass (a
+  cheaper model for coding, the strongest for the memo); whether effort
+  is chosen too; which models are on the list (current Claude models, kept
+  up to date) and what the fallback does when a chosen model isn't
+  available.
+- Prompts are versioned (`coding-v2`, `memo-v1`…); a model change may want
+  a check that the quote and citation gates still pass at the same rate.
 
 ### Active and archived projects
 Raised by Ryan 2026-09-30, once the Clients menu existed: it lists every
