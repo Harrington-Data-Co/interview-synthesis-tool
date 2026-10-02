@@ -208,6 +208,11 @@ rails built now.
   Ryan's reaction: spend **by client**; **per interview** (coding + notes
   over the interviews they ran on); and **what each project cost to
   build**, a table of spend by pass with an all-in cost per interview.
+  Then, after Ryan's look: the figures as one even strip (spend set like
+  the rest); the four breakdowns two across; the cost table tighter, with
+  Interviews / Artifacts / Altogether column groups; and the runs moved to
+  their own **Runs** view beside the Dashboard, on the shared table engine
+  (sort, group, filter, search; each group's heading shows its total).
   `usage_runs()` is migration `20261001b` (Ryan had applied `20261001a`
   before it was added). Owners only for now; project owners later. No
   budget alerts for now.

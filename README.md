@@ -149,9 +149,10 @@ To get the click-first protection for emailed links too, in Authentication
   - **Usage**: every Claude run (migration `20261001b`) — spend over time;
     spend by client, project, person and pass; what an interview costs to
     code and note; what each project's artifacts cost to build, with an
-    all-in cost per interview; and the runs themselves with model, tokens,
-    cost and outcome. Click a client, project, person or pass to narrow the
-    page to it.
+    all-in cost per interview. Its **Runs** view lists every run with
+    model, tokens, cost and outcome, sorting, grouping and filtering like
+    the other tables. Click a client, project, person or pass to narrow
+    either view to it.
   - **Access log**: every invitation, acceptance, role change and removal,
     written by the database itself (migration `20261001a`). A project's
     owners see their project's on its Members tab.
