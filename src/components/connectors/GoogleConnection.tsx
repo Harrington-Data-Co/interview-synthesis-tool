@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Directory } from "@/lib/directory";
 import { DriveInbox } from "./DriveInbox";
 import { MeetImport } from "./MeetImport";
+import { withBase } from "@/lib/basePath";
 
 /** Connect or disconnect Google Drive, where Google Meet saves transcripts. */
 export function GoogleConnection({
@@ -28,7 +29,7 @@ export function GoogleConnection({
   async function disconnect() {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/connectors/google", { method: "DELETE" });
+    const res = await fetch(withBase("/api/connectors/google"), { method: "DELETE" });
     setBusy(false);
     if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "Couldn't disconnect.");
     router.replace("/sources");
@@ -54,7 +55,7 @@ export function GoogleConnection({
           <div style={{ marginLeft: "auto", display: "flex", gap: "var(--space-2)" }}>
             {state === "disconnected" && (
               // A plain link: the start route redirects to Google.
-              <a className="btn btn-primary" href="/api/connectors/google/start" style={{ fontSize: 12.5 }}>
+              <a className="btn btn-primary" href={withBase("/api/connectors/google/start")} style={{ fontSize: 12.5 }}>
                 Connect Google Drive
               </a>
             )}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reach, type Edge } from "@/lib/corpus/chain";
 import { projectHref } from "@/lib/urls";
+import { withBase } from "@/lib/basePath";
 
 type Line =
   | { kind: "gap"; from: number; to: number }
@@ -582,7 +583,7 @@ export function ChainBoard({ projectPath, withProposed, data }: { projectPath: s
                     </div>
                   ),
                 )}
-                <Link href={`/transcripts/${data.interview.id}`} className="meta" style={{ fontSize: 12, marginTop: "var(--space-2)" }}>
+                <Link href={withBase(`/transcripts/${data.interview.id}`)} className="meta" style={{ fontSize: 12, marginTop: "var(--space-2)" }}>
                   Open the full transcript →
                 </Link>
               </>,

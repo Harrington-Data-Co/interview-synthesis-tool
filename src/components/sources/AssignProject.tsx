@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { clientLabel, type Directory } from "@/lib/directory";
+import { withBase } from "@/lib/basePath";
 
 /** Per-row project picker in the library, grouped by client. Assigning queues
  *  the transcript. Goes away when the library is organized by project. */
@@ -25,7 +26,7 @@ export function AssignProject({
     setValue(next);
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/transcripts/${transcriptId}`, {
+    const res = await fetch(withBase(`/api/transcripts/${transcriptId}`), {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ record: { project_id: next || null } }),

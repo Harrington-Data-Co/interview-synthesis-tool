@@ -11,6 +11,7 @@ import { deckAction } from "./actions";
 import { SlideEditor, type SlideSeed } from "./SlideEditor";
 import { SlideFrame } from "./SlideFrame";
 import { projectHref } from "@/lib/urls";
+import { withBase } from "@/lib/basePath";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 
@@ -73,7 +74,7 @@ export function DeckView({ projectId, projectPath, editor, deck, roles }: { proj
     setRunning(true);
     setNotice(null);
     setConfirming(null);
-    const res = await fetch(`/api/projects/${projectId}/deck`, {
+    const res = await fetch(withBase(`/api/projects/${projectId}/deck`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ templateId: template.id, replace }),
@@ -157,7 +158,7 @@ export function DeckView({ projectId, projectPath, editor, deck, roles }: { proj
         </Link>
         <span style={{ marginLeft: "auto", display: "flex", gap: "var(--space-2)" }}>
           {product && slides.length > 0 && (
-            <a className="btn btn-secondary" href={`/api/projects/${projectId}/deck/pptx?template=${template.id}`}>
+            <a className="btn btn-secondary" href={withBase(`/api/projects/${projectId}/deck/pptx?template=${template.id}`)}>
               Download .pptx
             </a>
           )}
@@ -330,7 +331,7 @@ export function DeckView({ projectId, projectPath, editor, deck, roles }: { proj
                               {c.key}
                             </span>
                             {c.label}
-                            <Link href={`/transcripts/${c.transcriptId}#L${c.line_start}`} className="mono" style={{ fontSize: 10, marginLeft: 6 }}>
+                            <Link href={withBase(`/transcripts/${c.transcriptId}#L${c.line_start}`)} className="mono" style={{ fontSize: 10, marginLeft: 6 }}>
                               L{c.line_start} →
                             </Link>
                           </span>

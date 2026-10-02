@@ -60,6 +60,10 @@
   --space-6: 24px;
   --space-8: 32px;
 
+  /* Status, for a state (a run that failed) — never a chart series. */
+  --status-critical: #B42318;
+  --status-critical-bg: #FDECEA;
+
   --shadow-sm: 0 1px 2px rgba(27, 42, 65, 0.04), 0 10px 28px rgba(27, 42, 65, 0.06);
   --shadow-md: 0 1px 2px rgba(27, 42, 65, 0.04), 0 14px 36px rgba(27, 42, 65, 0.07);
   --shadow-lg: 0 2px 4px rgba(27, 42, 65, 0.06), 0 18px 44px rgba(27, 42, 65, 0.14);
@@ -174,6 +178,24 @@ a.tag.card-over:hover { box-shadow: inset 0 0 0 1px var(--color-accent-tint-bord
 }
 .table td { padding: 10px 12px; border-bottom: 1px solid var(--line-1); }
 .table tbody tr:hover { background: var(--color-accent-tint-soft); }
+/* Dense tables of figures (Settings → Usage): tighter rows, numbers lined up. */
+.table-compact { font-size: 13px; }
+.table-compact th { padding: 7px 10px; font-size: 10.5px; }
+.table-compact td { padding: 6px 10px; }
+.table-compact .num { text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; white-space: nowrap; }
+.table-compact tr.total td { border-top: 1px solid var(--line-4); border-bottom: 0; font-weight: 700; }
+/* Column groups in a table of figures: a rule where a group starts, a little
+   more room after it, the group's name in the accent, and the summary
+   group (totals) on a faint band so it reads apart from the parts. */
+.table-compact .group-start { border-left: 1px solid var(--line-4); padding-left: 14px; }
+.table-compact th.group-name { color: var(--color-accent-800); text-align: center; border-bottom: 1px solid var(--line-2); }
+.table-compact .summary { background: var(--color-bg-soft); }
+.table-compact tbody tr:hover .summary { background: transparent; }
+/* Things on the Usage dashboard that open its drawer. */
+.usage-row:hover { background: var(--color-accent-tint-soft) !important; }
+.usage-cell { cursor: pointer; }
+.usage-cell:hover { background: var(--color-accent-tint) !important; }
+tr.usage-open td { background: var(--color-accent-tint); }
 
 /* — dialog — */
 .dialog-backdrop { background: rgba(27, 42, 65, 0.42); }

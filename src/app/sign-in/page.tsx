@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/config";
+import { withBase } from "@/lib/basePath";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function SignInPage() {
     // The reset link lands on /auth/confirm, which asks for a click before
     // using it, then on the set-a-password page.
     const { error } = await supabase.auth.resetPasswordForEmail(typed, {
-      redirectTo: `${window.location.origin}/auth/confirm?next=/account/password`,
+      redirectTo: `${window.location.origin}${withBase("/auth/confirm")}?next=/account/password`,
     });
     setBusy(false);
     if (error) setErr(error.message);

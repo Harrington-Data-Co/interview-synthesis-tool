@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/config";
+import { withBase } from "@/lib/basePath";
 
 type OtpType = "invite" | "magiclink" | "signup" | "email" | "recovery" | "email_change";
 
@@ -69,7 +70,7 @@ export default function ConfirmPage() {
               {error}. Links work once and expire. If you were invited, go to sign in and use{" "}
               <em>Forgot your password?</em> with the same email address for a fresh one.
             </p>
-            <a href="/sign-in" className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+            <a href={withBase("/sign-in")} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
               Go to sign in
             </a>
           </>
@@ -102,5 +103,5 @@ const supabase = () => createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, { au
 function onward(fallback?: string) {
   const next = new URLSearchParams(window.location.search).get("next");
   const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : fallback ?? "/";
-  window.location.replace(safe);
+  window.location.replace(withBase(safe));
 }

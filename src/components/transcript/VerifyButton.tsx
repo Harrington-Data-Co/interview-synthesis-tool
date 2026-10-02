@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { withBase } from "@/lib/basePath";
 
 type Result = { match: boolean; expected: string; actual: string; checkedAt: string };
 
@@ -13,7 +14,7 @@ export function VerifyButton({ transcriptId }: { transcriptId: string }) {
   async function verify() {
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/transcripts/${transcriptId}/verify`, { method: "POST" });
+    const res = await fetch(withBase(`/api/transcripts/${transcriptId}/verify`), { method: "POST" });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(body.error ?? `Couldn't verify (${res.status}).`);

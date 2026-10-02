@@ -6,6 +6,7 @@ import { EvidenceDrawer } from "@/components/evidence/EvidenceDrawer";
 import { Notice } from "@/components/ui";
 import { ThemeEditor, type ThemeSeed } from "./ThemeEditor";
 import { themeAction, type EvidenceCode, type EvidenceInterview, type ThemeRejectionView, type ThemeRunView, type ThemeView } from "./types";
+import { withBase } from "@/lib/basePath";
 
 const PREVIEW = 10;
 
@@ -80,7 +81,7 @@ export function ThemesView({
     setRunning(true);
     setNotice(null);
     setConfirming(null);
-    const res = await fetch(`/api/projects/${projectId}/themes/propose`, { method: "POST" });
+    const res = await fetch(withBase(`/api/projects/${projectId}/themes/propose`), { method: "POST" });
     const b = await res.json().catch(() => ({}));
     setRunning(false);
     if (!res.ok) setNotice({ tone: "error", text: b.error ?? `Proposing themes failed (${res.status}).` });

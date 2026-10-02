@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ApiError, requireEditor } from "@/lib/api";
 import { GOOGLE_SCOPES, STATE_COOKIE, driveAccountEmail, exchangeCode, sealToken } from "@/lib/connectors/google";
 import { createClient } from "@/lib/supabase/server";
+import { withBase } from "@/lib/basePath";
 
 /** Google sends the person back here. Check the state, trade the code for a
  *  refresh token, seal it, and save the connection; then back to Sources
  *  with a note either way. */
 export async function GET(request: NextRequest) {
   const back = (q: Record<string, string>) => {
-    const url = new URL("/sources", request.nextUrl.origin);
+    const url = new URL(withBase("/sources"), request.nextUrl.origin);
     for (const [k, v] of Object.entries(q)) url.searchParams.set(k, v);
     const res = NextResponse.redirect(url);
     res.cookies.delete({ name: STATE_COOKIE, path: "/api/connectors/google" });

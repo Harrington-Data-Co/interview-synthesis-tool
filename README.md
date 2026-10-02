@@ -103,14 +103,14 @@ the rules live in migration `20260930g_invitations.sql`.
   people. They add Sources, People, Organizations and the template library;
   an editor can also start clients and projects (and owns what they start).
   Someone from outside has no workspace role.
-- **Inviting**: workspace owners from **Members** in the header (Harrington
+- **Inviting**: workspace owners from **Settings → Members** (Harrington
   colleagues, with a workspace role); project owners from a project's
   **Members** tab (anyone, to that project). An address that already has a
   seat is added at once; anyone else gets an email whose link lands on
   `/auth/confirm` and is accepted on arrival. Invitations last 14 days and
   can be sent again, withdrawn, or handed over as a link (**Copy link**).
-- **Removing**: from a project's Members tab, or from the workspace on
-  Members (every project at once). What they made stays, under their name.
+- **Removing**: from a project's Members tab, or from **Settings →
+  Members** (every project at once). What they made stays, under their name.
 
 Invitation emails need `SUPABASE_SERVICE_ROLE_KEY` (server only), and go
 through Supabase's sender until the next section is done — a few emails an
@@ -135,6 +135,34 @@ To get the click-first protection for emailed links too, in Authentication
 
 - *Invite user*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/account/password`
 - *Reset password*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/account/password`
+
+### Your account, settings and the access log
+
+- **Your account** (account menu): name, initials and title — the name
+  also goes on the shared Harrington Tools account — your password,
+  *Sign out of other devices*, and what you can get at.
+- **Settings** (owners, account menu), in four tabs:
+  - **Members**: everyone, the projects they're on (add them to another,
+    with a role, or take them off one, right there) and when they last
+    signed in; open invitations; inviting Harrington colleagues; how long
+    invitations last.
+  - **Usage**: every Claude run (migration `20261001b`) — spend over time;
+    spend by client, project, person and pass; what an interview costs to
+    code and note; what each project's artifacts cost to build, with an
+    all-in cost per interview. Its **Runs** view lists every run with
+    model, tokens, cost and outcome, sorting, grouping and filtering like
+    the other tables. Click a client, project, person or pass to narrow
+    either view to it.
+  - **Access log**: every invitation, acceptance, role change and removal,
+    written by the database itself (migration `20261001a`). A project's
+    owners see their project's on its Members tab.
+  - **Setup**: getting a deployment ready — what the server has been given
+    and the addresses to register. It only reports.
+- **Two-factor sign-in** has its rail in place but is off: the database can
+  require it per role (`workspace_setting.mfa_required_for`) and then shows
+  nothing to a session without it. What's left is the screen to set up an
+  authenticator app (Supabase MFA, TOTP); until then it isn't switchable,
+  since it would lock those people out.
 
 ## Before adding teammates: your own email sender
 
@@ -181,6 +209,73 @@ Google with your Workspace (harringtondata.com) account:
 7. Apply migration `20260929e_google_connector.sql`, restart the dev
    server, and use **Connect Google Drive** on the Sources page.
 
+## Deploying to tools.harringtondata.com
+
+Decided 2026-10-01: **tools.harringtondata.com** is the Harrington Tools
+hub, and each tool lives at a path under it — this one at
+**/interview-synthesis**. Every tool shares one sign-in (one Supabase Auth
+project, one cookie for the domain); each keeps its own members and roles.
+Hosted on **Vercel**. Until the hub exists, the domain's root redirects
+here (`next.config.ts`).
+
+1. **Apply the migrations** the database doesn't have yet (see *Updating an
+   existing database*), and check the sign-up hook is on.
+2. **Create the Vercel project.** vercel.com → Add New → Project → import
+   `Harrington-Data-Co/interview-synthesis-tool`. Framework: Next.js;
+   everything else as it comes. Every push to `main` then deploys, and
+   every branch gets a preview address.
+3. **Environment variables** (Project → Settings → Environment Variables,
+   for Production), the same names as `.env.local.example`:
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+     `SUPABASE_SERVICE_ROLE_KEY` — from Supabase.
+   - `ANTHROPIC_API_KEY`.
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `CONNECTOR_TOKEN_KEY`
+     — **the same value as your `.env.local`** while both use one
+     database, or Drive connections made locally stop working.
+   - `SITE_URL` = `https://tools.harringtondata.com`
+   - `NEXT_PUBLIC_BASE_PATH` = `/interview-synthesis`
+   - `NEXT_PUBLIC_TIME_ZONE` only if not `America/New_York`.
+
+   `NEXT_PUBLIC_*` values are built into the app, so redeploy after
+   changing one.
+4. **Long requests.** The Claude passes declare up to 300 seconds
+   (`maxDuration` on their routes). Check the Vercel plan allows functions
+   that long (Settings → Functions); a pass cut off at a lower limit fails
+   with a timeout, and its run shows as failed.
+5. **The domain.** Project → Settings → Domains → add
+   `tools.harringtondata.com`. Vercel shows a CNAME record (usually
+   `cname.vercel-dns.com`); add it wherever harringtondata.com's DNS is
+   hosted, and wait for Vercel to show it as valid. HTTPS is automatic.
+6. **Supabase → Authentication → URL Configuration.**
+   - Site URL: `https://tools.harringtondata.com/interview-synthesis`
+   - Redirect URLs: add `https://tools.harringtondata.com/interview-synthesis/auth/confirm`
+     and `…/auth/callback`; keep the localhost ones for local work.
+
+   The email templates (*Signing in*, above) use `{{ .SiteURL }}`, so they
+   follow.
+7. **Google Cloud → the OAuth client → Authorized redirect URIs**: add
+   `https://tools.harringtondata.com/interview-synthesis/api/connectors/google/callback`.
+8. **Email from Harrington's domain** — the next section. Before inviting
+   anyone outside.
+9. **Check it.** Sign in at `https://tools.harringtondata.com` and open
+   **Settings → Setup** (account menu): it lists what the server has been given and what
+   it hasn't, and the addresses to register.
+
+**One database or two?** Local work and production can share one Supabase
+project (simplest while you're the only one using it: everything you do
+locally is real), or production can have its own (run `schema.sql` on a
+new project, set it up as in *First-time setup*, and give Vercel its keys).
+Moving to two later is a fresh project plus copying the data across.
+
+**When the hub exists**, it takes over the domain in its own Vercel
+project and forwards `/interview-synthesis/*` to this one with a rewrite;
+this app doesn't change, since it already lives under its path. Its
+redirect from the root (`next.config.ts`) then goes.
+
+To try the path locally, set `NEXT_PUBLIC_BASE_PATH=/interview-synthesis`
+in `.env.local`, restart, and use http://localhost:3000/interview-synthesis
+(registering the localhost addresses with that path too).
+
 ## Updating an existing database
 
 `supabase/schema.sql` always describes the whole current database, so a new
@@ -214,7 +309,10 @@ src/lib/memo/           the findings memo: prompt, citation gate, loader, Markdo
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may see and change
 src/lib/invite.ts       invitation emails and copyable links
-src/app/(app)/members/  the workspace's people and invitations (owners)
+src/app/(app)/settings/  owners: members, usage, access log, setup
+src/lib/usage.ts        the Usage tab's totals, spend over time and breakdowns
+src/app/(app)/account/  your account
+src/lib/basePath.ts     the path the app sits under (/interview-synthesis)
 supabase/schema.sql     the data model; migrations/ updates an existing one
 docs/                   the build plan, backlog, and session handoff
 fixtures/private/       real transcripts for local checks — never committed

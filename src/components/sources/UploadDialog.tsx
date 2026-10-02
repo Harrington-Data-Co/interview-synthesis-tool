@@ -6,6 +6,7 @@ import type { IngestPreview, SourceKind } from "@/lib/ingest/preview";
 import { addOrg, toOrgRow, type Directory, type OrgOption } from "@/lib/directory";
 import { ClientProjectPicker, SpeakersEditor, speakerValue, type SpeakerValue } from "@/components/pickers";
 import { Dialog, Field, Notice } from "@/components/ui";
+import { withBase } from "@/lib/basePath";
 
 const SOURCE_LABEL: Record<SourceKind, string> = {
   meet: "Google Meet",
@@ -69,7 +70,7 @@ const label = (i: Item) => i.file?.name ?? (i.pasted?.name || "Pasted transcript
 const skipped = (i: Item) => i.state === "unreadable" || !!i.preview?.duplicateOf || !!i.sameAs;
 
 async function post(url: string, form: FormData) {
-  const res = await fetch(url, { method: "POST", body: form });
+  const res = await fetch(withBase(url), { method: "POST", body: form });
   const body = await res.json().catch(() => ({ error: `Unexpected response (${res.status}).` }));
   if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status}).`);
   return body;
@@ -193,7 +194,7 @@ export function UploadDialog({
       if (item.external) {
         // Best effort: the transcript is in either way; this only marks the
         // Drive file as imported.
-        await fetch("/api/connectors/google/meet", {
+        await fetch(withBase("/api/connectors/google/meet"), {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ fileId: item.external.id, transcriptId: id }),
@@ -259,7 +260,7 @@ export function UploadDialog({
         <>
           {lastSaved && (
             <Notice>
-              Saved <a href={`/transcripts/${lastSaved.id}`}>{lastSaved.title}</a>. Add the next one — the client and project are kept.
+              Saved <a href={withBase(`/transcripts/${lastSaved.id}`)}>{lastSaved.title}</a>. Add the next one — the client and project are kept.
             </Notice>
           )}
           <div className="seg" style={{ alignSelf: "flex-start" }}>
@@ -499,7 +500,7 @@ function ItemRow({
           </button>
         )}
         {item.savedId && (
-          <a href={`/transcripts/${item.savedId}`} className="meta" style={{ fontSize: 12 }}>
+          <a href={withBase(`/transcripts/${item.savedId}`)} className="meta" style={{ fontSize: 12 }}>
             Open
           </a>
         )}
@@ -508,7 +509,7 @@ function ItemRow({
       {item.error && <Notice tone="error">{item.error}</Notice>}
       {p?.duplicateOf && (
         <Notice>
-          This exact file is already in the library as <a href={`/transcripts/${p.duplicateOf.id}`}>{p.duplicateOf.title}</a>. It will be skipped.
+          This exact file is already in the library as <a href={withBase(`/transcripts/${p.duplicateOf.id}`)}>{p.duplicateOf.title}</a>. It will be skipped.
         </Notice>
       )}
       {item.sameAs && <Notice>Same file as “{item.sameAs}” above. It will be skipped.</Notice>}
@@ -588,7 +589,7 @@ function Summary({ items }: { items: Item[] }) {
       <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
         {saved.map((i) => (
           <li key={i.key}>
-            <a href={`/transcripts/${i.savedId}`}>{i.details.title}</a>
+            <a href={withBase(`/transcripts/${i.savedId}`)}>{i.details.title}</a>
           </li>
         ))}
         {skippedItems.map((i) => (

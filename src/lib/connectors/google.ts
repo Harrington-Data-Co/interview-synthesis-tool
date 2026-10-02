@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { ApiError } from "@/lib/api";
+import { withBase } from "@/lib/basePath";
 
 /** Google Drive, for Google Meet transcripts: Meet saves each one as a
  *  Google Doc in the organizer's Drive. Read-only: the app never changes
@@ -20,7 +21,7 @@ function config() {
 
 /** Where Google sends people back to. Must match the redirect URI registered
  *  on the OAuth client exactly. */
-export const redirectUri = (origin: string) => `${origin}/api/connectors/google/callback`;
+export const redirectUri = (origin: string) => `${origin}${withBase("/api/connectors/google/callback")}`;
 
 /** Google's consent screen. `offline` and `consent` so a refresh token comes
  *  back every time, including on a reconnect. */

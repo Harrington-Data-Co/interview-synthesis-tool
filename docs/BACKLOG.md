@@ -174,6 +174,86 @@ Clients get quotes through `client_evidence()`, titles through
 - A client's deliverables view could drop the editing chrome entirely
   (today it's the read-only version of each tab).
 
+### Settings, identity and access, toward deployment
+*Built 2026-10-01 (branch `settings-and-access`) — migration
+`20261001a_settings_and_access`, checked in PGlite.* Decided with Ryan
+2026-10-01: tools.harringtondata.com is the Harrington Tools hub and this
+tool lives at **/interview-synthesis**; one shared sign-in across tools,
+roles per tool; hosted on **Vercel**; two-factor sign-in later, with the
+rails built now.
+
+- **Base path**: `NEXT_PUBLIC_BASE_PATH` (empty locally) read by
+  `next.config.ts` and `src/lib/basePath.ts`; every plain `fetch`, `<a>`
+  and redirect goes through `withBase()`. The domain root redirects to the
+  tool until the hub exists. Security headers (no framing, nosniff,
+  referrer policy, HSTS) in `next.config.ts`.
+- **Your account** (`/account`): name, initials, title (name also on the
+  shared Supabase account), password, sign out of other devices, your
+  access.
+- **Settings** (`/settings`, owners, from the account menu — Ryan
+  2026-10-01: these belong under the account dropdown, not the header),
+  four tabs: **Members** (with last sign-in, how long invitations last,
+  and — Ryan 2026-10-01 — adding someone to a project with a role, or
+  taking them off one, from their row), **Usage** (below), **Access log** (written by triggers into
+  `access_event`; project owners see their project's on its Members tab),
+  **Setup** (what the server has been given and the addresses to
+  register; reports only). `/members` and `/workspace` redirect.
+- **Usage** (`/settings/usage`, Ryan 2026-10-01: "an activity list of all
+  of the runs and a dashboard around how the tool is being used"):
+  `usage_runs()` unions every pass's runs (owners only). Range (30 / 90
+  days, 12 months, all); spend as the headline with runs, failures, people
+  and tokens; spend per day or week; spend by project, person and pass
+  (top 7 + Other; each a link that narrows the page); the latest 100 runs
+  with model (and any fallback), tokens, cost and outcome. Then, from
+  Ryan's reaction: spend **by client**; **per interview** (coding + notes
+  over the interviews they ran on); and **what each project cost to
+  build**, a table of spend by pass with an all-in cost per interview.
+  Then, after Ryan's look: the figures as one even strip (spend set like
+  the rest); the four breakdowns two across; the cost table tighter, with
+  Interviews / Artifacts / Altogether column groups; and the runs moved to
+  their own **Runs** view beside the Dashboard, on the shared table engine
+  (sort, group, filter, search; each group's heading shows its total).
+  Everything clickable on the dashboard (a breakdown row, a day or week,
+  a project row in the cost table, one of its figures, a pass total) opens
+  the shared drawer on those runs: spend, runs and failures; splits by
+  pass, project and person (whichever it isn't already); and the runs by
+  pass, with links to narrow the page or the Runs view to the same.
+  `usage_runs()` is migration `20261001b` (Ryan had applied `20261001a`
+  before it was added). Owners only for now; project owners later. No
+  budget alerts for now.
+- **Two-factor rail**: `workspace_setting.mfa_required_for` (empty);
+  `current_seat_role`, `has_seat` and `my_memberships` hide everything from
+  a session below `aal2` when the caller's role needs it;
+  `mfa_required_now()` for the app, which shows a "required" screen. Not
+  switchable in the UI until enrollment exists.
+- Dates formatted on the server use `NEXT_PUBLIC_TIME_ZONE`
+  (default America/New_York): Vercel runs on UTC.
+
+**Next for deployment:** custom SMTP (Supabase + DNS); the Vercel project,
+domain and env vars (README → *Deploying*); one Supabase project or two.
+**Next for two-factor:** an enrollment screen on Your account (Supabase
+`mfa.enroll` / `challenge` / `verify`, TOTP), a verify step after sign-in
+when `mfa_required_now()`, then a switch in Settings.
+
+### Choose the model for the AI passes
+Raised by Ryan 2026-10-01, for a later release. Every Claude pass — coding,
+notes, themes, the memo, deck, process flows and architecture — uses one
+model and effort fixed in code (`MODEL = "claude-opus-5-5"`, effort `high`,
+`src/lib/claude/call.ts`), with the server-side fallback. Make it a choice
+instead.
+
+- Each run already records the model asked for and the one that answered
+  (`*_run.model`, `served_by`) and its cost, so switching keeps the record
+  straight; `PRICES` in `call.ts` needs an entry for each model offered.
+- To decide: who chooses (workspace owners in **Settings**,
+  per project, or per run); one model for everything or per pass (a
+  cheaper model for coding, the strongest for the memo); whether effort
+  is chosen too; which models are on the list (current Claude models, kept
+  up to date) and what the fallback does when a chosen model isn't
+  available.
+- Prompts are versioned (`coding-v2`, `memo-v1`…); a model change may want
+  a check that the quote and citation gates still pass at the same rate.
+
 ### Active and archived projects
 Raised by Ryan 2026-09-30, once the Clients menu existed: it lists every
 project, and will get long. Mark a project **archived** (finished work)

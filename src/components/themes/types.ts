@@ -1,4 +1,5 @@
 import type { EvidenceCode, EvidenceInterview } from "@/lib/themes/evidence";
+import { withBase } from "@/lib/basePath";
 
 export type { EvidenceCode, EvidenceInterview };
 
@@ -34,7 +35,7 @@ export async function themeAction(
   projectId: string,
   body: Record<string, unknown>,
 ): Promise<{ error: string | null; result?: unknown }> {
-  const res = await fetch(`/api/projects/${projectId}/themes`, {
+  const res = await fetch(withBase(`/api/projects/${projectId}/themes`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

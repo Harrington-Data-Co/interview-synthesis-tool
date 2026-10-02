@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Notice } from "@/components/ui";
+import { withBase } from "@/lib/basePath";
 
 export type BatchTarget = { id: string; title: string };
 type Result = { title: string; ok: boolean; text: string };
@@ -47,7 +48,7 @@ export function BatchButton({
     for (const [i, t] of list.entries()) {
       setCurrent(i);
       const { url, body } = request(t);
-      const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch(withBase(url), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const b = await res.json().catch(() => ({}));
       done.push(res.ok ? { title: t.title, ok: true, text: summarize(b) } : { title: t.title, ok: false, text: b.error ?? `failed (${res.status})` });
       setResults([...done]);

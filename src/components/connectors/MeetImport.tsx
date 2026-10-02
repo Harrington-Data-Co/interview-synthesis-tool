@@ -6,6 +6,7 @@ import { UploadDialog, type Incoming } from "@/components/sources/UploadDialog";
 import { docxName } from "@/lib/connectors/names";
 import { Dialog, Notice } from "@/components/ui";
 import type { Directory } from "@/lib/directory";
+import { withBase } from "@/lib/basePath";
 
 export type Row = {
   id: string;
@@ -28,7 +29,7 @@ export type Row = {
 export async function fetchIncoming(rows: Row[], onProgress: (done: number) => void): Promise<{ files: Incoming[] } | { error: string }> {
   const files: Incoming[] = [];
   for (const r of rows) {
-    const res = await fetch(`/api/connectors/google/meet/file?id=${encodeURIComponent(r.id)}`);
+    const res = await fetch(withBase(`/api/connectors/google/meet/file?id=${encodeURIComponent(r.id)}`));
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
       return { error: `${r.title}: ${b.error ?? `download failed (${res.status})`}` };
@@ -45,7 +46,7 @@ export async function fetchIncoming(rows: Row[], onProgress: (done: number) => v
 
 /** Set a Drive file aside as not an interview, or bring it back. */
 export async function setAside(fileId: string, dismissed: boolean): Promise<string | null> {
-  const res = await fetch("/api/connectors/google/meet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileId, dismissed }) });
+  const res = await fetch(withBase("/api/connectors/google/meet"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileId, dismissed }) });
   if (res.ok) return null;
   const b = await res.json().catch(() => ({}));
   return b.error ?? `Couldn't update it (${res.status}).`;
@@ -58,7 +59,7 @@ async function list(search: string, page?: string): Promise<Listed> {
   const params = new URLSearchParams();
   if (search.trim()) params.set("q", search.trim());
   if (page) params.set("page", page);
-  const res = await fetch(`/api/connectors/google/meet?${params}`);
+  const res = await fetch(withBase(`/api/connectors/google/meet?${params}`));
   const b = await res.json().catch(() => ({}));
   return res.ok ? { files: b.files, next: b.next } : { error: b.error ?? `Couldn't list Meet transcripts (${res.status}).` };
 }
@@ -168,7 +169,7 @@ export function MeetImport({ directory, onClose }: { directory: Directory; onClo
             </span>
             <span style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 12 }}>
               {r.transcriptId ? (
-                <Link href={`/transcripts/${r.transcriptId}`} onClick={onClose}>
+                <Link href={withBase(`/transcripts/${r.transcriptId}`)} onClick={onClose}>
                   Imported · open
                 </Link>
               ) : r.dismissed ? (
@@ -187,7 +188,7 @@ export function MeetImport({ directory, onClose }: { directory: Directory; onClo
                   Set aside · bring back
                 </button>
               ) : r.uploadedId ? (
-                <Link href={`/transcripts/${r.uploadedId}`} onClick={onClose} title="A transcript uploaded earlier has this Doc's file name">
+                <Link href={withBase(`/transcripts/${r.uploadedId}`)} onClick={onClose} title="A transcript uploaded earlier has this Doc's file name">
                   Uploaded before · open
                 </Link>
               ) : null}

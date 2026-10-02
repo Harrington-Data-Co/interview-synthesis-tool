@@ -1,8 +1,9 @@
+import { withBase } from "@/lib/basePath";
 export async function memoAction(
   productId: string,
   body: Record<string, unknown>,
 ): Promise<{ error: string | null; result?: unknown }> {
-  const res = await fetch(`/api/memos/${productId}/items`, {
+  const res = await fetch(withBase(`/api/memos/${productId}/items`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

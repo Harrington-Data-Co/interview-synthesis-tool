@@ -12,6 +12,7 @@ import type { LabelAxis, LabelMap } from "./labels";
 import { LabelMenu } from "./LabelMenu";
 import { ManageLabels } from "./ManageLabels";
 import { applyView, columnsFor, countsFor, EMPTY_VIEW, sanitize, type Column, type InterviewRow } from "./view";
+import { withBase } from "@/lib/basePath";
 
 export type { InterviewRow } from "./view";
 
@@ -95,7 +96,7 @@ export function ProjectInterviews({
           </td>
         )}
         <td>
-          <Link href={`/transcripts/${t.id}`}>{t.title}</Link>
+          <Link href={withBase(`/transcripts/${t.id}`)}>{t.title}</Link>
           <span className="meta" style={{ display: "block", fontSize: 11 }}>
             {t.source}
           </span>

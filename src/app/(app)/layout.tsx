@@ -1,8 +1,10 @@
+import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { currentSeat } from "@/lib/seat";
 import { supabaseConfigured } from "@/lib/config";
 import { loadClients } from "@/lib/directory";
 import { createClient } from "@/lib/supabase/server";
+import { withBase } from "@/lib/basePath";
 
 export default async function AppLayout({
   children,
@@ -12,7 +14,13 @@ export default async function AppLayout({
   if (!supabaseConfigured) return <SetupNeeded />;
 
   const seat = await currentSeat();
-  if (!seat) return <NoSeat />;
+  if (!seat) {
+    // Not signed in at all: the proxy normally catches this first.
+    const { data: { user } } = await (await createClient()).auth.getUser();
+    if (!user) redirect("/sign-in");
+    return <NoSeat />;
+  }
+  if (seat.mfaRequired) return <MfaRequired />;
   const { clients, projects } = await loadClients(await createClient());
 
   return (
@@ -55,8 +63,25 @@ function NoSeat() {
         expired or been withdrawn. Ask whoever invited you to send it again, to the
         address you signed in with.
       </p>
-      <form action="/auth/signout" method="post">
+      <form action={withBase("/auth/signout")} method="post">
         <button className="btn btn-secondary">Sign in with another address</button>
+      </form>
+    </Centered>
+  );
+}
+
+/** The workspace requires two-factor sign-in for this person's role and the
+ *  session hasn't done it. The rail is in place (migration 20261001a); the
+ *  enrollment and verification screens are the part still to build. */
+function MfaRequired() {
+  return (
+    <Centered title="Two-factor sign-in required">
+      <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--color-muted)" }}>
+        This workspace asks people in your role to sign in with a second factor, and this version of
+        the tool can&apos;t set one up yet. Ask a workspace owner to change the requirement in Settings.
+      </p>
+      <form action={withBase("/auth/signout")} method="post">
+        <button className="btn btn-secondary">Sign out</button>
       </form>
     </Centered>
   );

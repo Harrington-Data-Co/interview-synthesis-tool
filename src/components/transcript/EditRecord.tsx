@@ -6,6 +6,7 @@ import { ClientProjectPicker, SpeakersEditor, speakerValue, type SpeakerValue } 
 import { Dialog, Field, Notice } from "@/components/ui";
 import { addOrg, toOrgRow, type Directory } from "@/lib/directory";
 import type { SpeakerRole } from "@/lib/ingest/preview";
+import { withBase } from "@/lib/basePath";
 
 export type RecordValues = {
   id: string;
@@ -66,7 +67,7 @@ function EditRecordDialog({
   async function save() {
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/transcripts/${record.id}`, {
+    const res = await fetch(withBase(`/api/transcripts/${record.id}`), {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

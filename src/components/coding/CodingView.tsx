@@ -14,6 +14,7 @@ import {
   type RejectionRow,
   type RunRow,
 } from "./types";
+import { withBase } from "@/lib/basePath";
 
 const PANEL_HEIGHT = "74vh";
 
@@ -92,7 +93,7 @@ export function CodingView({
     setRunning(true);
     setNotice(null);
     setConfirming(null);
-    const res = await fetch(`/api/transcripts/${transcriptId}/code`, {
+    const res = await fetch(withBase(`/api/transcripts/${transcriptId}/code`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ replace }),

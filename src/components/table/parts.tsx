@@ -105,10 +105,13 @@ export function GroupRows({
   selectable,
   allOn,
   onSelect,
+  extra,
   children,
 }: {
   label: string;
   count: number;
+  /** Anything else the heading should say (a group's total, say). */
+  extra?: React.ReactNode;
   width: number;
   selectable: boolean;
   allOn: boolean;
@@ -128,6 +131,7 @@ export function GroupRows({
           <span className="mono meta" style={{ fontSize: 11.5 }}>
             {count}
           </span>
+          {extra}
         </td>
       </tr>
       {children}

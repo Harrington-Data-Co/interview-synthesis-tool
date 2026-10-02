@@ -13,6 +13,8 @@ import { VerifyButton } from "@/components/transcript/VerifyButton";
 import { loadDirectory } from "@/lib/directory";
 import { canEditWorkspace, currentSeat, projectAccess } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateTime } from "@/lib/when";
+import { withBase } from "@/lib/basePath";
 
 const SOURCE_LABEL: Record<string, string> = {
   meet: "Google Meet",
@@ -107,7 +109,7 @@ export default async function TranscriptPage({
         .filter(Boolean),
     ),
   ].join(", ");
-  const ingested = new Date(t.ingested_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  const ingested = formatDateTime(t.ingested_at);
   const [{ count: codeCount }, { count: noteCount }] = await Promise.all([
     supabase.from("code").select("id", { count: "exact", head: true }).eq("transcript_id", id).is("merged_into_id", null),
     supabase.from("note").select("id", { count: "exact", head: true }).eq("transcript_id", id),
@@ -306,7 +308,7 @@ export default async function TranscriptPage({
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             <TryEditButton />
             <VerifyButton transcriptId={t.id} />
-            <a className="btn btn-ghost" style={{ fontSize: 11.5 }} href={`/api/transcripts/${t.id}/original`}>
+            <a className="btn btn-ghost" style={{ fontSize: 11.5 }} href={withBase(`/api/transcripts/${t.id}/original`)}>
               Download original
             </a>
           </div>
