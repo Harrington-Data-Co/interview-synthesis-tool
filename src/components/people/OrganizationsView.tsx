@@ -9,6 +9,7 @@ import { KEEP, pillButton, SelectionBar, useClickOff } from "@/components/Select
 import { NewOrgDialog, OutlineDialog } from "./OrgCreate";
 import { Notice } from "@/components/ui";
 import { orgChain, orgLabel, withinOrg, type OrgOption } from "@/lib/directory";
+import { withBase } from "@/lib/basePath";
 
 /** Who's at an organization (its own, not its sub-organizations'): people
  *  whose current organization it is, and interviews with a speaker from it. */
@@ -21,7 +22,7 @@ const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, tr
 const EMPTY: OrgUsage = { people: [], interviews: [] };
 
 async function orgAction(body: Record<string, unknown>): Promise<string | null> {
-  const res = await fetch("/api/organizations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetch(withBase("/api/organizations"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (res.ok) return null;
   const b = await res.json().catch(() => ({}));
   return b.error ?? `Request failed (${res.status}).`;
@@ -612,7 +613,7 @@ function OrgDrawer({
               <span className="mono" style={{ fontSize: 11, color: muted(55), flex: "none" }}>
                 {i.date}
               </span>
-              <Link href={`/transcripts/${i.id}`} style={{ fontWeight: 600 }}>
+              <Link href={withBase(`/transcripts/${i.id}`)} style={{ fontWeight: 600 }}>
                 {i.title}
               </Link>
               {!ownInterviews.has(i.id) && (

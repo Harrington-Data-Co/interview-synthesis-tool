@@ -5,6 +5,7 @@ import { KIND_SUGGESTIONS, NewOrgForm, OrgCombobox } from "@/components/pickers"
 import { Dialog, Field, Notice } from "@/components/ui";
 import type { OrgOption } from "@/lib/directory";
 import { outlineSize, parseOutline, type OutlineNode } from "@/lib/people/outline";
+import { withBase } from "@/lib/basePath";
 
 /** A single new organization, anywhere in the tree. */
 export function NewOrgDialog({ organizations, onClose, onCreated }: { organizations: OrgOption[]; onClose: () => void; onCreated: (org: OrgOption) => void }) {
@@ -82,7 +83,7 @@ export function OutlineDialog({
   async function create() {
     setBusy(true);
     setError("");
-    const res = await fetch("/api/organizations", {
+    const res = await fetch(withBase("/api/organizations"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "tree", parentId: parentId || null, nodes }),

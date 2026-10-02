@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LINE, ThemeName, ThemeRef, TipBody, expandTheme, muted, selectedRow, useExpanded, useTip } from "./bits";
 import { KEEP, useCorpus } from "./CorpusContext";
 import { projectHref } from "@/lib/urls";
+import { withBase } from "@/lib/basePath";
 
 export type MatrixBand = { name: string; span: number; labelled: boolean };
 export type MatrixColumn = { id: string; key: string; title: string; participant: string | null; organization: string | null; codes: number };
@@ -233,7 +234,7 @@ export function ThemeMatrix({
                 </span>
               ) : (
                 <Link
-                  href={`/transcripts/${columns[i].id}`}
+                  href={withBase(`/transcripts/${columns[i].id}`)}
                   {...hint(`${columns[i].key} · ${columns[i].participant ?? columns[i].title}`, [
                     columns[i].participant ? columns[i].title : null,
                     columns[i].organization,

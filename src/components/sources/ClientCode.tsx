@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "@/lib/basePath";
 
 /** A client's short code beside its name in the library: shown as a tag,
  *  and for editors, set or changed in place (Enter saves, Escape cancels). */
@@ -16,7 +17,7 @@ export function ClientCode({ clientId, code, editor }: { clientId: string; code:
     if (draft.trim() === (code ?? "")) return setEditing(false);
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/clients/${clientId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: draft }) });
+    const res = await fetch(withBase(`/api/clients/${clientId}`), { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: draft }) });
     const b = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(b.error ?? "Couldn't save the code.");

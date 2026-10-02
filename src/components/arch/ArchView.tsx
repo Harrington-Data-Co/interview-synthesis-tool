@@ -10,6 +10,7 @@ import { archAction, projectArch } from "./actions";
 import { ArchDiagram, PAIN, type Selection } from "./ArchDiagram";
 import { ArchItemEditor, type ItemSeed } from "./ArchItemEditor";
 import { projectHref } from "@/lib/urls";
+import { withBase } from "@/lib/basePath";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 const money = (n: number | null) => (n === null ? "cost unknown" : `$${Number(n).toFixed(2)}`);
@@ -376,7 +377,7 @@ export function ArchView({ projectId, projectPath, editor, data, mapId }: { proj
                       {c.key}
                     </span>
                     <span style={{ fontSize: 12.5, fontWeight: 600 }}>{c.label}</span>
-                    <Link href={`/transcripts/${c.transcriptId}#L${c.line_start}`} className="mono" style={{ fontSize: 10, marginLeft: "auto", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
+                    <Link href={withBase(`/transcripts/${c.transcriptId}#L${c.line_start}`)} className="mono" style={{ fontSize: 10, marginLeft: "auto", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
                       L{c.line_start} →
                     </Link>
                   </div>

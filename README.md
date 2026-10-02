@@ -136,6 +136,24 @@ To get the click-first protection for emailed links too, in Authentication
 - *Invite user*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/account/password`
 - *Reset password*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/account/password`
 
+### Your account, settings and the access log
+
+- **Your account** (account menu): name, initials and title — the name
+  also goes on the shared Harrington Tools account — your password,
+  *Sign out of other devices*, and what you can get at.
+- **Workspace settings** (owners, account menu): how long invitations last;
+  two-factor sign-in; and *This server*, a check of how this deployment is
+  set up.
+- **Members** shows when each person last signed in and an **Activity**
+  log: every invitation, acceptance, role change and removal, written by
+  the database itself (migration `20261001a`). A project's owners see their
+  project's on its Members tab.
+- **Two-factor sign-in** has its rail in place but is off: the database can
+  require it per role (`workspace_setting.mfa_required_for`) and then shows
+  nothing to a session without it. What's left is the screen to set up an
+  authenticator app (Supabase MFA, TOTP); until then it isn't switchable,
+  since it would lock those people out.
+
 ## Before adding teammates: your own email sender
 
 Sign-in is by emailed link, and Supabase's built-in sender is only meant for
@@ -181,6 +199,73 @@ Google with your Workspace (harringtondata.com) account:
 7. Apply migration `20260929e_google_connector.sql`, restart the dev
    server, and use **Connect Google Drive** on the Sources page.
 
+## Deploying to tools.harringtondata.com
+
+Decided 2026-10-01: **tools.harringtondata.com** is the Harrington Tools
+hub, and each tool lives at a path under it — this one at
+**/interview-synthesis**. Every tool shares one sign-in (one Supabase Auth
+project, one cookie for the domain); each keeps its own members and roles.
+Hosted on **Vercel**. Until the hub exists, the domain's root redirects
+here (`next.config.ts`).
+
+1. **Apply the migrations** the database doesn't have yet (see *Updating an
+   existing database*), and check the sign-up hook is on.
+2. **Create the Vercel project.** vercel.com → Add New → Project → import
+   `Harrington-Data-Co/interview-synthesis-tool`. Framework: Next.js;
+   everything else as it comes. Every push to `main` then deploys, and
+   every branch gets a preview address.
+3. **Environment variables** (Project → Settings → Environment Variables,
+   for Production), the same names as `.env.local.example`:
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+     `SUPABASE_SERVICE_ROLE_KEY` — from Supabase.
+   - `ANTHROPIC_API_KEY`.
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `CONNECTOR_TOKEN_KEY`
+     — **the same value as your `.env.local`** while both use one
+     database, or Drive connections made locally stop working.
+   - `SITE_URL` = `https://tools.harringtondata.com`
+   - `NEXT_PUBLIC_BASE_PATH` = `/interview-synthesis`
+   - `NEXT_PUBLIC_TIME_ZONE` only if not `America/New_York`.
+
+   `NEXT_PUBLIC_*` values are built into the app, so redeploy after
+   changing one.
+4. **Long requests.** The Claude passes declare up to 300 seconds
+   (`maxDuration` on their routes). Check the Vercel plan allows functions
+   that long (Settings → Functions); a pass cut off at a lower limit fails
+   with a timeout, and its run shows as failed.
+5. **The domain.** Project → Settings → Domains → add
+   `tools.harringtondata.com`. Vercel shows a CNAME record (usually
+   `cname.vercel-dns.com`); add it wherever harringtondata.com's DNS is
+   hosted, and wait for Vercel to show it as valid. HTTPS is automatic.
+6. **Supabase → Authentication → URL Configuration.**
+   - Site URL: `https://tools.harringtondata.com/interview-synthesis`
+   - Redirect URLs: add `https://tools.harringtondata.com/interview-synthesis/auth/confirm`
+     and `…/auth/callback`; keep the localhost ones for local work.
+
+   The email templates (*Signing in*, above) use `{{ .SiteURL }}`, so they
+   follow.
+7. **Google Cloud → the OAuth client → Authorized redirect URIs**: add
+   `https://tools.harringtondata.com/interview-synthesis/api/connectors/google/callback`.
+8. **Email from Harrington's domain** — the next section. Before inviting
+   anyone outside.
+9. **Check it.** Sign in at `https://tools.harringtondata.com`, open
+   **Workspace settings** from the account menu: *This server* lists
+   what's set and what isn't, and the addresses to register.
+
+**One database or two?** Local work and production can share one Supabase
+project (simplest while you're the only one using it: everything you do
+locally is real), or production can have its own (run `schema.sql` on a
+new project, set it up as in *First-time setup*, and give Vercel its keys).
+Moving to two later is a fresh project plus copying the data across.
+
+**When the hub exists**, it takes over the domain in its own Vercel
+project and forwards `/interview-synthesis/*` to this one with a rewrite;
+this app doesn't change, since it already lives under its path. Its
+redirect from the root (`next.config.ts`) then goes.
+
+To try the path locally, set `NEXT_PUBLIC_BASE_PATH=/interview-synthesis`
+in `.env.local`, restart, and use http://localhost:3000/interview-synthesis
+(registering the localhost addresses with that path too).
+
 ## Updating an existing database
 
 `supabase/schema.sql` always describes the whole current database, so a new
@@ -214,7 +299,9 @@ src/lib/memo/           the findings memo: prompt, citation gate, loader, Markdo
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may see and change
 src/lib/invite.ts       invitation emails and copyable links
-src/app/(app)/members/  the workspace's people and invitations (owners)
+src/app/(app)/members/  the workspace's people, invitations and activity (owners)
+src/app/(app)/account/  your account; settings/ the workspace's (owners)
+src/lib/basePath.ts     the path the app sits under (/interview-synthesis)
 supabase/schema.sql     the data model; migrations/ updates an existing one
 docs/                   the build plan, backlog, and session handoff
 fixtures/private/       real transcripts for local checks — never committed

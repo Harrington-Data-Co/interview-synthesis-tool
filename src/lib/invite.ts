@@ -1,4 +1,5 @@
 import { createAdminClient, createLinkSender } from "@/lib/supabase/admin";
+import { withBase } from "@/lib/basePath";
 
 /** Where links in invitation emails land. The deployed site's address when
  *  set (SITE_URL), else wherever this request came in. */
@@ -10,7 +11,7 @@ export type Delivery = { emailed: boolean; note?: string };
 
 /** Where every emailed link lands: /auth/confirm, then the page that sets a
  *  password. */
-const landing = (origin: string) => `${origin}/auth/confirm?next=${encodeURIComponent("/account/password")}`;
+const landing = (origin: string) => `${origin}${withBase("/auth/confirm")}?next=${encodeURIComponent("/account/password")}`;
 
 /** Email an invitation. A new address gets Supabase's invite email (which
  *  creates the account; the sign-up hook lets it through because the
@@ -44,7 +45,7 @@ export async function invitationLink(email: string, origin: string): Promise<str
   if (error && alreadyRegistered(error)) ({ data, error } = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo } }));
   if (error || !data?.properties) throw new Error(error?.message ?? "Couldn't make a link.");
   const q = new URLSearchParams({ token_hash: data.properties.hashed_token, type: data.properties.verification_type, next: "/account/password" });
-  return `${origin}/auth/confirm?${q}`;
+  return `${origin}${withBase("/auth/confirm")}?${q}`;
 }
 
 function alreadyRegistered(error: { message: string; status?: number; code?: string }): boolean {

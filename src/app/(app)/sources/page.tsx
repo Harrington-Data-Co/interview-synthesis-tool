@@ -8,6 +8,7 @@ import { googleConfigured } from "@/lib/connectors/google";
 import { redirect } from "next/navigation";
 import { canEditWorkspace, currentSeat, isStaff } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
+import { withBase } from "@/lib/basePath";
 
 /** Intake: new Meet transcripts waiting in Drive, and the Unassigned queue
  *  of transcripts not yet in a project. Once assigned, a transcript lives
@@ -96,7 +97,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
                 {unassigned.map((t) => (
                   <tr key={t.id}>
                     <td>
-                      <Link href={`/transcripts/${t.id}`}>{t.title}</Link>
+                      <Link href={withBase(`/transcripts/${t.id}`)}>{t.title}</Link>
                     </td>
                     <td>{participantsOf(t)}</td>
                     <td>{SOURCE_LABEL[t.source] ?? t.source}</td>

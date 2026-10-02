@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { withBase } from "@/lib/basePath";
 
 /** Magic-link landing. Exchanges the code for a session, then sends the person
  *  on. Whether they actually have a seat is decided by the app layout — a valid
@@ -12,8 +13,8 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error) return NextResponse.redirect(`${origin}${withBase(next.startsWith("/") && !next.startsWith("//") ? next : "/")}`);
   }
 
-  return NextResponse.redirect(`${origin}/sign-in?error=link`);
+  return NextResponse.redirect(`${origin}${withBase("/sign-in")}?error=link`);
 }

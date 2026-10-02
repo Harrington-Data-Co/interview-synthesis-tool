@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { UploadDialog, type Incoming } from "@/components/sources/UploadDialog";
 import type { Directory } from "@/lib/directory";
 import { fetchIncoming, setAside, type Row } from "./MeetImport";
+import { withBase } from "@/lib/basePath";
 
 type Waiting = { state: "loading" } | { state: "error"; text: string } | { state: "ready"; rows: Row[] };
 
 async function loadWaiting(): Promise<Waiting> {
-  const res = await fetch("/api/connectors/google/meet?waiting=1");
+  const res = await fetch(withBase("/api/connectors/google/meet?waiting=1"));
   const b = await res.json().catch(() => ({}));
   return res.ok ? { state: "ready", rows: b.files as Row[] } : { state: "error", text: b.error ?? `Couldn't check Google Drive (${res.status}).` };
 }

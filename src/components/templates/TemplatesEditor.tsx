@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Notice } from "@/components/ui";
 import type { Directory } from "@/lib/directory";
+import { withBase } from "@/lib/basePath";
 
 const CODE_TYPES = ["Pain", "Step", "Tool", "Goal", "Constraint", "Question", "Quote", "Stakeholder"];
 const SOURCE_LABEL: Record<string, string> = { themes: "Themes" };
@@ -20,7 +21,7 @@ export type TemplateRow = {
 };
 
 export async function templateAction(body: Record<string, unknown>): Promise<{ error: string | null; id?: string }> {
-  const res = await fetch("/api/templates", {
+  const res = await fetch(withBase("/api/templates"), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

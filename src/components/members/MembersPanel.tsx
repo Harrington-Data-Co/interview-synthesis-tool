@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field, Notice } from "@/components/ui";
+import { withBase } from "@/lib/basePath";
 
 export type MemberRow = {
   userId: string;
@@ -15,6 +16,8 @@ export type MemberRow = {
   clientAccess?: "deliverables" | "full";
   /** Workspace page: the projects they're on. */
   projects?: string[];
+  /** "signed in 3 days ago", when the viewer may see it. */
+  lastSignIn?: string;
   you: boolean;
 };
 
@@ -80,7 +83,7 @@ export function MembersPanel({
     setBusy(key);
     setError("");
     setNote("");
-    const res = await fetch(url, { ...init, headers: { "content-type": "application/json" } });
+    const res = await fetch(withBase(url), { ...init, headers: { "content-type": "application/json" } });
     const body = await res.json().catch(() => ({}));
     setBusy(null);
     if (!res.ok) return setError(body.error ?? `That didn't work (${res.status}).`);
@@ -135,6 +138,7 @@ export function MembersPanel({
               </span>
               <span className="meta" style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {m.email}
+                {m.lastSignIn ? ` · ${m.lastSignIn}` : ""}
                 {m.projects && (m.projects.length ? ` · ${m.projects.join(", ")}` : " · no projects")}
               </span>
             </div>
@@ -280,7 +284,7 @@ function InviteForm({ scope, onDone }: { scope: Scope; onDone: (message: string)
     e.preventDefault();
     setBusy(true);
     setError("");
-    const res = await fetch("/api/invitations", {
+    const res = await fetch(withBase("/api/invitations"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(

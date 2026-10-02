@@ -17,6 +17,9 @@ export type Seat = {
   title: string | null;
   /** An editor somewhere: of the workspace or of any project. */
   canEditAny: boolean;
+  /** Their role needs two-factor sign-in and this session hasn't done it:
+   *  the database shows them nothing until it has (migration 20261001a). */
+  mfaRequired: boolean;
 };
 
 /** The signed-in person's seat, or null if they have a Supabase account but no
@@ -44,7 +47,11 @@ export const currentSeat = cache(async (): Promise<Seat | null> => {
   }
   if (!data || data.deactivated_at) return null;
 
-  const { data: canEditAny } = await supabase.rpc("can_edit");
+  const [{ data: canEditAny }, { data: mfaRequired }] = await Promise.all([
+    supabase.rpc("can_edit"),
+    // Absent before migration 20261001a; then nothing is required.
+    supabase.rpc("mfa_required_now"),
+  ]);
   return {
     user_id: data.user_id,
     name: data.name,
@@ -53,6 +60,7 @@ export const currentSeat = cache(async (): Promise<Seat | null> => {
     role: data.role as SeatRole | null,
     title: data.title,
     canEditAny: !!canEditAny,
+    mfaRequired: mfaRequired === true,
   };
 });
 

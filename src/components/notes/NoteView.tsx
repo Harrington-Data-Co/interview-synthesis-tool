@@ -16,6 +16,7 @@ import {
   type NoteRunView,
   type NoteTemplateView,
 } from "./types";
+import { withBase } from "@/lib/basePath";
 
 /** Stage 03: the interview note. A rearrangement of the interview's codes
  *  into a template's sections — every item cites the codes it rests on, the
@@ -92,7 +93,7 @@ export function NoteView({
     setRunning(true);
     setNotice(null);
     setConfirming(null);
-    const res = await fetch(`/api/transcripts/${transcriptId}/note`, {
+    const res = await fetch(withBase(`/api/transcripts/${transcriptId}/note`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ templateId: template.id, replace }),

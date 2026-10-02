@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { MembersPanel, type InviteRow, type MemberRow } from "@/components/members/MembersPanel";
+import { AccessLog } from "@/components/members/AccessLog";
 import { currentSeat } from "@/lib/seat";
+import { sinceText } from "@/lib/when";
 import { createClient } from "@/lib/supabase/server";
 
 const ORDER = ["owner", "editor", "viewer", ""];
@@ -13,7 +15,7 @@ export default async function MembersPage() {
   const seat = await currentSeat();
   if (seat?.role !== "owner") redirect("/");
   const supabase = await createClient();
-  const [{ data: seats, error }, { data: memberships }, { data: projects }, { data: invites }] = await Promise.all([
+  const [{ data: seats, error }, { data: memberships }, { data: projects }, { data: invites }, { data: signIns }] = await Promise.all([
     supabase.from("seat").select("user_id,name,email,initials,role").is("deactivated_at", null).order("name"),
     supabase.from("project_member").select("user_id,project_id,role"),
     supabase.from("project").select("id,name"),
@@ -23,7 +25,9 @@ export default async function MembersPage() {
       .is("accepted_at", null)
       .is("revoked_at", null)
       .order("invited_at", { ascending: false }),
+    supabase.rpc("member_sign_ins"),
   ]);
+  const lastSignIn = new Map(((signIns ?? []) as { user_id: string; last_sign_in_at: string | null }[]).map((r) => [r.user_id, r.last_sign_in_at]));
 
   const projectName = new Map((projects ?? []).map((p) => [p.id, p.name]));
   const onProjects = new Map<string, string[]>();
@@ -42,6 +46,7 @@ export default async function MembersPage() {
       role: s.role,
       projects: (onProjects.get(s.user_id) ?? []).sort(),
       you: s.user_id === seat.user_id,
+      lastSignIn: signIns ? sinceText(lastSignIn.get(s.user_id) ?? null) : undefined,
     }))
     .sort((a, b) => ORDER.indexOf(a.role ?? "") - ORDER.indexOf(b.role ?? "") || a.name.localeCompare(b.name));
 
@@ -77,7 +82,10 @@ export default async function MembersPage() {
           <p className="meta">Could not read the members: {error.message}. Has migration 20260930g been applied?</p>
         </div>
       ) : (
-        <MembersPanel scope={{ kind: "workspace" }} members={members} invites={inviteRows} manage />
+        <>
+          <MembersPanel scope={{ kind: "workspace" }} members={members} invites={inviteRows} manage />
+          <AccessLog />
+        </>
       )}
     </div>
   );

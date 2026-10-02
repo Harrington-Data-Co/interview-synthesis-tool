@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Drawer } from "@/components/Drawer";
+import { withBase } from "@/lib/basePath";
 
 export type DrawerQuote = {
   id: string;
@@ -86,7 +87,7 @@ export function EvidenceDrawer({
               <div key={id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 {grouping && (
                   <Link
-                    href={`/transcripts/${id}`}
+                    href={withBase(`/transcripts/${id}`)}
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
@@ -110,7 +111,7 @@ export function EvidenceDrawer({
                       </span>
                       <span style={{ fontSize: 12.5, fontWeight: 600 }}>{q.label}</span>
                       <Link
-                        href={`/transcripts/${id}#L${q.start}`}
+                        href={withBase(`/transcripts/${id}#L${q.start}`)}
                         className="mono"
                         style={{ fontSize: 10, marginLeft: "auto", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}
                       >

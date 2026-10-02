@@ -174,6 +174,41 @@ Clients get quotes through `client_evidence()`, titles through
 - A client's deliverables view could drop the editing chrome entirely
   (today it's the read-only version of each tab).
 
+### Settings, identity and access, toward deployment
+*Built 2026-10-01 (branch `settings-and-access`) — migration
+`20261001a_settings_and_access`, checked in PGlite.* Decided with Ryan
+2026-10-01: tools.harringtondata.com is the Harrington Tools hub and this
+tool lives at **/interview-synthesis**; one shared sign-in across tools,
+roles per tool; hosted on **Vercel**; two-factor sign-in later, with the
+rails built now.
+
+- **Base path**: `NEXT_PUBLIC_BASE_PATH` (empty locally) read by
+  `next.config.ts` and `src/lib/basePath.ts`; every plain `fetch`, `<a>`
+  and redirect goes through `withBase()`. The domain root redirects to the
+  tool until the hub exists. Security headers (no framing, nosniff,
+  referrer policy, HSTS) in `next.config.ts`.
+- **Your account** (`/account`): name, initials, title (name also on the
+  shared Supabase account), password, sign out of other devices, your
+  access.
+- **Workspace settings** (`/settings`, owners): invitation lifetime;
+  two-factor status; *This server*, a deployment check with the addresses
+  to register.
+- **Members**: last sign-in, and an **Activity** log written by triggers
+  (`access_event`). Project owners see their project's.
+- **Two-factor rail**: `workspace_setting.mfa_required_for` (empty);
+  `current_seat_role`, `has_seat` and `my_memberships` hide everything from
+  a session below `aal2` when the caller's role needs it;
+  `mfa_required_now()` for the app, which shows a "required" screen. Not
+  switchable in the UI until enrollment exists.
+- Dates formatted on the server use `NEXT_PUBLIC_TIME_ZONE`
+  (default America/New_York): Vercel runs on UTC.
+
+**Next for deployment:** custom SMTP (Supabase + DNS); the Vercel project,
+domain and env vars (README → *Deploying*); one Supabase project or two.
+**Next for two-factor:** an enrollment screen on Your account (Supabase
+`mfa.enroll` / `challenge` / `verify`, TOTP), a verify step after sign-in
+when `mfa_required_now()`, then a switch in Settings.
+
 ### Active and archived projects
 Raised by Ryan 2026-09-30, once the Clients menu existed: it lists every
 project, and will get long. Mark a project **archived** (finished work)

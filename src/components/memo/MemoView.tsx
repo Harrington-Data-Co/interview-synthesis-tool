@@ -10,6 +10,7 @@ import type { LoadedMemo } from "@/lib/memo/load";
 import { ParagraphEditor, type ParagraphSeed } from "./ParagraphEditor";
 import { memoAction } from "./types";
 import { projectHref } from "@/lib/urls";
+import { withBase } from "@/lib/basePath";
 
 /** Stage 05: the findings memo. Written from a memo template and the
  *  project's confirmed themes — every paragraph cites the themes and codes it
@@ -102,7 +103,7 @@ export function MemoView({ projectId, projectPath, editor, memo }: { projectId: 
     setRunning(true);
     setNotice(null);
     setConfirming(null);
-    const res = await fetch(`/api/projects/${projectId}/memo`, {
+    const res = await fetch(withBase(`/api/projects/${projectId}/memo`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ templateId: template.id, replace }),
@@ -187,7 +188,7 @@ export function MemoView({ projectId, projectPath, editor, memo }: { projectId: 
         </Link>
         {product && paragraphs.length > 0 && (
           <>
-            <a href={`/api/memos/${product.id}/markdown`} className="meta" style={{ fontSize: 12 }} download>
+            <a href={withBase(`/api/memos/${product.id}/markdown`)} className="meta" style={{ fontSize: 12 }} download>
               Markdown
             </a>
             <Link href={`${projectHref(projectPath, "memo")}/print?template=${template.id}`} className="meta" style={{ fontSize: 12 }} target="_blank">

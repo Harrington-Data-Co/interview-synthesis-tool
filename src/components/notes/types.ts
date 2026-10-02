@@ -1,3 +1,4 @@
+import { withBase } from "@/lib/basePath";
 export type NoteSectionView = { id: string; name: string; requires: string[]; note: string | null };
 
 export type NoteTemplateView = { id: string; name: string; scope: string | null; sections: NoteSectionView[] };
@@ -45,7 +46,7 @@ export async function itemAction(
   noteId: string,
   body: Record<string, unknown>,
 ): Promise<{ error: string | null; result?: unknown }> {
-  const res = await fetch(`/api/notes/${noteId}/items`, {
+  const res = await fetch(withBase(`/api/notes/${noteId}/items`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

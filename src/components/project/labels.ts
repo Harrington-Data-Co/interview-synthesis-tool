@@ -1,3 +1,4 @@
+import { withBase } from "@/lib/basePath";
 export type LabelAxis = { id: string; name: string; options: { id: string; value: string }[] };
 
 /** transcriptId → axisId → optionId */
@@ -9,7 +10,7 @@ export async function labelAction(
   projectId: string,
   body: Record<string, unknown>,
 ): Promise<{ error: string | null; id?: string }> {
-  const res = await fetch(`/api/projects/${projectId}/labels`, {
+  const res = await fetch(withBase(`/api/projects/${projectId}/labels`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

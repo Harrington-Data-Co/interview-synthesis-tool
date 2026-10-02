@@ -3,6 +3,21 @@
 Updated 2026-10-01 early morning, after the overnight invitation build. Read this first, then `docs/PLAN.md` and
 `docs/BACKLOG.md`.
 
+## 2026-10-01: settings, identity and access (branch `settings-and-access`)
+
+Toward deploying at tools.harringtondata.com/interview-synthesis on Vercel
+(decisions in `docs/BACKLOG.md` → *Settings, identity and access*). Not
+merged; migration `20261001a_settings_and_access.sql` not applied. Checked
+in PGlite (new suite of 33 checks for settings, the two-factor rail, the
+log, sign-ins and profiles; the earlier suites still pass with it, and on a
+fresh `schema.sql`), lint, 143 unit tests, and a production build served
+under `/interview-synthesis` (redirects, assets, headers, signed-out
+redirects). The app copes with the migration missing (no log, no sign-in
+times, Settings says so), but profile saving needs it.
+
+To take it: apply `20261001a`, merge, then follow README → *Deploying to
+tools.harringtondata.com*.
+
 ## 2026-10-01: email and password instead of magic links
 
 Ryan found magic links unreliable. Sign-in is now email + password

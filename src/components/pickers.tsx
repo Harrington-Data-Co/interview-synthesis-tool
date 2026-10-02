@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ClientOption, Directory, OrgOption, PersonOption, ProjectOption } from "@/lib/directory";
 import { addOrg, clientLabel, orgChain, orgLabel } from "@/lib/directory";
 import type { SpeakerRole } from "@/lib/ingest/preview";
+import { withBase } from "@/lib/basePath";
 
 /** Client, then only that client's projects. The transcript stores the
  *  project; the client is implied by it. "New client…" and "New project…"
@@ -397,7 +398,7 @@ export function NewOrgForm({
   async function create() {
     setBusy(true);
     setError("");
-    const res = await fetch("/api/organizations", {
+    const res = await fetch(withBase("/api/organizations"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name, parentId: parentId || null, shortName, kind }),
@@ -710,7 +711,7 @@ export function OrgLevels({
     setBusy(true);
     setError("");
     const parentId = level === 0 ? null : chain[level - 1].id;
-    const res = await fetch("/api/organizations", {
+    const res = await fetch(withBase("/api/organizations"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name, parentId }),

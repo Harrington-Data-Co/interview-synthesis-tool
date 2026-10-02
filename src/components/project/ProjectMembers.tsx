@@ -1,5 +1,7 @@
 import { MembersPanel, PROJECT_ROLES, type InviteRow, type MemberRow } from "@/components/members/MembersPanel";
+import { AccessLog } from "@/components/members/AccessLog";
 import { currentSeat } from "@/lib/seat";
+import { sinceText } from "@/lib/when";
 import { createClient } from "@/lib/supabase/server";
 
 type SeatRef = { name: string; email: string; initials: string };
@@ -9,7 +11,7 @@ type SeatRef = { name: string; email: string; initials: string };
  *  every project without being on it, so they aren't listed unless they are. */
 export async function ProjectMembers({ projectId, projectName, manage }: { projectId: string; projectName: string; manage: boolean }) {
   const supabase = await createClient();
-  const [seat, { data: rows, error }, { data: invites }] = await Promise.all([
+  const [seat, { data: rows, error }, { data: invites }, { data: signIns }] = await Promise.all([
     currentSeat(),
     supabase
       .from("project_member")
@@ -24,7 +26,9 @@ export async function ProjectMembers({ projectId, projectName, manage }: { proje
           .is("revoked_at", null)
           .order("invited_at", { ascending: false })
       : Promise.resolve({ data: [] }),
+    manage ? supabase.rpc("member_sign_ins") : Promise.resolve({ data: null }),
   ]);
+  const lastSignIn = new Map(((signIns ?? []) as { user_id: string; last_sign_in_at: string | null }[]).map((r) => [r.user_id, r.last_sign_in_at]));
 
   const order = PROJECT_ROLES.map(([k]) => k as string);
   const members: MemberRow[] = (rows ?? [])
@@ -38,6 +42,7 @@ export async function ProjectMembers({ projectId, projectName, manage }: { proje
         role: r.role,
         clientAccess: r.client_access as "deliverables" | "full",
         you: r.user_id === seat?.user_id,
+        lastSignIn: signIns ? sinceText(lastSignIn.get(r.user_id) ?? null) : undefined,
       };
     })
     .sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role) || a.name.localeCompare(b.name));
@@ -63,7 +68,12 @@ export async function ProjectMembers({ projectId, projectName, manage }: { proje
       </div>
     );
   }
-  return <MembersPanel scope={{ kind: "project", projectId, projectName }} members={members} invites={inviteRows} manage={manage} />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <MembersPanel scope={{ kind: "project", projectId, projectName }} members={members} invites={inviteRows} manage={manage} />
+      {manage && <AccessLog projectId={projectId} />}
+    </div>
+  );
 }
 
 function daysUntil(when: string): number {

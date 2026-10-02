@@ -1,3 +1,4 @@
+import { withBase } from "@/lib/basePath";
 export const CODE_TYPES = ["Pain", "Step", "Tool", "Goal", "Constraint", "Question", "Quote", "Stakeholder"] as const;
 export type CodeType = (typeof CODE_TYPES)[number];
 
@@ -53,7 +54,7 @@ export async function codeAction(
   transcriptId: string,
   body: Record<string, unknown>,
 ): Promise<{ error: string | null; result?: unknown }> {
-  const res = await fetch(`/api/transcripts/${transcriptId}/codes`, {
+  const res = await fetch(withBase(`/api/transcripts/${transcriptId}/codes`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

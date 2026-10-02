@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, Field, Notice } from "@/components/ui";
 import { clientLabel, type ClientOption, type Directory } from "@/lib/directory";
 import { UploadDialog } from "./UploadDialog";
+import { withBase } from "@/lib/basePath";
 
 /** Editor actions: add transcripts (into a given project, when on one) and,
  *  from the library or a client's page, start a project (for that client,
@@ -53,7 +54,7 @@ function NewProjectDialog({ clients, defaultClientId, onClose }: { clients: Clie
   async function create() {
     setBusy(true);
     setError("");
-    const res = await fetch("/api/projects", {
+    const res = await fetch(withBase("/api/projects"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(isNewClient ? { clientName, clientCode, projectName } : { clientId, projectName }),

@@ -15,12 +15,13 @@ import { Notice } from "@/components/ui";
 import { withinOrg, addOrg, toOrgRow, type OrgOption } from "@/lib/directory";
 import { maybeSame, possibleDuplicates } from "@/lib/people/duplicates";
 import { clientsOf, partOf, peopleColumns, type PersonRow } from "./view";
+import { withBase } from "@/lib/basePath";
 
 const muted = (pct: number) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
 const PART: Record<string, string> = { participant: "Participant", interviewer: "Interviewer", both: "Both", other: "Other" };
 
 async function peopleAction(body: Record<string, unknown>): Promise<string | null> {
-  const res = await fetch("/api/people", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetch(withBase("/api/people"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (res.ok) return null;
   const b = await res.json().catch(() => ({}));
   return b.error ?? `Request failed (${res.status}).`;
@@ -542,7 +543,7 @@ function PersonDrawer({
                   <span className="mono" style={{ fontSize: 11, color: muted(55), flex: "none" }}>
                     {iv.date}
                   </span>
-                  <Link href={`/transcripts/${iv.id}`} style={{ fontSize: 13, fontWeight: 600 }}>
+                  <Link href={withBase(`/transcripts/${iv.id}`)} style={{ fontSize: 13, fontWeight: 600 }}>
                     {iv.title}
                   </Link>
                 </div>
