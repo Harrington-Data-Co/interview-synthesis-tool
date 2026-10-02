@@ -192,11 +192,6 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
             </div>
           )}
 
-          {seat.role === "owner" && (
-            <Link href="/workspace" className="btn" style={navStyle(on("/workspace"))}>
-              Workspace
-            </Link>
-          )}
         </nav>
 
         <div
@@ -265,6 +260,11 @@ export function AppHeader({ seat, clients, projects }: { seat: Seat; clients: Cl
               <Link href="/account" className="btn btn-ghost btn-block">
                 Your account
               </Link>
+              {seat.role === "owner" && (
+                <Link href="/settings" className="btn btn-ghost btn-block">
+                  Settings
+                </Link>
+              )}
               <button onClick={signOut} className="btn btn-secondary btn-block">
                 Sign out
               </button>

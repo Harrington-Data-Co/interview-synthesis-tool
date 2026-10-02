@@ -4,17 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  ["/workspace", "Members"],
-  ["/workspace/activity", "Activity"],
-  ["/workspace/settings", "Settings"],
-  ["/workspace/setup", "Setup"],
+  ["/settings", "Members"],
+  ["/settings/usage", "Usage"],
+  ["/settings/access", "Access log"],
+  ["/settings/setup", "Setup"],
 ] as const;
 
-/** The Workspace area's tabs, in the same segmented style as a project's. */
-export function WorkspaceTabs() {
+/** Settings' tabs, in the same segmented style as a project's. */
+export function SettingsTabs() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Workspace" className="seg" style={{ alignSelf: "flex-start" }}>
+    <nav aria-label="Settings" className="seg" style={{ alignSelf: "flex-start" }}>
       {TABS.map(([href, label]) => {
         const current = pathname === href;
         return (

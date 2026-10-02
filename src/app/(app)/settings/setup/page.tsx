@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type Check = { label: string; ok: boolean | null; detail: React.ReactNode };
 
-/** Workspace → Setup: a check of how this server is set up, and the
+/** Settings → Setup: a check of how this server is set up, and the
  *  addresses to register — for getting to tools.harringtondata.com. Reports
  *  only; everything here is set outside the app. */
 export default async function SetupPage() {

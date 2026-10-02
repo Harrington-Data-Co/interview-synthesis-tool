@@ -190,14 +190,21 @@ rails built now.
 - **Your account** (`/account`): name, initials, title (name also on the
   shared Supabase account), password, sign out of other devices, your
   access.
-- **Workspace** (`/workspace`, owners), four tabs — reorganized with Ryan
-  2026-10-01 so settings people change aren't mixed with the deployment
-  checklist: **Members** (with last sign-in), **Activity** (the log,
-  written by triggers into `access_event`; project owners see their
-  project's on its Members tab), **Settings** (invitation lifetime; two-
-  factor joins once switchable), **Setup** (what the server has been
-  given and the addresses to register; reports only). `/members` and
-  `/settings` redirect.
+- **Settings** (`/settings`, owners, from the account menu — Ryan
+  2026-10-01: these belong under the account dropdown, not the header),
+  four tabs: **Members** (with last sign-in, and how long invitations
+  last), **Usage** (below), **Access log** (written by triggers into
+  `access_event`; project owners see their project's on its Members tab),
+  **Setup** (what the server has been given and the addresses to
+  register; reports only). `/members` and `/workspace` redirect.
+- **Usage** (`/settings/usage`, Ryan 2026-10-01: "an activity list of all
+  of the runs and a dashboard around how the tool is being used"):
+  `usage_runs()` unions every pass's runs (owners only). Range (30 / 90
+  days, 12 months, all); spend as the headline with runs, failures, people
+  and tokens; spend per day or week; spend by project, person and pass
+  (top 7 + Other; each a link that narrows the page); the latest 100 runs
+  with model (and any fallback), tokens, cost and outcome. A first stab
+  for Ryan to react to.
 - **Two-factor rail**: `workspace_setting.mfa_required_for` (empty);
   `current_seat_role`, `has_seat` and `my_memberships` hide everything from
   a session below `aal2` when the caller's role needs it;
@@ -222,7 +229,7 @@ instead.
 - Each run already records the model asked for and the one that answered
   (`*_run.model`, `served_by`) and its cost, so switching keeps the record
   straight; `PRICES` in `call.ts` needs an entry for each model offered.
-- To decide: who chooses (workspace owners in **Workspace → Settings**,
+- To decide: who chooses (workspace owners in **Settings**,
   per project, or per run); one model for everything or per pass (a
   cheaper model for coding, the strongest for the memo); whether effort
   is chosen too; which models are on the list (current Claude models, kept

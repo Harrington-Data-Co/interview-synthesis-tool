@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Moved to the Workspace area. */
+/** Moved under Settings, in the account menu. */
 export default function MembersPage() {
-  redirect("/workspace");
+  redirect("/settings");
 }

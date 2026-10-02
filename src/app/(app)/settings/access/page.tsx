@@ -1,7 +1,7 @@
 import { AccessLog } from "@/components/members/AccessLog";
 
 /** Every invitation, acceptance, role change and removal, newest first. */
-export default function ActivityPage() {
+export default function AccessLogPage() {
   return (
     <>
       <p className="meta" style={{ margin: 0, maxWidth: 720 }}>

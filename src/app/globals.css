@@ -60,6 +60,10 @@
   --space-6: 24px;
   --space-8: 32px;
 
+  /* Status, for a state (a run that failed) — never a chart series. */
+  --status-critical: #B42318;
+  --status-critical-bg: #FDECEA;
+
   --shadow-sm: 0 1px 2px rgba(27, 42, 65, 0.04), 0 10px 28px rgba(27, 42, 65, 0.06);
   --shadow-md: 0 1px 2px rgba(27, 42, 65, 0.04), 0 14px 36px rgba(27, 42, 65, 0.07);
   --shadow-lg: 0 2px 4px rgba(27, 42, 65, 0.06), 0 18px 44px rgba(27, 42, 65, 0.14);

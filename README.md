@@ -103,13 +103,13 @@ the rules live in migration `20260930g_invitations.sql`.
   people. They add Sources, People, Organizations and the template library;
   an editor can also start clients and projects (and owns what they start).
   Someone from outside has no workspace role.
-- **Inviting**: workspace owners from **Workspace → Members** (Harrington
+- **Inviting**: workspace owners from **Settings → Members** (Harrington
   colleagues, with a workspace role); project owners from a project's
   **Members** tab (anyone, to that project). An address that already has a
   seat is added at once; anyone else gets an email whose link lands on
   `/auth/confirm` and is accepted on arrival. Invitations last 14 days and
   can be sent again, withdrawn, or handed over as a link (**Copy link**).
-- **Removing**: from a project's Members tab, or from **Workspace →
+- **Removing**: from a project's Members tab, or from **Settings →
   Members** (every project at once). What they made stays, under their name.
 
 Invitation emails need `SUPABASE_SERVICE_ROLE_KEY` (server only), and go
@@ -141,13 +141,16 @@ To get the click-first protection for emailed links too, in Authentication
 - **Your account** (account menu): name, initials and title — the name
   also goes on the shared Harrington Tools account — your password,
   *Sign out of other devices*, and what you can get at.
-- **Workspace** (owners, in the header), in four tabs:
+- **Settings** (owners, account menu), in four tabs:
   - **Members**: everyone, their projects and when they last signed in;
-    open invitations; inviting Harrington colleagues.
-  - **Activity**: every invitation, acceptance, role change and removal,
+    open invitations; inviting Harrington colleagues; how long
+    invitations last.
+  - **Usage**: every Claude run — spend over time, spend by project,
+    person and pass, and the runs themselves with model, tokens, cost and
+    outcome. Click a project, person or pass to narrow the page to it.
+  - **Access log**: every invitation, acceptance, role change and removal,
     written by the database itself (migration `20261001a`). A project's
     owners see their project's on its Members tab.
-  - **Settings**: what an owner changes — how long invitations last.
   - **Setup**: getting a deployment ready — what the server has been given
     and the addresses to register. It only reports.
 - **Two-factor sign-in** has its rail in place but is off: the database can
@@ -250,7 +253,7 @@ here (`next.config.ts`).
 8. **Email from Harrington's domain** — the next section. Before inviting
    anyone outside.
 9. **Check it.** Sign in at `https://tools.harringtondata.com` and open
-   **Workspace → Setup**: it lists what the server has been given and what
+   **Settings → Setup** (account menu): it lists what the server has been given and what
    it hasn't, and the addresses to register.
 
 **One database or two?** Local work and production can share one Supabase
@@ -301,7 +304,8 @@ src/lib/memo/           the findings memo: prompt, citation gate, loader, Markdo
 src/lib/supabase/       browser, server and session-refresh clients
 src/lib/seat.ts         who is signed in, and what they may see and change
 src/lib/invite.ts       invitation emails and copyable links
-src/app/(app)/workspace/ owners: members, activity, settings, setup
+src/app/(app)/settings/  owners: members, usage, access log, setup
+src/lib/usage.ts        the Usage tab's totals, spend over time and breakdowns
 src/app/(app)/account/  your account
 src/lib/basePath.ts     the path the app sits under (/interview-synthesis)
 supabase/schema.sql     the data model; migrations/ updates an existing one
