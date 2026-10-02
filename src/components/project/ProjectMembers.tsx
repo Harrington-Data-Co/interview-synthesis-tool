@@ -1,4 +1,5 @@
-import { MembersPanel, PROJECT_ROLES, type InviteRow, type MemberRow } from "@/components/members/MembersPanel";
+import { MembersPanel, type InviteRow, type MemberRow } from "@/components/members/MembersPanel";
+import { PROJECT_ROLES } from "@/components/members/roles";
 import { AccessLog } from "@/components/members/AccessLog";
 import { currentSeat } from "@/lib/seat";
 import { sinceText } from "@/lib/when";

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field, Notice } from "@/components/ui";
+import { CLIENT_ACCESS, PROJECT_ROLES, WORKSPACE_ROLES } from "./roles";
 import { withBase } from "@/lib/basePath";
 
 export type MemberRow = {
@@ -35,25 +36,6 @@ export type InviteRow = {
 };
 
 type Scope = { kind: "project"; projectId: string; projectName: string } | { kind: "workspace" };
-
-export const PROJECT_ROLES = [
-  ["owner", "Owner", "Everything an editor can, plus members and invitations."],
-  ["editor", "Editor", "Adds transcripts; codes, notes, themes and every deliverable."],
-  ["viewer", "Viewer", "Reads everything; changes nothing."],
-  ["client", "Client", "Reads the deliverables. See below."],
-] as const;
-
-const WORKSPACE_ROLES = [
-  ["owner", "Owner", "Sees and manages every project and every member."],
-  ["editor", "Editor", "Starts projects; edits People, Organizations and the template library; uploads to Unassigned."],
-  ["viewer", "Viewer", "Reads People, Organizations and the template library."],
-  ["", "None", "From outside Harrington: sees only the projects they're invited to."],
-] as const;
-
-export const CLIENT_ACCESS = [
-  ["deliverables", "Deliverables", "The memo, deck, process flows and architecture, confirmed themes, and the quotes they cite — by title, never by name. No transcripts, notes or people."],
-  ["full", "Everything, read-only", "Also the transcripts, codes, notes, chain and corpus, with names. Changes nothing."],
-] as const;
 
 const roleLabel = (scope: Scope, role: string | null) =>
   (scope.kind === "project" ? PROJECT_ROLES : WORKSPACE_ROLES).find(([k]) => k === (role ?? ""))?.[1] ?? role ?? "None";
@@ -110,7 +92,7 @@ export function MembersPanel({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", maxWidth: 860 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: 860 }}>
       {error && <Notice tone="error">{error}</Notice>}
       {note && <Notice>{note}</Notice>}
 
