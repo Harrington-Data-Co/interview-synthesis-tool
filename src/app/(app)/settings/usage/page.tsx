@@ -152,10 +152,10 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
       </section>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: "var(--space-4)" }}>
-        <Breakdown title="By client" slices={u.byClient} hrefFor={(k) => href({ client: k })} />
-        <Breakdown title="By project" slices={u.byProject} hrefFor={(k) => href({ project: k })} />
-        <Breakdown title="By person" slices={u.byPerson} hrefFor={(k) => href({ person: k })} />
-        <Breakdown title="By pass" slices={u.byPass} hrefFor={(k) => href({ pass: k })} />
+        <Breakdown title="By client" slices={u.byClient.map((x) => ({ ...x, href: href({ client: x.key }) }))} />
+        <Breakdown title="By project" slices={u.byProject.map((x) => ({ ...x, href: href({ project: x.key }) }))} />
+        <Breakdown title="By person" slices={u.byPerson.map((x) => ({ ...x, href: href({ person: x.key }) }))} />
+        <Breakdown title="By pass" slices={u.byPass.map((x) => ({ ...x, href: href({ pass: x.key }) }))} />
       </div>
 
       {projectCosts.length > 0 && (

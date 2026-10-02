@@ -5,10 +5,14 @@ import { TipBody, useTip } from "@/components/corpus/bits";
 import { compact, money, type Slice } from "@/lib/usage";
 import { DATA_COLORS, OTHER_COLOR } from "@/lib/palette";
 
-/** Spend broken down one way (by project, person or pass): a row per slice,
- *  its bar in one hue (grey for Other), the amount at the bar's tip, and
- *  the slice's name a link that narrows the whole page to it. */
-export function Breakdown({ title, slices, hrefFor }: { title: string; slices: Slice[]; hrefFor: (key: string) => string | null }) {
+/** A slice and where its name links (null: no link, as for Other). Links
+ *  come worked out, since a server page can only hand data to this. */
+export type LinkedSlice = Slice & { href: string | null };
+
+/** Spend broken down one way (by client, project, person or pass): a row
+ *  per slice, its bar in one hue (grey for Other), the amount at the bar's
+ *  tip, and the slice's name a link that narrows the whole page to it. */
+export function Breakdown({ title, slices }: { title: string; slices: LinkedSlice[] }) {
   const { show, hide, node } = useTip();
   const max = Math.max(...slices.map((s) => s.spend), 0);
   return (
@@ -17,7 +21,7 @@ export function Breakdown({ title, slices, hrefFor }: { title: string; slices: S
       {!slices.length && <p className="meta" style={{ margin: 0 }}>No runs.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }} onMouseLeave={hide}>
         {slices.map((s) => {
-          const href = s.other ? null : hrefFor(s.key);
+          const href = s.other ? null : s.href;
           return (
             <div
               key={s.key}
