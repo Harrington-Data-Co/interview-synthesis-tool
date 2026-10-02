@@ -52,7 +52,8 @@ can see the sign-in screen before there is a database.
    its domain — without it, anyone holding the public anon key can create an
    (empty, seatless) account straight against the Auth API. Leave the
    project's own sign-ups switched on: the hook is what decides, and invited
-   people can then also sign in from `/sign-in` if the email goes astray.
+   people can still set a password from *Forgot your password?* on
+   `/sign-in` if the email goes astray.
    On a brand-new project, turn this on *after* step 6: your own first
    sign-in has no invitation to let it through.
 6. **Give yourself a seat.** Sign in once at `/sign-in` with your
@@ -116,6 +117,24 @@ through Supabase's sender until the next section is done — a few emails an
 hour, from a Supabase address. **Copy link** works without either. Set
 `SITE_URL` to the deployed address once there is one, so links in emails
 point there rather than at whichever host sent them.
+
+### Signing in: email and password
+
+Decided 2026-10-01 (magic links weren't working well): people sign in with
+their email and a password. An invitation's link (emailed, or from **Copy
+link**) lands on `/auth/confirm`, which asks for a click before using it —
+so an email scanner that opens every link can't spend it — and then on
+`/account/password` to choose one. **Forgot your password?** on the sign-in
+page sends a link to the same place; use it once yourself if you signed up
+before passwords. The account menu has **Change password**.
+
+Supabase's default emails spend their link the moment anything opens it.
+To get the click-first protection for emailed links too, in Authentication
+→ Emails → Templates point both of these at `/auth/confirm` instead of
+`{{ .ConfirmationURL }}`:
+
+- *Invite user*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/account/password`
+- *Reset password*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/account/password`
 
 ## Before adding teammates: your own email sender
 

@@ -3,6 +3,16 @@
 Updated 2026-10-01 early morning, after the overnight invitation build. Read this first, then `docs/PLAN.md` and
 `docs/BACKLOG.md`.
 
+## 2026-10-01: email and password instead of magic links
+
+Ryan found magic links unreliable. Sign-in is now email + password
+(branch `passwords`); invitations are unchanged in the database. Invite and
+reset links land on `/auth/confirm` (a Continue click before a token_hash
+link is spent), then `/account/password`. Members' **Copy link** gives a
+set-up link for a pending invitation. Ryan has no password yet: *Forgot
+your password?* once. Optional: the two email templates in the README
+(*Signing in*) for click-first protection on emailed links.
+
 ## Morning, 2026-10-01: invitation access is built, on branch `invitations`
 
 Built overnight while Ryan slept; designed with him first (decisions in

@@ -12,8 +12,8 @@ export function createAdminClient(): SupabaseClient | null {
   return createSupabaseClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/** A plain anon client with no session, for sending a sign-in link to
- *  someone else: its link carries the session in the URL fragment, which
+/** A plain anon client with no session, for emailing a password-reset link
+ *  to someone else: its link carries the session in the URL fragment, which
  *  /auth/confirm picks up, rather than a code tied to this server's cookies. */
 export function createLinkSender(): SupabaseClient {
   return createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** A sign-in link for an open invitation, to pass on by hand. Renewing it
+/** A set-up link for an open invitation, to pass on by hand. Renewing it
  *  first checks the caller may send this invitation, and restarts its 14
  *  days to match the link. */
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
