@@ -3,6 +3,7 @@
 import { TipBody, useTip } from "@/components/corpus/bits";
 import { money, type Bucket } from "@/lib/usage";
 import { DATA_COLORS } from "@/lib/palette";
+import { OPENS_DRAWER, useUsageDrawer } from "./UsageDrawer";
 
 const HEIGHT = 160;
 
@@ -11,6 +12,7 @@ const HEIGHT = 160;
  *  every column (its spend, runs and failures). */
 export function SpendOverTime({ buckets, grain }: { buckets: Bucket[]; grain: "day" | "week" }) {
   const { show, hide, node } = useTip();
+  const { open, selected } = useUsageDrawer();
   const max = Math.max(...buckets.map((b) => b.spend), 0);
   const top = niceCeiling(max);
   const ticks = top > 0 ? [top, top / 2, 0] : [0];
@@ -36,13 +38,26 @@ export function SpendOverTime({ buckets, grain }: { buckets: Bucket[]; grain: "d
           {ticks.slice(0, -1).map((t) => (
             <span key={t} aria-hidden style={{ position: "absolute", left: 0, right: 0, top: (1 - t / top) * HEIGHT, borderTop: "1px solid var(--line-1)" }} />
           ))}
-          {buckets.map((b) => (
+          {buckets.map((b) => {
+            const isOpen = selected?.match.bucket === b.key && Object.keys(selected.match).length === 1;
+            return (
             <div
               key={b.key}
+              {...(b.runs ? OPENS_DRAWER : {})}
+              onClick={() => b.runs && open({ kicker: grain === "day" ? "Spend on" : "Spend in the week of", title: b.label.replace("Week of ", ""), match: { bucket: b.key } })}
               onMouseMove={(e) =>
-                show(e, <TipBody heading={b.label} lines={[`${money(b.spend)} spent`, `${b.runs} run${b.runs === 1 ? "" : "s"}`, b.failed ? `${b.failed} failed` : ""]} />)
+                show(e, <TipBody heading={b.label} lines={[`${money(b.spend)} spent`, `${b.runs} run${b.runs === 1 ? "" : "s"}`, b.failed ? `${b.failed} failed` : "", b.runs ? "Click for its runs" : ""]} />)
               }
-              style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end", justifyContent: "center", cursor: "default" }}
+              style={{
+                flex: 1,
+                height: "100%",
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                cursor: b.runs ? "pointer" : "default",
+                background: isOpen ? "var(--color-accent-tint)" : undefined,
+                borderRadius: 4,
+              }}
             >
               {b.spend > 0 && (
                 <div
@@ -56,7 +71,8 @@ export function SpendOverTime({ buckets, grain }: { buckets: Bucket[]; grain: "d
                 />
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
         <div style={{ display: "flex", gap: 2, marginTop: 6 }}>
           {buckets.map((b, i) => (

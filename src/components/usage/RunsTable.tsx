@@ -29,6 +29,12 @@ export type RunRow = {
   kept: number;
   review: number;
   error: string | null;
+  /** Keys the dashboard's drawer narrows by ("__none__" when there's none). */
+  projectId: string;
+  clientId: string;
+  personId: string;
+  /** The spend-over-time column it falls in. */
+  bucket: string;
 };
 
 const OUTCOME: Record<RunRow["status"], string> = { done: "Done", failed: "Failed", running: "Running" };
@@ -245,7 +251,7 @@ export function RunsTable({ runs }: { runs: RunRow[] }) {
 }
 
 /** A run's state, in words with a mark: never colour alone. */
-function Outcome({ run }: { run: RunRow }) {
+export function Outcome({ run }: { run: RunRow }) {
   if (run.status === "failed")
     return (
       <span className="tag" title={run.error ?? undefined} style={{ background: "var(--status-critical-bg)", color: "var(--status-critical)" }}>

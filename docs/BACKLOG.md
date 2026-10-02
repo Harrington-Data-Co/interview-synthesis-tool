@@ -213,6 +213,11 @@ rails built now.
   Interviews / Artifacts / Altogether column groups; and the runs moved to
   their own **Runs** view beside the Dashboard, on the shared table engine
   (sort, group, filter, search; each group's heading shows its total).
+  Everything clickable on the dashboard (a breakdown row, a day or week,
+  a project row in the cost table, one of its figures, a pass total) opens
+  the shared drawer on those runs: spend, runs and failures; splits by
+  pass, project and person (whichever it isn't already); and the runs by
+  pass, with links to narrow the page or the Runs view to the same.
   `usage_runs()` is migration `20261001b` (Ryan had applied `20261001a`
   before it was added). Owners only for now; project owners later. No
   budget alerts for now.

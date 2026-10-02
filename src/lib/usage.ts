@@ -211,3 +211,6 @@ export function costByProject(runs: UsageRun[]): ProjectCost[] {
   }
   return [...m.values()].sort((a, b) => b.total - a.total);
 }
+
+/** The spend-over-time column a day falls in: the day, or its week's Monday. */
+export const bucketOf = (day: string, grain: "day" | "week") => (grain === "day" ? day : weekOf(day));

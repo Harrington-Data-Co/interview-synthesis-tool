@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Breakdown } from "@/components/usage/Breakdown";
+import { CostTable, type CostRow, type Hrefs } from "@/components/usage/CostTable";
 import { RunsTable, type RunRow } from "@/components/usage/RunsTable";
+import { UsageDrawerProvider, type UsageSelection } from "@/components/usage/UsageDrawer";
 import { SpendOverTime } from "@/components/usage/SpendOverTime";
 import { createClient } from "@/lib/supabase/server";
-import { compact, cost, costByProject, dayOf, INTERVIEW_PASSES, money, PASSES, RANGES, rangeFor, rangeStart, summarize, tokens, type UsageRun } from "@/lib/usage";
+import { bucketOf, compact, cost, costByProject, dayOf, INTERVIEW_PASSES, money, PASSES, RANGES, rangeFor, rangeStart, summarize, tokens, type Slice, type UsageRun } from "@/lib/usage";
 import { formatDateTime } from "@/lib/when";
 
 type Query = { view?: string; range?: string; client?: string; project?: string; person?: string; pass?: string };
@@ -100,10 +102,8 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
   const runsView = query.view === "runs";
   const interviewPasses = shownPasses.filter((p) => INTERVIEW_PASSES.has(p));
   const artifactPasses = shownPasses.filter((p) => !INTERVIEW_PASSES.has(p));
-  // The first column of each group carries the rule between groups.
-  const startsGroup = (pass: string) => pass === interviewPasses[0] || pass === artifactPasses[0];
-  const rows: RunRow[] = runsView
-    ? runs.map((r) => ({
+  // Every run, for the Runs table and the dashboard's drawer.
+  const rows: RunRow[] = runs.map((r) => ({
         id: r.id,
         at: r.started_at,
         when: formatDateTime(r.started_at),
@@ -121,8 +121,38 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
         kept: r.accepted ?? 0,
         review: r.rejected ?? 0,
         error: r.error,
-      }))
-    : [];
+        projectId: r.project_id ?? "__none__",
+        clientId: names.client(r.project_id)?.id ?? "__none__",
+        personId: r.started_by,
+        bucket: bucketOf(dayOf(r.started_at), u.grain),
+      }));
+
+  // What each thing on the dashboard opens: the drawer on its runs, which
+  // can narrow the page (or the Runs view) to the same.
+  const hrefsFor = (change: Partial<Query>): Hrefs => ({ page: href({ ...change, view: undefined }), runs: href({ ...change, view: "runs" }) });
+  const linked = (slices: Slice[], kicker: string, filter: keyof Query, matchKey: "clientId" | "projectId" | "personId" | "pass") =>
+    slices.map((x) => {
+      const h = hrefsFor({ [filter]: x.key });
+      const selection: UsageSelection | null = x.other
+        ? null
+        : { kicker, title: x.label, match: { [matchKey]: x.key }, pageHref: h.page, runsHref: h.runs };
+      return { ...x, selection };
+    });
+  const costRows: CostRow[] = projectCosts.map((row) => {
+    const key = row.projectId ?? "__none__";
+    const p = row.projectId ? project.get(row.projectId) : null;
+    return {
+      key,
+      name: names.project(row.projectId),
+      client: p?.client ?? null,
+      byPass: row.byPass,
+      total: row.total,
+      interviews: p ? p.interviews : null,
+      hrefs: hrefsFor({ project: key }),
+      passHrefs: Object.fromEntries(shownPasses.map((pass) => [pass, hrefsFor({ project: key, pass })])),
+    };
+  });
+  const passHrefs = Object.fromEntries(shownPasses.map((pass) => [pass, hrefsFor({ pass })]));
 
   const segStyle = (on: boolean) => ({
     textDecoration: "none",
@@ -159,7 +189,7 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
       {runsView ? (
         <RunsTable runs={rows} />
       ) : (
-        <>
+        <UsageDrawerProvider runs={rows} runsHref={href({ view: "runs" })}>
           {/* The figures, all alike, in one strip. */}
           <div className="panel" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))" }}>
             <Figure label={`Spent, ${rangeLabel.toLowerCase()}`} value={money(u.spend)} note={u.unpriced ? `${u.unpriced} run${u.unpriced === 1 ? "" : "s"} without a cost` : null} />
@@ -186,10 +216,10 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
 
           {/* Two across at most, so four make a square. */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(max(300px, calc(50% - var(--space-4))),1fr))", gap: "var(--space-4)" }}>
-            <Breakdown title="By client" slices={u.byClient.map((x) => ({ ...x, href: href({ client: x.key }) }))} />
-            <Breakdown title="By project" slices={u.byProject.map((x) => ({ ...x, href: href({ project: x.key }) }))} />
-            <Breakdown title="By person" slices={u.byPerson.map((x) => ({ ...x, href: href({ person: x.key }) }))} />
-            <Breakdown title="By pass" slices={u.byPass.map((x) => ({ ...x, href: href({ pass: x.key }) }))} />
+            <Breakdown title="By client" slices={linked(u.byClient, "Client", "client", "clientId")} />
+            <Breakdown title="By project" slices={linked(u.byProject, "Project", "project", "projectId")} />
+            <Breakdown title="By person" slices={linked(u.byPerson, "Person", "person", "personId")} />
+            <Breakdown title="By pass" slices={linked(u.byPass, "Pass", "pass", "pass")} />
           </div>
 
           {projectCosts.length > 0 && (
@@ -197,83 +227,19 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
               <span className="kicker">What each project cost to build</span>
               <p className="meta" style={{ margin: 0 }}>
                 Spend{rangeKey === "all" ? "" : `, ${rangeLabel.toLowerCase()},`} by pass. All-in per interview divides a project&apos;s spend by its
-                interviews{rangeKey === "all" ? "" : "; choose All time for what a project cost overall"}.
+                interviews{rangeKey === "all" ? "" : "; choose All time for what a project cost overall"}. Click a project, or any figure, for its runs.
               </p>
-              <div className="panel" style={{ overflowX: "auto" }}>
-                <table className="table table-compact">
-                  <thead>
-                    <tr>
-                      <th rowSpan={2} style={{ verticalAlign: "bottom" }}>
-                        Project
-                      </th>
-                      {interviewPasses.length > 0 && (
-                        <th colSpan={interviewPasses.length} className="group-name group-start">
-                          Interviews
-                        </th>
-                      )}
-                      {artifactPasses.length > 0 && (
-                        <th colSpan={artifactPasses.length} className="group-name group-start">
-                          Artifacts
-                        </th>
-                      )}
-                      <th colSpan={3} className="group-name group-start summary">
-                        Altogether
-                      </th>
-                    </tr>
-                    <tr>
-                      {[...interviewPasses, ...artifactPasses].map((p) => (
-                        <th key={p} className={`num${startsGroup(p) ? " group-start" : ""}`}>
-                          {p}
-                        </th>
-                      ))}
-                      <th className="num group-start summary">Total</th>
-                      <th className="num summary">Interviews</th>
-                      <th className="num summary">Per interview</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {projectCosts.map((row) => {
-                      const p = row.projectId ? project.get(row.projectId) : null;
-                      return (
-                        <tr key={row.projectId ?? "none"}>
-                          <td style={{ minWidth: 200 }}>
-                            <Link href={href({ project: row.projectId ?? "__none__" })} style={{ color: "inherit", fontWeight: 600 }}>
-                              {names.project(row.projectId)}
-                            </Link>
-                            {p?.client && <span className="meta"> · {p.client}</span>}
-                          </td>
-                          {[...interviewPasses, ...artifactPasses].map((pass) => (
-                            <td key={pass} className={`num${startsGroup(pass) ? " group-start" : ""}`}>
-                              {row.byPass[pass] ? money(row.byPass[pass]) : <span className="meta">·</span>}
-                            </td>
-                          ))}
-                          <td className="num group-start summary" style={{ fontWeight: 700 }}>
-                            {money(row.total)}
-                          </td>
-                          <td className="num summary">{p ? p.interviews : "·"}</td>
-                          <td className="num summary">{p?.interviews ? money(row.total / p.interviews) : <span className="meta">·</span>}</td>
-                        </tr>
-                      );
-                    })}
-                    {projectCosts.length > 1 && (
-                      <tr className="total">
-                        <td>All projects</td>
-                        {[...interviewPasses, ...artifactPasses].map((pass) => (
-                          <td key={pass} className={`num${startsGroup(pass) ? " group-start" : ""}`}>
-                            {money(passTotals[pass])}
-                          </td>
-                        ))}
-                        <td className="num group-start summary">{money(u.spend)}</td>
-                        <td className="summary" />
-                        <td className="summary" />
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <CostTable
+                rows={costRows}
+                interviewPasses={interviewPasses}
+                artifactPasses={artifactPasses}
+                passTotals={passTotals}
+                passHrefs={passHrefs}
+                spend={u.spend}
+              />
             </section>
           )}
-        </>
+        </UsageDrawerProvider>
       )}
     </div>
   );

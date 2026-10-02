@@ -191,6 +191,11 @@ a.tag.card-over:hover { box-shadow: inset 0 0 0 1px var(--color-accent-tint-bord
 .table-compact th.group-name { color: var(--color-accent-800); text-align: center; border-bottom: 1px solid var(--line-2); }
 .table-compact .summary { background: var(--color-bg-soft); }
 .table-compact tbody tr:hover .summary { background: transparent; }
+/* Things on the Usage dashboard that open its drawer. */
+.usage-row:hover { background: var(--color-accent-tint-soft) !important; }
+.usage-cell { cursor: pointer; }
+.usage-cell:hover { background: var(--color-accent-tint) !important; }
+tr.usage-open td { background: var(--color-accent-tint); }
 
 /* — dialog — */
 .dialog-backdrop { background: rgba(27, 42, 65, 0.42); }
