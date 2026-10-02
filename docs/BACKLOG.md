@@ -549,9 +549,10 @@ at tools.harringtondata.com (README → *Deploying*). Then:
    already built.
 9. **Project owners see their own project's usage.**
 
-Smaller, whenever: dropping `transcript.participant` / `participant_role`;
-Activity on a project's Members tab for its owners is done; the Harrington
-Tools hub page at the domain's root (see *Going live* in the handoff).
+Smaller, whenever: dropping `transcript.participant` / `participant_role`.
+**The Harrington Tools hub** at the domain's root: not needed to go live
+(the root redirects to this tool until it exists); built as its own small
+project once there's a second tool, or sooner as a simple landing page.
 
 ### Earlier order (2026-09-30), for the record
 
