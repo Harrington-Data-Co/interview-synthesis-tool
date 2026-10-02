@@ -54,10 +54,18 @@ export type Usage = {
   overTime: Bucket[];
   /** "day" or "week" (weeks start Monday). */
   grain: "day" | "week";
+  byClient: Slice[];
   byProject: Slice[];
   byPerson: Slice[];
   byPass: Slice[];
+  /** Coding and notes: what processing one interview costs. */
+  perInterview: { spend: number; interviews: number };
 };
+
+/** The passes in process order, for columns. */
+export const PASSES = ["Coding", "Notes", "Themes", "Memo", "Deck", "Process flows", "Architecture"] as const;
+/** Passes that run on one interview; the rest build a project's artifacts. */
+export const INTERVIEW_PASSES = new Set(["Coding", "Notes"]);
 
 /** The day a moment falls on in the app's time zone, as YYYY-MM-DD. */
 export function dayOf(iso: string, timeZone = APP_TIME_ZONE): string {
@@ -79,7 +87,12 @@ const label = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("
  *  spend and fold the rest into Other. */
 export function summarize(
   runs: UsageRun[],
-  names: { project: (id: string | null) => string; person: (id: string) => string },
+  names: {
+    project: (id: string | null) => string;
+    person: (id: string) => string;
+    /** The client a project is for: its id and name. */
+    client: (projectId: string | null) => { id: string; name: string } | null;
+  },
   opts: { days: number | null; now?: number; top?: number } = { days: 30 },
 ): Usage {
   const now = opts.now ?? Date.now();
@@ -143,9 +156,24 @@ export function summarize(
     tokens: runs.reduce((s, r) => s + tokens(r), 0),
     overTime: [...buckets.values()],
     grain,
+    byClient: (() => {
+      const clientName = new Map<string, string>();
+      return slices(
+        (r) => {
+          const c = names.client(r.project_id);
+          if (c) clientName.set(c.id, c.name);
+          return c?.id ?? "__none__";
+        },
+        (k) => (k === "__none__" ? "No client (unassigned)" : (clientName.get(k) ?? "A client")),
+      );
+    })(),
     byProject: slices((r) => r.project_id ?? "__none__", (k) => (k === "__none__" ? "Unassigned" : names.project(k))),
     byPerson: slices((r) => r.started_by, names.person),
     byPass: slices((r) => r.pass, (k) => k),
+    perInterview: (() => {
+      const own = runs.filter((r) => INTERVIEW_PASSES.has(r.pass) && r.transcript_id);
+      return { spend: own.reduce((s, r) => s + cost(r), 0), interviews: new Set(own.map((r) => r.transcript_id)).size };
+    })(),
   };
 }
 
@@ -159,4 +187,27 @@ export function money(n: number | null): string {
 /** 1,284 / 12.9K / 4.2M. */
 export function compact(n: number): string {
   return n.toLocaleString("en-US", { notation: n >= 10_000 ? "compact" : "standard", maximumFractionDigits: 1 });
+}
+
+export type ProjectCost = {
+  projectId: string | null;
+  /** Spend per pass, keyed by PASSES. */
+  byPass: Record<string, number>;
+  total: number;
+  runs: number;
+};
+
+/** Each project's spend split by pass — what each artifact cost to build —
+ *  most expensive first. */
+export function costByProject(runs: UsageRun[]): ProjectCost[] {
+  const m = new Map<string, ProjectCost>();
+  for (const r of runs) {
+    const k = r.project_id ?? "__none__";
+    const row = m.get(k) ?? { projectId: r.project_id, byPass: {}, total: 0, runs: 0 };
+    row.byPass[r.pass] = (row.byPass[r.pass] ?? 0) + cost(r);
+    row.total += cost(r);
+    row.runs += 1;
+    m.set(k, row);
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total);
 }

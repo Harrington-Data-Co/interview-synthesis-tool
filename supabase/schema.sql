@@ -7309,7 +7309,20 @@ begin
 end;
 $$;
 
--- ─── usage: every Claude run, for the Usage dashboard ────────────────────
+revoke execute on function
+  set_workspace_settings, member_sign_ins, update_my_profile, mfa_required_now
+from public, anon;
+grant execute on function
+  set_workspace_settings, member_sign_ins, update_my_profile, mfa_required_now
+to authenticated;
+revoke execute on function invitation_lifetime, log_invitation, log_project_member, log_seat
+from public, anon, authenticated;
+
+commit;
+
+-- ═══ Usage (migration 20261001b) ═══════════════════════════════════════
+
+begin;
 
 -- One row per run of any pass since p_since (all time when null), with
 -- what it was on, who ran it, the model asked for and the one that
@@ -7351,13 +7364,7 @@ language sql stable security definer set search_path = public as $$
   order by runs.started_at desc;
 $$;
 
-revoke execute on function
-  set_workspace_settings, member_sign_ins, update_my_profile, mfa_required_now, usage_runs
-from public, anon;
-grant execute on function
-  set_workspace_settings, member_sign_ins, update_my_profile, mfa_required_now, usage_runs
-to authenticated;
-revoke execute on function invitation_lifetime, log_invitation, log_project_member, log_seat
-from public, anon, authenticated;
+revoke execute on function usage_runs from public, anon;
+grant execute on function usage_runs to authenticated;
 
 commit;

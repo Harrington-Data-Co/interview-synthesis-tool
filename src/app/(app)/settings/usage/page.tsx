@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Breakdown } from "@/components/usage/Breakdown";
 import { SpendOverTime } from "@/components/usage/SpendOverTime";
 import { createClient } from "@/lib/supabase/server";
-import { compact, cost, money, RANGES, rangeFor, rangeStart, summarize, tokens, type UsageRun } from "@/lib/usage";
+import { compact, cost, costByProject, money, PASSES, RANGES, rangeFor, rangeStart, summarize, tokens, type UsageRun } from "@/lib/usage";
 import { formatDateTime } from "@/lib/when";
 
-type Query = { range?: string; project?: string; person?: string; pass?: string };
+type Query = { range?: string; client?: string; project?: string; person?: string; pass?: string };
 
 const MODEL_NAMES: Record<string, string> = {
   "claude-opus-5-5": "Opus 5.5",
@@ -17,9 +17,10 @@ const modelName = (id: string | null) => (id ? (MODEL_NAMES[id] ?? id) : "—");
 
 /** Settings → Usage: how the tool is being used and what it costs. Every
  *  Claude run (coding, notes, themes, memo, deck, process flows,
- *  architecture) in a range, as spend over time; spend by project, person
- *  and pass; and the runs themselves. Clicking a project, person or pass
- *  narrows the whole page to it. */
+ *  architecture) in a range, as spend over time; spend by client, project,
+ *  person and pass; what each project's artifacts cost to build and what an
+ *  interview costs; and the runs themselves. Clicking a client, project,
+ *  person or pass narrows the whole page to it. Owners only (the layout). */
 export default async function UsagePage({ searchParams }: { searchParams: Promise<Query> }) {
   const query = await searchParams;
   const [rangeKey, rangeLabel, days] = rangeFor(query.range);
@@ -27,7 +28,8 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
   const [{ data, error }, { data: seats }, { data: projects }, { data: clients }] = await Promise.all([
     supabase.rpc("usage_runs", { p_since: rangeStart(days) }),
     supabase.from("seat").select("user_id,name"),
-    supabase.from("project").select("id,name,client_id"),
+    // Interviews per project, for the all-in cost of one.
+    supabase.from("project").select("id,name,client_id,transcript(count)"),
     supabase.from("client").select("id,name"),
   ]);
 
@@ -35,7 +37,7 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
     return (
       <div className="panel" style={{ padding: "var(--space-4)" }}>
         <p className="meta" style={{ margin: 0 }}>
-          Usage needs migration 20261001a_settings_and_access ({error.message}).
+          Usage needs migration 20261001b_usage ({error.message}).
         </p>
       </div>
     );
@@ -43,15 +45,30 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
 
   const person = new Map((seats ?? []).map((s) => [s.user_id, s.name]));
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
-  const project = new Map((projects ?? []).map((p) => [p.id, { name: p.name, client: clientName.get(p.client_id) ?? null }]));
+  const project = new Map(
+    (projects ?? []).map((p) => [
+      p.id,
+      {
+        name: p.name,
+        clientId: p.client_id as string,
+        client: clientName.get(p.client_id) ?? null,
+        interviews: ((p.transcript as unknown as { count: number }[] | null) ?? [])[0]?.count ?? 0,
+      },
+    ]),
+  );
   const names = {
     project: (id: string | null) => (id ? (project.get(id)?.name ?? "A deleted project") : "Unassigned"),
     person: (id: string) => person.get(id) ?? "Someone",
+    client: (id: string | null) => {
+      const p = id ? project.get(id) : null;
+      return p ? { id: p.clientId, name: p.client ?? "A client" } : null;
+    },
   };
 
   const all = (data ?? []) as UsageRun[];
   const runs = all.filter(
     (r) =>
+      (!query.client || (names.client(r.project_id)?.id ?? "__none__") === query.client) &&
       (!query.project || (r.project_id ?? "__none__") === query.project) &&
       (!query.person || r.started_by === query.person) &&
       (!query.pass || r.pass === query.pass),
@@ -67,11 +84,15 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
     return `/settings/usage${s ? `?${s}` : ""}`;
   };
   const filters: [keyof Query, string][] = [];
+  if (query.client) filters.push(["client", query.client === "__none__" ? "No client" : (clientName.get(query.client) ?? "A client")]);
   if (query.project) filters.push(["project", query.project === "__none__" ? "Unassigned" : names.project(query.project)]);
   if (query.person) filters.push(["person", names.person(query.person)]);
   if (query.pass) filters.push(["pass", query.pass]);
 
   const failedPct = u.runs ? Math.round((u.failed / u.runs) * 100) : 0;
+  const projectCosts = costByProject(runs);
+  const passTotals = Object.fromEntries(PASSES.map((p) => [p, projectCosts.reduce((s, r) => s + (r.byPass[p] ?? 0), 0)]));
+  const shownPasses = PASSES.filter((p) => passTotals[p] > 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -110,7 +131,12 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
           <Tile label="Runs" value={compact(u.runs)} note={u.running ? `${u.running} running now` : null} />
           <Tile label="Failed" value={String(u.failed)} note={u.runs ? `${failedPct}% of runs` : null} />
           <Tile label="People running them" value={String(u.people)} />
-          <Tile label="Tokens" value={compact(u.tokens)} note={u.runs ? `${money(u.runs ? u.spend / u.runs : 0)} a run on average` : null} />
+          <Tile
+            label="Per interview"
+            value={u.perInterview.interviews ? money(u.perInterview.spend / u.perInterview.interviews) : "—"}
+            note={u.perInterview.interviews ? `coding + notes, over ${u.perInterview.interviews} interview${u.perInterview.interviews === 1 ? "" : "s"}` : "no interviews coded"}
+          />
+          <Tile label="Tokens" value={compact(u.tokens)} note={u.runs ? `${money(u.spend / u.runs)} a run on average` : null} />
         </div>
       </div>
       {u.unpriced > 0 && (
@@ -125,11 +151,83 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
         <SpendOverTime buckets={u.overTime} grain={u.grain} />
       </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "var(--space-4)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: "var(--space-4)" }}>
+        <Breakdown title="By client" slices={u.byClient} hrefFor={(k) => href({ client: k })} />
         <Breakdown title="By project" slices={u.byProject} hrefFor={(k) => href({ project: k })} />
         <Breakdown title="By person" slices={u.byPerson} hrefFor={(k) => href({ person: k })} />
         <Breakdown title="By pass" slices={u.byPass} hrefFor={(k) => href({ pass: k })} />
       </div>
+
+      {projectCosts.length > 0 && (
+        <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <span className="kicker">What each project cost to build</span>
+          <p className="meta" style={{ margin: 0 }}>
+            Spend {rangeKey === "all" ? "" : `(${rangeLabel.toLowerCase()}) `}by pass: coding and notes per interview, then each artifact.
+            All-in per interview divides a project&apos;s spend by its interviews{rangeKey === "all" ? "" : "; choose All time for what a project cost overall"}.
+          </p>
+          <div className="panel" style={{ overflowX: "auto" }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  {shownPasses.map((p) => (
+                    <th key={p} style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      {p}
+                    </th>
+                  ))}
+                  <th style={{ textAlign: "right" }}>Total</th>
+                  <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>Interviews</th>
+                  <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>All-in per interview</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectCosts.map((row) => {
+                  const p = row.projectId ? project.get(row.projectId) : null;
+                  return (
+                    <tr key={row.projectId ?? "none"}>
+                      <td>
+                        <Link href={href({ project: row.projectId ?? "__none__" })} style={{ color: "inherit" }}>
+                          {names.project(row.projectId)}
+                        </Link>
+                        {p?.client && <div className="meta">{p.client}</div>}
+                      </td>
+                      {shownPasses.map((pass) => (
+                        <td key={pass} className="mono" style={{ textAlign: "right" }}>
+                          {row.byPass[pass] ? money(row.byPass[pass]) : <span className="meta">—</span>}
+                        </td>
+                      ))}
+                      <td className="mono" style={{ textAlign: "right", fontWeight: 700 }}>
+                        {money(row.total)}
+                      </td>
+                      <td className="mono" style={{ textAlign: "right" }}>
+                        {p ? p.interviews : "—"}
+                      </td>
+                      <td className="mono" style={{ textAlign: "right" }}>
+                        {p?.interviews ? money(row.total / p.interviews) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {projectCosts.length > 1 && (
+                  <tr>
+                    <td style={{ fontWeight: 700 }}>All projects</td>
+                    {shownPasses.map((pass) => (
+                      <td key={pass} className="mono" style={{ textAlign: "right", fontWeight: 700 }}>
+                        {money(passTotals[pass])}
+                      </td>
+                    ))}
+                    <td className="mono" style={{ textAlign: "right", fontWeight: 700 }}>
+                      {money(u.spend)}
+                    </td>
+                    <td />
+                    <td />
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         <span className="kicker">Runs{runs.length > 100 ? ` · latest 100 of ${runs.length}` : ""}</span>

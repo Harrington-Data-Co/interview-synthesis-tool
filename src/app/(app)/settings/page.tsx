@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { InvitationDays } from "@/components/account/InvitationDays";
-import { MembersPanel, type InviteRow, type MemberRow } from "@/components/members/MembersPanel";
+import { MembersPanel, type InviteRow, type MemberProject, type MemberRow, type ProjectChoice } from "@/components/members/MembersPanel";
 import { currentSeat } from "@/lib/seat";
 import { sinceText } from "@/lib/when";
 import { createClient } from "@/lib/supabase/server";
@@ -17,8 +17,8 @@ export default async function WorkspaceMembersPage() {
   const supabase = await createClient();
   const [{ data: seats, error }, { data: memberships }, { data: projects }, { data: invites }, { data: signIns }] = await Promise.all([
     supabase.from("seat").select("user_id,name,email,initials,role").is("deactivated_at", null).order("name"),
-    supabase.from("project_member").select("user_id,project_id,role"),
-    supabase.from("project").select("id,name"),
+    supabase.from("project_member").select("user_id,project_id,role,client_access"),
+    supabase.from("project").select("id,name,client:client_id(name)"),
     supabase
       .from("invitation")
       .select("id,email,name,workspace_role,project_id,project_role,client_access,expires_at,sent_count")
@@ -31,10 +31,13 @@ export default async function WorkspaceMembersPage() {
   const lastSignIn = new Map(((signIns ?? []) as { user_id: string; last_sign_in_at: string | null }[]).map((r) => [r.user_id, r.last_sign_in_at]));
 
   const projectName = new Map((projects ?? []).map((p) => [p.id, p.name]));
-  const onProjects = new Map<string, string[]>();
+  const choices: ProjectChoice[] = (projects ?? [])
+    .map((p) => ({ id: p.id, name: p.name, client: (p.client as unknown as { name: string } | null)?.name ?? "No client" }))
+    .sort((a, b) => a.client.localeCompare(b.client) || a.name.localeCompare(b.name));
+  const onProjects = new Map<string, MemberProject[]>();
   for (const m of memberships ?? []) {
     const list = onProjects.get(m.user_id) ?? [];
-    list.push(`${projectName.get(m.project_id) ?? "a project"} (${m.role})`);
+    list.push({ projectId: m.project_id, name: projectName.get(m.project_id) ?? "A project", role: m.role, clientAccess: m.client_access });
     onProjects.set(m.user_id, list);
   }
 
@@ -45,7 +48,7 @@ export default async function WorkspaceMembersPage() {
       email: s.email,
       initials: s.initials,
       role: s.role,
-      projects: (onProjects.get(s.user_id) ?? []).sort(),
+      projects: (onProjects.get(s.user_id) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
       you: s.user_id === seat.user_id,
       lastSignIn: signIns ? sinceText(lastSignIn.get(s.user_id) ?? null) : undefined,
     }))
@@ -78,7 +81,7 @@ export default async function WorkspaceMembersPage() {
           <p className="meta">Could not read the members: {error.message}. Has migration 20260930g been applied?</p>
         </div>
       ) : (
-        <MembersPanel scope={{ kind: "workspace" }} members={members} invites={inviteRows} manage />
+        <MembersPanel scope={{ kind: "workspace", projects: choices }} members={members} invites={inviteRows} manage />
       )}
       {setting && (
         <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)", maxWidth: 860 }}>

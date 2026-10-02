@@ -142,12 +142,16 @@ To get the click-first protection for emailed links too, in Authentication
   also goes on the shared Harrington Tools account — your password,
   *Sign out of other devices*, and what you can get at.
 - **Settings** (owners, account menu), in four tabs:
-  - **Members**: everyone, their projects and when they last signed in;
-    open invitations; inviting Harrington colleagues; how long
+  - **Members**: everyone, the projects they're on (add them to another,
+    with a role, or take them off one, right there) and when they last
+    signed in; open invitations; inviting Harrington colleagues; how long
     invitations last.
-  - **Usage**: every Claude run — spend over time, spend by project,
-    person and pass, and the runs themselves with model, tokens, cost and
-    outcome. Click a project, person or pass to narrow the page to it.
+  - **Usage**: every Claude run (migration `20261001b`) — spend over time;
+    spend by client, project, person and pass; what an interview costs to
+    code and note; what each project's artifacts cost to build, with an
+    all-in cost per interview; and the runs themselves with model, tokens,
+    cost and outcome. Click a client, project, person or pass to narrow the
+    page to it.
   - **Access log**: every invitation, acceptance, role change and removal,
     written by the database itself (migration `20261001a`). A project's
     owners see their project's on its Members tab.

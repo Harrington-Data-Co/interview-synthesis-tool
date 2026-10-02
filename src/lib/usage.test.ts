@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayOf, money, summarize, weekOf, type UsageRun } from "./usage";
+import { costByProject, dayOf, money, summarize, weekOf, type UsageRun } from "./usage";
 
 const run = (over: Partial<UsageRun>): UsageRun => ({
   id: Math.random().toString(),
@@ -21,7 +21,11 @@ const run = (over: Partial<UsageRun>): UsageRun => ({
   error: null,
   ...over,
 });
-const names = { project: (id: string | null) => `Project ${id}`, person: (id: string) => `Person ${id}` };
+const names = {
+  project: (id: string | null) => `Project ${id}`,
+  person: (id: string) => `Person ${id}`,
+  client: (id: string | null) => (id ? { id: id === "p1" || id === "p2" ? "c1" : "c2", name: id === "p1" || id === "p2" ? "Client One" : "Client Two" } : null),
+};
 const now = Date.parse("2026-10-01T16:00:00Z");
 
 describe("summarize", () => {
@@ -57,6 +61,27 @@ describe("summarize", () => {
     expect(u.byProject.map((s) => s.label)).toEqual(["Project p0", "Project p1", "Project p2", "8 others"]);
     expect(u.byProject.at(-1)?.other).toBe(true);
     expect(summarize([run({ project_id: null })], names, { days: 30, now }).byProject[0].label).toBe("Unassigned");
+  });
+});
+
+describe("clients, interviews and artifacts", () => {
+  const runs = [
+    run({ project_id: "p1", pass: "Coding", transcript_id: "t1", cost_usd: 1 }),
+    run({ project_id: "p1", pass: "Notes", transcript_id: "t1", cost_usd: 0.5 }),
+    run({ project_id: "p2", pass: "Coding", transcript_id: "t2", cost_usd: 1.5 }),
+    run({ project_id: "p3", pass: "Memo", cost_usd: 4 }),
+  ];
+  it("adds up spend by client", () => {
+    const u = summarize(runs, names, { days: 30, now });
+    expect(u.byClient.map((s) => [s.label, s.spend])).toEqual([["Client Two", 4], ["Client One", 3]]);
+  });
+  it("costs an interview from its coding and notes", () => {
+    expect(summarize(runs, names, { days: 30, now }).perInterview).toEqual({ spend: 3, interviews: 2 });
+  });
+  it("splits each project's spend by pass", () => {
+    const rows = costByProject(runs);
+    expect(rows[0]).toMatchObject({ projectId: "p3", total: 4, byPass: { Memo: 4 } });
+    expect(rows.find((r) => r.projectId === "p1")).toMatchObject({ total: 1.5, runs: 2, byPass: { Coding: 1, Notes: 0.5 } });
   });
 });
 

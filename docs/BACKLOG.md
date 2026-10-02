@@ -192,8 +192,9 @@ rails built now.
   access.
 - **Settings** (`/settings`, owners, from the account menu — Ryan
   2026-10-01: these belong under the account dropdown, not the header),
-  four tabs: **Members** (with last sign-in, and how long invitations
-  last), **Usage** (below), **Access log** (written by triggers into
+  four tabs: **Members** (with last sign-in, how long invitations last,
+  and — Ryan 2026-10-01 — adding someone to a project with a role, or
+  taking them off one, from their row), **Usage** (below), **Access log** (written by triggers into
   `access_event`; project owners see their project's on its Members tab),
   **Setup** (what the server has been given and the addresses to
   register; reports only). `/members` and `/workspace` redirect.
@@ -203,8 +204,13 @@ rails built now.
   days, 12 months, all); spend as the headline with runs, failures, people
   and tokens; spend per day or week; spend by project, person and pass
   (top 7 + Other; each a link that narrows the page); the latest 100 runs
-  with model (and any fallback), tokens, cost and outcome. A first stab
-  for Ryan to react to.
+  with model (and any fallback), tokens, cost and outcome. Then, from
+  Ryan's reaction: spend **by client**; **per interview** (coding + notes
+  over the interviews they ran on); and **what each project cost to
+  build**, a table of spend by pass with an all-in cost per interview.
+  `usage_runs()` is migration `20261001b` (Ryan had applied `20261001a`
+  before it was added). Owners only for now; project owners later. No
+  budget alerts for now.
 - **Two-factor rail**: `workspace_setting.mfa_required_for` (empty);
   `current_seat_role`, `has_seat` and `my_memberships` hide everything from
   a session below `aal2` when the caller's role needs it;

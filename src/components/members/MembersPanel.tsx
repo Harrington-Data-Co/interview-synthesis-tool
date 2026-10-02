@@ -15,8 +15,8 @@ export type MemberRow = {
    *  someone from outside). */
   role: string | null;
   clientAccess?: "deliverables" | "full";
-  /** Workspace page: the projects they're on. */
-  projects?: string[];
+  /** Settings → Members: the projects they're on, as what. */
+  projects?: MemberProject[];
   /** "signed in 3 days ago", when the viewer may see it. */
   lastSignIn?: string;
   you: boolean;
@@ -35,7 +35,11 @@ export type InviteRow = {
   canSend: boolean;
 };
 
-type Scope = { kind: "project"; projectId: string; projectName: string } | { kind: "workspace" };
+export type MemberProject = { projectId: string; name: string; role: string; clientAccess: string };
+/** A project anyone could be added to, for Settings → Members. */
+export type ProjectChoice = { id: string; name: string; client: string };
+
+type Scope = { kind: "project"; projectId: string; projectName: string } | { kind: "workspace"; projects: ProjectChoice[] };
 
 const roleLabel = (scope: Scope, role: string | null) =>
   (scope.kind === "project" ? PROJECT_ROLES : WORKSPACE_ROLES).find(([k]) => k === (role ?? ""))?.[1] ?? role ?? "None";
@@ -61,16 +65,20 @@ export function MembersPanel({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [link, setLink] = useState<{ id: string; url: string } | null>(null);
 
-  async function call(key: string, url: string, init: RequestInit, done?: (body: Record<string, unknown>) => void) {
+  async function call(key: string, url: string, init: RequestInit, done?: (body: Record<string, unknown>) => void): Promise<boolean> {
     setBusy(key);
     setError("");
     setNote("");
     const res = await fetch(withBase(url), { ...init, headers: { "content-type": "application/json" } });
     const body = await res.json().catch(() => ({}));
     setBusy(null);
-    if (!res.ok) return setError(body.error ?? `That didn't work (${res.status}).`);
+    if (!res.ok) {
+      setError(body.error ?? `That didn't work (${res.status}).`);
+      return false;
+    }
     done?.(body);
     router.refresh();
+    return true;
   }
 
   const memberUrl = (userId: string) =>
@@ -121,7 +129,6 @@ export function MembersPanel({
               <span className="meta" style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {m.email}
                 {m.lastSignIn ? ` · ${m.lastSignIn}` : ""}
-                {m.projects && (m.projects.length ? ` · ${m.projects.join(", ")}` : " · no projects")}
               </span>
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -181,6 +188,20 @@ export function MembersPanel({
                   </button>
                 ))}
             </div>
+            {scope.kind === "workspace" && m.projects && (
+              <MemberProjects
+                member={m}
+                choices={scope.projects}
+                busy={busy === m.userId}
+                onAdd={(projectId, role, clientAccess) =>
+                  call(m.userId, "/api/invitations", {
+                    method: "POST",
+                    body: JSON.stringify({ email: m.email, projectId, projectRole: role, clientAccess }),
+                  })
+                }
+                onRemove={(projectId) => call(m.userId, `/api/projects/${projectId}/members?userId=${m.userId}`, { method: "DELETE" })}
+              />
+            )}
           </div>
         ))}
       </section>
@@ -381,5 +402,110 @@ function Avatar({ initials }: { initials: string }) {
     >
       {initials}
     </span>
+  );
+}
+
+/** Under a person on Settings → Members: the projects they're on (each with
+ *  its role, removable) and Add to project, which puts them straight on one
+ *  with a role — they already have a seat, so there's no invitation. */
+function MemberProjects({
+  member,
+  choices,
+  busy,
+  onAdd,
+  onRemove,
+}: {
+  member: MemberRow;
+  choices: ProjectChoice[];
+  busy: boolean;
+  onAdd: (projectId: string, role: string, clientAccess: string) => Promise<boolean>;
+  onRemove: (projectId: string) => void;
+}) {
+  const on = new Set((member.projects ?? []).map((p) => p.projectId));
+  const open = choices.filter((c) => !on.has(c.id));
+  const [adding, setAdding] = useState(false);
+  const [projectId, setProjectId] = useState("");
+  const [role, setRole] = useState("editor");
+  const [clientAccess, setClientAccess] = useState("deliverables");
+  const clients = [...new Set(open.map((c) => c.client))].sort((a, b) => a.localeCompare(b));
+  const roleName = (r: string) => PROJECT_ROLES.find(([k]) => k === r)?.[1] ?? r;
+
+  return (
+    <div style={{ gridColumn: "2 / -1", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      {(member.projects ?? []).map((p) => (
+        <span key={p.projectId} className="tag tag-neutral" style={{ gap: 6, textTransform: "none", letterSpacing: 0, fontSize: 12, fontWeight: 600 }}>
+          {p.name} · {roleName(p.role)}
+          {p.role === "client" && p.clientAccess === "full" ? " (everything)" : ""}
+          <button
+            type="button"
+            aria-label={`Take ${member.name} off ${p.name}`}
+            title={`Take ${member.name} off ${p.name}`}
+            disabled={busy}
+            onClick={() => onRemove(p.projectId)}
+            style={{ border: 0, background: "none", padding: 0, cursor: "pointer", color: "inherit", fontSize: 12 }}
+          >
+            ✕
+          </button>
+        </span>
+      ))}
+      {!member.projects?.length && !adding && <span className="meta" style={{ fontSize: 12 }}>On no projects.</span>}
+      {!adding ? (
+        open.length > 0 && (
+          <button type="button" className="btn btn-ghost" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setAdding(true)}>
+            + Add to project
+          </button>
+        )
+      ) : (
+        <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <select className="input" aria-label="Project" value={projectId} onChange={(e) => setProjectId(e.target.value)} style={{ fontSize: 12.5, width: "auto" }}>
+            <option value="">Choose a project…</option>
+            {clients.map((c) => (
+              <optgroup key={c} label={c}>
+                {open
+                  .filter((p) => p.client === c)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+          <select className="input" aria-label="Role" value={role} onChange={(e) => setRole(e.target.value)} style={{ fontSize: 12.5, width: "auto" }}>
+            {PROJECT_ROLES.map(([k, label]) => (
+              <option key={k} value={k}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {role === "client" && (
+            <select className="input" aria-label="What they see" value={clientAccess} onChange={(e) => setClientAccess(e.target.value)} style={{ fontSize: 12.5, width: "auto" }}>
+              {CLIENT_ACCESS.map(([k, label]) => (
+                <option key={k} value={k}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ fontSize: 12 }}
+            disabled={busy || !projectId}
+            onClick={async () => {
+              if (await onAdd(projectId, role, clientAccess)) {
+                setAdding(false);
+                setProjectId("");
+              }
+            }}
+          >
+            Add
+          </button>
+          <button type="button" className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setAdding(false)}>
+            Cancel
+          </button>
+        </span>
+      )}
+    </div>
   );
 }
