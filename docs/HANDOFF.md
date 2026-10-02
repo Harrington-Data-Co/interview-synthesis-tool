@@ -26,7 +26,34 @@ Updated end of day 2026-10-01. Read this first, then `docs/BACKLOG.md`
   Claude** (the Chrome extension wasn't connected); Ryan has looked at
   Settings → Members and Usage.
 
-## Next session: go live at tools.harringtondata.com
+## Next session, first: working practices (agreed 2026-10-01)
+
+Ryan asked how we compare with best practice; these come before the deploy.
+About an hour of Claude's time, each as its own pull request:
+
+1. **CI**: a GitHub Actions workflow running lint, `tsc`, unit tests, the
+   database checks (`scripts/db-checks/run.mjs`) and a build on every push
+   and pull request; **Dependabot** for dependency alerts.
+2. **`CLAUDE.md`**: the standing rules every session should load (the
+   *Gotchas learned* and *Standing rules* below, the suite's UI
+   conventions, migrations-are-frozen, pull requests not direct merges).
+3. **README → "Before going live: security"** checklist: a monthly spend
+   limit on the Anthropic API key; a separate production Supabase project
+   with backups; Supabase's own password minimum (10+) and leaked-password
+   protection (the app's 10-character rule is only in its own form);
+   two-factor for owners soon after launch; data retention and the
+   Anthropic account's terms for client material.
+4. **From now on: pull requests** instead of Claude merging into `main`;
+   `/code-review` on anything sizable, `/security-review` on anything
+   touching access, data or money; and screens seen working signed in
+   before UI work counts as done (connect the Chrome extension, or add a
+   local test account and a few browser tests).
+
+Known: `npm audit` reports 2 high-severity issues in `pptxgenjs` (via
+`image-size`; denial-of-service in image parsing, low real risk here). The
+Deck rebuild is likely to replace that library.
+
+## Then: go live at tools.harringtondata.com
 
 Decided 2026-10-01: the Harrington Tools **hub** is the domain's root and
 this tool lives at **/interview-synthesis**; one shared sign-in, roles per

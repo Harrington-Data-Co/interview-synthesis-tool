@@ -534,8 +534,10 @@ clunky. Not for now; a later piece of work.
 
 ## Suggested order
 
-**Set by Ryan 2026-10-01, after Settings and Usage merged.** First, go live
-at tools.harringtondata.com (README → *Deploying*). Then:
+**Set by Ryan 2026-10-01, after Settings and Usage merged.** First, the
+working-practices items in the handoff (CI and Dependabot, `CLAUDE.md`, a
+security checklist, pull requests from now on). Then go live at
+tools.harringtondata.com (README → *Deploying*). Then:
 
 1. **Rebuild the Deck** (R12).
 2. **Client view**: a deliverables view for clients without the read-only
