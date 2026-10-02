@@ -534,6 +534,28 @@ clunky. Not for now; a later piece of work.
 
 ## Suggested order
 
+**Set by Ryan 2026-10-01, after Settings and Usage merged.** First, go live
+at tools.harringtondata.com (README → *Deploying*). Then:
+
+1. **Rebuild the Deck** (R12).
+2. **Client view**: a deliverables view for clients without the read-only
+   editing chrome (follow-up under *Invitation-only access…*).
+3. **Architecture and maps**: undo for architecture edits; crowded maps.
+4. **The flaky corpus check.**
+5. **Active and archived projects.**
+6. **Mobile-friendly views.**
+7. **Model selection** for the AI passes.
+8. **Two-factor sign-in**: enrollment and verification screens on the rail
+   already built.
+9. **Project owners see their own project's usage.**
+
+Smaller, whenever: dropping `transcript.participant` / `participant_role`;
+Activity on a project's Members tab for its owners is done; the Harrington
+Tools hub page at the domain's root (see *Going live* in the handoff).
+
+### Earlier order (2026-09-30), for the record
+
+
 Earlier items are all done. For the 2026-09-30 review (R1–R11):
 
 1. **The person model first: R4 + R5 + R2** (decided 2026-09-30: it's
