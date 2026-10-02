@@ -184,6 +184,13 @@ a.tag.card-over:hover { box-shadow: inset 0 0 0 1px var(--color-accent-tint-bord
 .table-compact td { padding: 6px 10px; }
 .table-compact .num { text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; white-space: nowrap; }
 .table-compact tr.total td { border-top: 1px solid var(--line-4); border-bottom: 0; font-weight: 700; }
+/* Column groups in a table of figures: a rule where a group starts, a little
+   more room after it, the group's name in the accent, and the summary
+   group (totals) on a faint band so it reads apart from the parts. */
+.table-compact .group-start { border-left: 1px solid var(--line-4); padding-left: 14px; }
+.table-compact th.group-name { color: var(--color-accent-800); text-align: center; border-bottom: 1px solid var(--line-2); }
+.table-compact .summary { background: var(--color-bg-soft); }
+.table-compact tbody tr:hover .summary { background: transparent; }
 
 /* — dialog — */
 .dialog-backdrop { background: rgba(27, 42, 65, 0.42); }

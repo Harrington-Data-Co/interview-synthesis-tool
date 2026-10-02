@@ -100,6 +100,8 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
   const runsView = query.view === "runs";
   const interviewPasses = shownPasses.filter((p) => INTERVIEW_PASSES.has(p));
   const artifactPasses = shownPasses.filter((p) => !INTERVIEW_PASSES.has(p));
+  // The first column of each group carries the rule between groups.
+  const startsGroup = (pass: string) => pass === interviewPasses[0] || pass === artifactPasses[0];
   const rows: RunRow[] = runsView
     ? runs.map((r) => ({
         id: r.id,
@@ -205,28 +207,28 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
                         Project
                       </th>
                       {interviewPasses.length > 0 && (
-                        <th colSpan={interviewPasses.length} className="num" style={{ textAlign: "center", borderBottom: "1px solid var(--line-2)" }}>
+                        <th colSpan={interviewPasses.length} className="group-name group-start">
                           Interviews
                         </th>
                       )}
                       {artifactPasses.length > 0 && (
-                        <th colSpan={artifactPasses.length} className="num" style={{ textAlign: "center", borderBottom: "1px solid var(--line-2)" }}>
+                        <th colSpan={artifactPasses.length} className="group-name group-start">
                           Artifacts
                         </th>
                       )}
-                      <th colSpan={3} className="num" style={{ textAlign: "center", borderBottom: "1px solid var(--line-2)" }}>
+                      <th colSpan={3} className="group-name group-start summary">
                         Altogether
                       </th>
                     </tr>
                     <tr>
                       {[...interviewPasses, ...artifactPasses].map((p) => (
-                        <th key={p} className="num">
+                        <th key={p} className={`num${startsGroup(p) ? " group-start" : ""}`}>
                           {p}
                         </th>
                       ))}
-                      <th className="num">Total</th>
-                      <th className="num">Interviews</th>
-                      <th className="num">Per interview</th>
+                      <th className="num group-start summary">Total</th>
+                      <th className="num summary">Interviews</th>
+                      <th className="num summary">Per interview</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -241,15 +243,15 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
                             {p?.client && <span className="meta"> · {p.client}</span>}
                           </td>
                           {[...interviewPasses, ...artifactPasses].map((pass) => (
-                            <td key={pass} className="num">
+                            <td key={pass} className={`num${startsGroup(pass) ? " group-start" : ""}`}>
                               {row.byPass[pass] ? money(row.byPass[pass]) : <span className="meta">·</span>}
                             </td>
                           ))}
-                          <td className="num" style={{ fontWeight: 700 }}>
+                          <td className="num group-start summary" style={{ fontWeight: 700 }}>
                             {money(row.total)}
                           </td>
-                          <td className="num">{p ? p.interviews : "·"}</td>
-                          <td className="num">{p?.interviews ? money(row.total / p.interviews) : <span className="meta">·</span>}</td>
+                          <td className="num summary">{p ? p.interviews : "·"}</td>
+                          <td className="num summary">{p?.interviews ? money(row.total / p.interviews) : <span className="meta">·</span>}</td>
                         </tr>
                       );
                     })}
@@ -257,13 +259,13 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
                       <tr className="total">
                         <td>All projects</td>
                         {[...interviewPasses, ...artifactPasses].map((pass) => (
-                          <td key={pass} className="num">
+                          <td key={pass} className={`num${startsGroup(pass) ? " group-start" : ""}`}>
                             {money(passTotals[pass])}
                           </td>
                         ))}
-                        <td className="num">{money(u.spend)}</td>
-                        <td />
-                        <td />
+                        <td className="num group-start summary">{money(u.spend)}</td>
+                        <td className="summary" />
+                        <td className="summary" />
                       </tr>
                     )}
                   </tbody>
