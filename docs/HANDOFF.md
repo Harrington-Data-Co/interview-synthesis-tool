@@ -37,8 +37,10 @@ About an hour of Claude's time, each as its own pull request:
 2. **`CLAUDE.md`**: the standing rules every session should load (the
    *Gotchas learned* and *Standing rules* below, the suite's UI
    conventions, migrations-are-frozen, pull requests not direct merges).
-3. **README → "Before going live: security"** checklist: a monthly spend
-   limit on the Anthropic API key; a separate production Supabase project
+3. **README → "Before going live: security"** checklist: Anthropic spend
+   (already capped: Ryan's key runs on prepaid credit with auto-reload
+   off, topped up by hand — note it, and decide the balance for client
+   work); a separate production Supabase project
    with backups; Supabase's own password minimum (10+) and leaked-password
    protection (the app's 10-character rule is only in its own form);
    two-factor for owners soon after launch; data retention and the
@@ -48,6 +50,12 @@ About an hour of Claude's time, each as its own pull request:
    touching access, data or money; and screens seen working signed in
    before UI work counts as done (connect the Chrome extension, or add a
    local test account and a few browser tests).
+
+Small fix to fold in: when that prepaid credit runs out, Anthropic answers
+400 ("credit balance is too low"), and `src/lib/claude/respond.ts` shows
+"Claude returned an error (400). Try again." — trying again won't help.
+Recognize it and say the credit needs topping up (and show it on the
+failed run in Usage).
 
 Known: `npm audit` reports 2 high-severity issues in `pptxgenjs` (via
 `image-size`; denial-of-service in image parsing, low real risk here). The
