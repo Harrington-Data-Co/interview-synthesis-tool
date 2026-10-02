@@ -1,129 +1,154 @@
 # Handoff — where things stand
 
-Updated 2026-10-01 early morning, after the overnight invitation build. Read this first, then `docs/PLAN.md` and
-`docs/BACKLOG.md`.
+Updated end of day 2026-10-01. Read this first, then `docs/BACKLOG.md`
+(the suggested order is at its end) and, for older background,
+`docs/PLAN.md`.
 
-## 2026-10-01: settings, identity and access (branch `settings-and-access`)
+## Where we are
 
-Toward deploying at tools.harringtondata.com/interview-synthesis on Vercel
-(decisions in `docs/BACKLOG.md` → *Settings, identity and access*). Not
-merged; migration `20261001a_settings_and_access.sql` not applied. Checked
-in PGlite (new suite of 33 checks for settings, the two-factor rail, the
-log, sign-ins and profiles; the earlier suites still pass with it, and on a
-fresh `schema.sql`), lint, 143 unit tests, and a production build served
-under `/interview-synthesis` (redirects, assets, headers, signed-out
-redirects). The app copes with the migration missing (no log, no sign-in
-times, Settings says so), but profile saving needs it.
+- **`main` has everything; there are no open branches.** Last commits:
+  `28eee22` (settings, identity and access; usage dashboard), then two
+  backlog notes. Working tree clean, pushed to
+  `Harrington-Data-Co/interview-synthesis-tool`.
+- **Database: every migration is applied** in Supabase, through
+  `20261001a_settings_and_access` and `20261001b_usage` (checked against
+  the live project 2026-10-01). `supabase/schema.sql` describes the whole
+  database and loads clean on its own.
+- **Supabase settings done:** the sign-up hook is
+  `public.hook_require_invitation`; sign-in is email + password. Not yet
+  done: custom SMTP, the two email templates (README → *Signing in*), and
+  any production addresses.
+- **Running locally** at http://localhost:3000 (no base path), against
+  the one Supabase project. Ryan signs in with a password.
+- **Checks:** lint, `npx tsc --noEmit`, 153 unit tests (`npx vitest run`),
+  `npm run build`, and 238 database checks (`scripts/db-checks/`, below)
+  all pass. **The newest screens have mostly not been seen signed in by
+  Claude** (the Chrome extension wasn't connected); Ryan has looked at
+  Settings → Members and Usage.
 
-To take it: apply `20261001a`, merge, then follow README → *Deploying to
-tools.harringtondata.com*.
+## Next session: go live at tools.harringtondata.com
 
-## 2026-10-01: email and password instead of magic links
+Decided 2026-10-01: the Harrington Tools **hub** is the domain's root and
+this tool lives at **/interview-synthesis**; one shared sign-in, roles per
+tool; hosted on **Vercel**. Until a hub exists the root redirects to the
+tool (`next.config.ts`), so **a landing page is not needed to go live**
+(Claude's recommendation; see the backlog note on the hub).
 
-Ryan found magic links unreliable. Sign-in is now email + password
-(branch `passwords`); invitations are unchanged in the database. Invite and
-reset links land on `/auth/confirm` (a Continue click before a token_hash
-link is spent), then `/account/password`. Members' **Copy link** gives a
-set-up link for a pending invitation. Ryan has no password yet: *Forgot
-your password?* once. Optional: the two email templates in the README
-(*Signing in*) for click-first protection on emailed links.
+Steps (README → *Deploying to tools.harringtondata.com* has the detail):
 
-## Morning, 2026-10-01: invitation access is built, on branch `invitations`
+1. **Custom SMTP** — the one real blocker before inviting clients. Needs
+   from Ryan: where harringtondata.com's DNS is hosted, and which provider
+   (Resend, Postmark, Amazon SES, SendGrid). README → *Before adding
+   teammates*.
+2. **Decide: one Supabase project or two.** Sharing today's is simplest
+   (local work then touches live data); a separate production project is
+   `schema.sql` + *First-time setup*.
+3. **Vercel project**: import the repo; environment variables from
+   `.env.local.example`, with `SITE_URL=https://tools.harringtondata.com`
+   and `NEXT_PUBLIC_BASE_PATH=/interview-synthesis`, and the same
+   `CONNECTOR_TOKEN_KEY` as local if the database is shared. Check the
+   plan allows 300-second functions (the Claude passes declare it).
+4. **Domain**: add `tools.harringtondata.com` in Vercel; add its CNAME at
+   the DNS host.
+5. **Register production addresses**: Supabase Site URL and Redirect URLs;
+   Google OAuth redirect URI. **Settings → Setup** on the live site lists
+   the exact ones.
+6. **Email templates** (optional but recommended): Invite user and Reset
+   password pointed at `/auth/confirm` (README → *Signing in*).
+7. **Smoke test**: sign in; Settings → Setup all green; invite a second
+   address as a client; run one coding pass; check Usage records it.
 
-Built overnight while Ryan slept; designed with him first (decisions in
-`docs/BACKLOG.md` → *Invitation-only access…*). **Nothing is applied or
-merged.** Checked in PGlite: 112 access checks (owner, staff editor, staff
-on nothing, partner editor, viewer, deliverables client, full client,
-stranger) and 85 checks that every writing path still works for a partner
-editor, both against the migration on the old schema and against a fresh
-`schema.sql`. Lint, 138 unit tests and `npm run build` pass. **Not tried
-signed in**: the new code needs the migration, and the live database
-wasn't touched.
+## Then: Ryan's priority order (2026-10-01)
 
-To turn it on, in this order:
+1. Rebuild the Deck (R12: reveal.js in the browser; export to Google
+   Slides, PowerPoint, PDF).
+2. Client view (deliverables without the read-only editing chrome).
+3. Architecture and maps (undo for edits; crowded maps).
+4. The flaky corpus check.
+5. Active and archived projects.
+6. Mobile-friendly views.
+7. Model selection for the AI passes.
+8. Two-factor sign-in (screens only; the database rail is built).
+9. Project owners see their own project's usage.
 
-1. **Apply** `supabase/migrations/20260930g_invitations.sql` in the SQL
-   editor. Existing seats keep everything: each became a member of every
-   existing project with its old role.
-2. **Switch the hook**: Authentication → Hooks → Before User Created →
-   `public.hook_require_invitation` (replacing
-   `hook_restrict_signup_domain` if it was on). Keep sign-ups enabled.
-3. **Add the redirect** `http://localhost:3000/auth/confirm` (and the
-   deployed one, later) under Authentication → URL Configuration.
-4. **Merge** `invitations` into `main` and restart the dev server.
-5. **Try it**: invite a second address of yours to a project as a client
-   from the project's **Members** tab; open the email (or **Copy link**) in
-   a private window; check it lands on the memo and sees only cited quotes.
-   Then switch that client to *everything, read-only* and back.
+Each has a section in `docs/BACKLOG.md`.
 
-Until custom SMTP is set up, Supabase sends a few emails an hour; **Copy
-link** gets round that.
+## What was built 2026-09-30 → 2026-10-01
 
-### Where it lives
-- Database: migration `20260930g` (also appended to `schema.sql`).
-  Helpers `my_projects()`, `my_full_projects()`, `my_transcripts()`,
-  `my_evidence_codes()`; `guard_project_write()` on every project table;
-  `invite_member`, `accept_invitations`, `set_project_member`,
-  `remove_project_member`, `set_workspace_role`, `deactivate_seat`,
-  `project_access`, `client_evidence`, `create_project`.
-- App: `src/lib/seat.ts` (`currentSeat` accepts invitations;
-  `projectAccess`), `src/lib/invite.ts`, `src/lib/supabase/admin.ts`
-  (service role, invites only), `src/components/members/MembersPanel.tsx`,
-  `/members`, a project's `members` tab, `/auth/confirm`, `/auth/signout`.
-- `ProjectPage` takes tabs, buttons and stats from `projectAccess`; a
-  deliverables-only client is sent to the memo. `loadProjectEvidence`
-  falls back to `client_evidence` when no transcripts are readable.
-- The PGlite harness is in the session scratchpad, not the repo (as
-  before); the checks are worth re-creating if this needs changing.
+- **Invitation-only access and project roles** (migration `20260930g`):
+  everyone sees only their projects (workspace owners see all); project
+  roles owner / editor / viewer / client; clients see deliverables and the
+  quotes they cite, by title (or everything read-only, if an owner
+  allows); invite from Settings → Members or a project's Members tab.
+- **Email and password sign-in** instead of magic links; invite and reset
+  links land on `/auth/confirm` (a click before the link is spent, against
+  email scanners), then `/account/password`.
+- **Your account** (`/account`): profile (name also on the shared
+  sign-in), password, sign out of other devices, your access.
+- **Settings** (account menu, owners): **Members** (last sign-in; add
+  people to projects in place; invitation lifetime), **Usage**, **Access
+  log**, **Setup** (deployment check).
+- **Usage** (`/settings/usage`): spend figures; spend per day/week; by
+  client, project, person and pass; *What each project cost to build*
+  (column groups Interviews / Artifacts / Altogether); a **drawer** on
+  anything clicked; a **Runs** view on the shared table engine.
+- **Deployment groundwork**: base path, security headers, server dates in
+  `NEXT_PUBLIC_TIME_ZONE` (default America/New_York), README guide.
 
-## State
+## Decisions from 2026-10-01 (don't re-ask)
 
-- `main` holds Phases 0–6 plus the evidence drawer; the **people and
-  organizations** work (branch `people`) is being squash-merged into `main`
-  as the first step of the evening session (see "Evening plan").
-- **Migrations: everything is applied**, through
-  `20260930a_people`, `20260930b_organizations` and
-  `20260930c_organization_detail` (checked against Supabase 2026-09-30).
-- **Google Drive is connected** (Ryan's harringtondata.com account,
-  read-only scope). Meet transcripts live across his drives, mostly the
-  shared drive, not in "Meet Recordings".
-- Prompts: `coding-v2` (lists the people in the call), `note-v2`,
-  `themes-v1`, `memo-v1`, `flow-v1`, `deck-v1`, `arch-v1`. Model
-  `claude-opus-5-5`, effort `high`. coding-v2 hasn't been run against
-  Claude yet.
+- Access is **per project for everyone**; workspace owners see all.
+  Workspace owners and project owners invite. Invitations last 14 days by
+  default (Settings → Members). Clients default to **deliverables only**.
+- **Email + password**, not magic links.
+- **Suite layout**: hub at tools.harringtondata.com, each tool at a path;
+  shared identity, roles per tool; Vercel.
+- **Settings live under the account menu**, not the header.
+- **Usage is owners-only** for now; no budget alerts.
+- **UI language for the whole suite** (also saved to Claude's memory):
+  tables sort/group/filter from their headers on the shared engine;
+  clicking something opens the shared side drawer; the same brand styles.
+- **Two-factor**: later, but the rails are built
+  (`workspace_setting.mfa_required_for`, empty).
 
-## Evening plan (2026-09-30, Ryan away ~1 hour)
+## Gotchas learned
 
-Ryan asked for, in order:
+- **Server → client boundary.** A server component can only hand plain
+  data to a client component: not functions (Usage's `hrefFor` crashed),
+  and not values imported from a `"use client"` file (the role lists
+  crashed the Members tab; they now live in `members/roles.ts`).
+- **Spacing tokens** are `--space-1/2/3/4/6/8`; there is no `--space-5`
+  (cards lost their padding). Older code writes `var(--space-5, 20px)`.
+- **Base path.** `Link`, `router.push` and `redirect()` add
+  `/interview-synthesis` themselves; plain `fetch()`, `<a href>`,
+  `window.location` and form actions must go through `withBase()`
+  (`src/lib/basePath.ts`).
+- **Migrations Ryan has applied are frozen**: add to a new file (as
+  `20261001b` did) rather than editing one he's run.
 
-1. Write this handoff. (Done.)
-2. Merge `people` into `main`.
-3. **R7 + R3**: optional client short codes; "New client…" / "New
-   project…" from the upload dialog's dropdowns.
-4. **R6**: rework the upload dialog; new Meet transcripts show up on
-   Sources by themselves.
-5. Quick wins **R9** (project tabs: process vs outputs, Chain set apart as
-   a check) and **R10** (swimlane whitespace).
+## How access, settings and usage are put together
 
-Explicitly **not** tonight: R1 + R8 (URLs, top navigation), R11 (favicon),
-and the loose ends (dropping the participant columns, architecture undo,
-crowded architecture maps, trying Swimlanes/Deck/Architecture signed in,
-the flaky corpus check). Work goes on a branch for Ryan's review; new
-migrations go in `supabase/migrations/` for Ryan to apply.
-
-### How the evening went
-
-- `people` merged into `main` (`a208353`) and pushed.
-- Branch **`intake-and-project-tabs`**, merged into `main` as `a829924`
-  (2026-09-30, after Ryan applied migrations `d` and `e`): R7 + R3 (`54a78be`), R6
-  (`1de6531`), R9 (`6e5d3c6`), R10 (next commit). Each is noted in
-  `docs/BACKLOG.md`.
-- **Migrations applied by Ryan:**
-  `supabase/migrations/20260930d_client_codes.sql` (R7) and
-  `20260930e_drive_inbox.sql` (R6). Both checked in PGlite.
-- R10's real cause came from Ryan's screenshots (a shorter map kept a
-  longer map's scroll and width) and is fixed. R6 doesn't yet suggest a
-  client from the Drive folder.
+- **Reads**: every table's `<table>_read` policy asks which projects the
+  reader belongs to (`my_projects()`, `my_full_projects()`,
+  `my_transcripts()`; clients' quotes through `my_evidence_codes()`).
+- **Writes**: the definer functions keep a coarse `can_edit()`; one
+  `aaa_guard_project` trigger per project table checks the row's project
+  (`guard_project_write()`), so no writing function needs its own check.
+  Cross-project workspace operations (merging people or organizations)
+  call `begin_workspace_op()`.
+- **Two-factor rail**: `current_seat_role()`, `has_seat()` and
+  `my_memberships()` also ask `mfa_satisfied()`; `mfa_required_now()`
+  tells the app, which shows a "required" screen.
+- **Access log**: triggers on `invitation`, `seat` and `project_member`
+  write `access_event`.
+- **Usage**: `usage_runs()` unions the six `*_run` tables (owners only);
+  `src/lib/usage.ts` does the sums (tested); the page is
+  `src/app/(app)/settings/usage/page.tsx`, its drawer
+  `src/components/usage/UsageDrawer.tsx`.
+- **App side**: `src/lib/seat.ts` (`currentSeat` accepts invitations on
+  first sign-in; `projectAccess` per project), `src/lib/invite.ts`
+  (emails and copyable links), `src/lib/supabase/admin.ts` (service role,
+  invitations only), `src/components/members/`.
 
 ## Decisions from 2026-09-30 (don't re-ask)
 
@@ -324,10 +349,13 @@ gate — this fixed the Sierra note bug in Phase 3.
 
 ## Checking the database
 
-Database behaviour was checked with a PGlite harness (`check*.mjs`) that
-lived in a session scratchpad and is **not** in the repo. To re-check, load
-`supabase/schema.sql` into PGlite (with `auth.uid()` stubbed) and exercise
-the functions, or ask Ryan to test against Supabase. Unit tests:
+`scripts/db-checks/` loads `supabase/schema.sql` into an in-memory Postgres
+(PGlite, with Supabase's auth stubbed) and runs 238 checks: who sees and
+changes what (`access.mjs`), every writing path for a partner editor
+(`writing-paths.mjs`), and settings, the two-factor rail, the access log
+and usage (`settings.mjs`). Once: `npm install --no-save
+@electric-sql/pglite`; then `node scripts/db-checks/run.mjs`. Add checks
+there when the database changes. Unit tests:
 `npx vitest run`. Before handing over: `npx tsc --noEmit`, `npx eslint src`,
 `npm run build`.
 

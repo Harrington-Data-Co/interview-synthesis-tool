@@ -315,6 +315,7 @@ src/app/(app)/account/  your account
 src/lib/basePath.ts     the path the app sits under (/interview-synthesis)
 supabase/schema.sql     the data model; migrations/ updates an existing one
 docs/                   the build plan, backlog, and session handoff
+scripts/db-checks/      database checks in an in-memory Postgres (see HANDOFF)
 fixtures/private/       real transcripts for local checks — never committed
 reference/              the Claude Design prototype, as specification
 ```
