@@ -35,7 +35,7 @@ export function AccountView({
     <>
       <Profile name={name} initials={initials} title={title} />
       <SignIn email={email} />
-      <section className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         <span className="kicker">What you can get at</span>
         <p style={{ margin: 0, fontSize: 13.5 }}>
           {workspaceRole ? WORKSPACE_ROLE[workspaceRole] : "Invited from outside Harrington: just the projects below."}
@@ -97,7 +97,7 @@ function Profile({ name: initialName, initials: initialInitials, title: initialT
   }
 
   return (
-    <form onSubmit={save} className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <form onSubmit={save} className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <span className="kicker">Profile</span>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "var(--space-3)" }}>
         <Field label="Name">
@@ -133,7 +133,7 @@ function SignIn({ email }: { email: string }) {
   }
 
   return (
-    <section className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <span className="kicker">Signing in</span>
       <p style={{ margin: 0, fontSize: 13.5 }}>
         You sign in as <strong>{email}</strong> with a password. To use a different address, ask a workspace owner.

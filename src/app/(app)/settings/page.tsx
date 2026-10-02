@@ -58,12 +58,12 @@ export default async function SettingsPage() {
         <h2 style={{ fontSize: 26, margin: 0 }}>Settings</h2>
       </div>
 
-      <section className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         <span className="kicker">Invitations</span>
         {setting ? <InvitationDays days={setting.invitation_days} /> : <p className="meta">Apply migration 20261001a to change this.</p>}
       </section>
 
-      <section className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+      <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         <span className="kicker">Two-factor sign-in</span>
         <p style={{ margin: 0, fontSize: 13.5 }}>
           Required for: <strong>{setting?.mfa_required_for?.length ? setting.mfa_required_for.join(", ") : "nobody"}</strong>.
@@ -75,7 +75,7 @@ export default async function SettingsPage() {
         </p>
       </section>
 
-      <section className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         <span className="kicker">This server</span>
         <table className="table">
           <tbody>
@@ -99,7 +99,7 @@ export default async function SettingsPage() {
         </table>
       </section>
 
-      <section className="panel" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <section className="panel" style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         <span className="kicker">Addresses to register for this server</span>
         <p className="meta" style={{ margin: 0 }}>
           Sign-in and Google Drive only send people back to addresses they&apos;ve been told about. For this server
