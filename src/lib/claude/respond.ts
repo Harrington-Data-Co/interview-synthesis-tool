@@ -1,6 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ClaudeError } from "./call";
 
+/** Anthropic answers 400 "credit balance is too low" when prepaid credit runs out. */
+export function isCreditExhausted(e: unknown): boolean {
+  return e instanceof Anthropic.APIError && e.status === 400 && /credit balance is too low/i.test(e.message);
+}
+
 /** A response for an error from a Claude pass, if it is one; null otherwise.
  *  The SDK's typed errors, most specific first. */
 export function claudeErrorResponse(e: unknown): Response | null {
@@ -10,6 +15,12 @@ export function claudeErrorResponse(e: unknown): Response | null {
   }
   if (e instanceof Anthropic.RateLimitError) {
     return Response.json({ error: "Claude is rate-limited right now. Try again in a minute." }, { status: 503 });
+  }
+  if (isCreditExhausted(e)) {
+    return Response.json(
+      { error: "The Anthropic account is out of credit. Top it up in the Anthropic Console, then try again." },
+      { status: 503 },
+    );
   }
   if (e instanceof Anthropic.APIError) {
     console.error("[claude]", e);
