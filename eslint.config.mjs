@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored scripts from the rendered handoff page.
+    "docs/**",
   ]),
 ]);
 
