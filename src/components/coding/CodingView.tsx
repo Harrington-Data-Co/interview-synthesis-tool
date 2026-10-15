@@ -178,6 +178,9 @@ export function CodingView({
               {marked} of {lines.length} turns carry a code
               {editor && " · select text to code it"}
             </span>
+            <a href={withBase(`/api/transcripts/${transcriptId}/export/coding`)} className="meta" style={{ fontSize: 12, marginLeft: "auto" }} download>
+              Export spreadsheet
+            </a>
           </div>
           <div
             ref={linesRef}

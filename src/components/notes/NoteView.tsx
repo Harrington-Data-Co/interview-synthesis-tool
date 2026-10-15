@@ -179,6 +179,16 @@ export function NoteView({
         <Link href={`/templates?t=${template.id}`} className="meta" style={{ fontSize: 12 }}>
           Edit template
         </Link>
+        {noteId && items.length > 0 && (
+          <>
+            <a href={withBase(`/api/transcripts/${transcriptId}/export/notes?template=${template.id}&format=md`)} className="meta" style={{ fontSize: 12 }} download>
+              Markdown
+            </a>
+            <a href={withBase(`/api/transcripts/${transcriptId}/export/notes?template=${template.id}&format=docx`)} className="meta" style={{ fontSize: 12 }} download>
+              Word
+            </a>
+          </>
+        )}
         {editor && (
           <span style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
             {lastRun && !running && (

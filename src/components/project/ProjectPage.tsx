@@ -17,6 +17,7 @@ import { loadTranscripts, participantNames, participantOrgIds, SOURCE_LABEL } fr
 import { ProjectMembers } from "@/components/project/ProjectMembers";
 import { projectAccess } from "@/lib/seat";
 import { createClient } from "@/lib/supabase/server";
+import { withBase } from "@/lib/basePath";
 import { clientPath, DELIVERABLE_VIEWS, findProjectId, projectHref, type ViewKey } from "@/lib/urls";
 
 export type ProjectQuery = {
@@ -142,6 +143,11 @@ export async function ProjectPage({
             >
               Members
             </Link>
+          )}
+          {access.full && rows.some((t) => t.status === "coded") && (
+            <a className="btn btn-ghost" href={withBase(`/api/projects/${id}/export/codes`)} download>
+              Export all codes
+            </a>
           )}
           {editor && (
             <>

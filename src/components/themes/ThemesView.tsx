@@ -118,6 +118,18 @@ export function ThemesView({
         {pill("", "All", themes.length)}
         {pill("proposed", "Proposed", proposed.length)}
         {pill("confirmed", "Confirmed", confirmed.length)}
+        {themes.length > 0 &&
+          (
+            [
+              ["md", "Markdown"],
+              ["docx", "Word"],
+              ["xlsx", "Excel"],
+            ] as const
+          ).map(([format, label]) => (
+            <a key={format} href={withBase(`/api/projects/${projectId}/export/themes?format=${format}`)} className="meta" style={{ fontSize: 12 }} download>
+              {label}
+            </a>
+          ))}
         {editor && (
           <span style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
             {lastRun && !running && (

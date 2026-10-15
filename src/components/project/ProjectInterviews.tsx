@@ -57,7 +57,11 @@ export function ProjectInterviews({
   const col = (key: string) => columns.find((c) => c.key === key)!;
   const labelCols = columns.filter((c) => c.key.startsWith("label:"));
   const groupCol = live.group ? columns.find((c) => c.key === live.group) : undefined;
-  const width = editor ? 8 : 7;
+  const width = 8;
+
+  // No selection means every interview; a selection means just those.
+  const notesHref = (format: string) =>
+    withBase(`/api/projects/${projectId}/export/notes?format=${format}${selected.size ? `&interviews=${[...selected].join(",")}` : ""}`);
 
   const toggle = (ids: string[], on: boolean) =>
     setSelected((s) => {
@@ -85,16 +89,14 @@ export function ProjectInterviews({
     });
     return (
       <tr key={t.id}>
-        {editor && (
-          <td>
-            <input
-              type="checkbox"
-              checked={selected.has(t.id)}
-              onChange={(e) => toggle([t.id], e.target.checked)}
-              aria-label={`Select ${t.title}`}
-            />
-          </td>
-        )}
+        <td>
+          <input
+            type="checkbox"
+            checked={selected.has(t.id)}
+            onChange={(e) => toggle([t.id], e.target.checked)}
+            aria-label={`Select ${t.title}`}
+          />
+        </td>
         <td>
           <Link href={withBase(`/transcripts/${t.id}`)}>{t.title}</Link>
           <span className="meta" style={{ display: "block", fontSize: 11 }}>
@@ -158,14 +160,29 @@ export function ProjectInterviews({
       <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap", minHeight: 28 }}>
         <span className="kicker">Interviews</span>
         <ViewChips columns={columns} view={live} onChange={change} />
-        {editor && (
-          <button className="btn btn-ghost" style={{ fontSize: 11.5, marginLeft: "auto" }} onClick={() => setManaging(true)}>
-            Manage labels
-          </button>
-        )}
+        <span style={{ marginLeft: "auto", display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
+          <span className="meta" style={{ fontSize: 11.5 }}>
+            Export notes for {selected.size ? `${selected.size} selected` : `all ${rows.length}`}:
+          </span>
+          {(
+            [
+              ["md", "Markdown"],
+              ["docx", "Word"],
+            ] as const
+          ).map(([format, label]) => (
+            <a key={format} href={notesHref(format)} className="meta" style={{ fontSize: 12 }} download>
+              {label}
+            </a>
+          ))}
+          {editor && (
+            <button className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => setManaging(true)}>
+              Manage labels
+            </button>
+          )}
+        </span>
       </div>
 
-      {editor && selected.size > 0 && (
+      {selected.size > 0 && (
         <div
           className="panel"
           style={{
@@ -178,13 +195,15 @@ export function ProjectInterviews({
           }}
         >
           <strong style={{ fontSize: 12.5 }}>{selected.size} selected</strong>
-          <button
-            className="btn"
-            style={{ fontSize: 12, color: "#FFFFFF", borderColor: "rgba(242,242,243,.45)" }}
-            onClick={(e) => setLabelMenu({ ids: [...selected], anchor: e.currentTarget.getBoundingClientRect() })}
-          >
-            Label as… ▾
-          </button>
+          {editor && (
+            <button
+              className="btn"
+              style={{ fontSize: 12, color: "#FFFFFF", borderColor: "rgba(242,242,243,.45)" }}
+              onClick={(e) => setLabelMenu({ ids: [...selected], anchor: e.currentTarget.getBoundingClientRect() })}
+            >
+              Label as… ▾
+            </button>
+          )}
           <button
             className="btn"
             style={{ fontSize: 12, color: "#FFFFFF", borderColor: "rgba(242,242,243,.25)", marginLeft: "auto" }}
@@ -200,16 +219,14 @@ export function ProjectInterviews({
           <table className="table">
             <thead>
               <tr>
-                {editor && (
-                  <th style={{ width: 28 }}>
-                    <input
-                      type="checkbox"
-                      checked={allOn(shownIds)}
-                      onChange={(e) => toggle(shownIds, e.target.checked)}
-                      aria-label="Select all shown"
-                    />
-                  </th>
-                )}
+                <th style={{ width: 28 }}>
+                  <input
+                    type="checkbox"
+                    checked={allOn(shownIds)}
+                    onChange={(e) => toggle(shownIds, e.target.checked)}
+                    aria-label="Select all shown"
+                  />
+                </th>
                 <th>Transcript</th>
                 {header("Participant", [col("participant")])}
                 {header("Organization", [col("organization"), col("topOrganization"), ...kindCols])}
@@ -229,7 +246,7 @@ export function ProjectInterviews({
                     label={g.label}
                     count={g.rows.length}
                     width={width}
-                    selectable={editor}
+                    selectable
                     allOn={allOn(g.rows.map((r) => r.id))}
                     onSelect={(on) => toggle(g.rows.map((r) => r.id), on)}
                   >
